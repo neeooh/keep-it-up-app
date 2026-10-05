@@ -26,6 +26,8 @@ interface Props {
   navigate: Navigate
   templateId: string | null
   direction: Direction | null
+  /** Called before navigating to the next screen so App can persist the values. */
+  onActivityChange?: (name: string, measurements: MeasurementConfig[]) => void
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -174,7 +176,7 @@ function ExerciseRowField({ row, index, onChange, onRemove, canRemove }: Exercis
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export function ConfigureActivityScreen({ navigate, templateId, direction }: Props) {
+export function ConfigureActivityScreen({ navigate, templateId, direction, onActivityChange }: Props) {
   const template = templateId ? findTemplate(templateId) : null
   const resolvedDirection = direction ?? template?.direction ?? 'DO'
 
@@ -212,6 +214,14 @@ export function ConfigureActivityScreen({ navigate, templateId, direction }: Pro
     : (template?.defaultMeasurements ?? []).filter((m) => m.type !== 'sets' && m.type !== 'reps' && m.type !== 'weight')
 
   function handleContinue() {
+    // Collect the current measurement values as MeasurementConfig[]
+    const collectedMeasurements: MeasurementConfig[] = visibleMeasurements.map((m) => ({
+      ...m,
+      target: measurementValues[m.type]
+        ? Number(measurementValues[m.type])
+        : m.target,
+    }))
+    onActivityChange?.(activityName, collectedMeasurements)
     navigate('set-frequency')
   }
 

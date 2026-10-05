@@ -3,7 +3,15 @@ import { LayoutGrid, Clock, TrendingUp, CalendarCheck } from 'lucide-react'
 
 import type { Screen } from './screens/types'
 import { ONBOARDING_SCREENS, NAV_TABS } from './screens/types'
-import type { Direction } from './domain/types'
+import type {
+  ChallengeDuration,
+  DayOfWeek,
+  Direction,
+  Frequency,
+  MeasurementConfig,
+} from './domain/types'
+import { useAppStore } from './store/useAppStore'
+import { findTemplate } from './domain/templates'
 
 // ── Onboarding screens ────────────────────────────────────────────────────────
 import { WelcomeScreen } from './screens/onboarding/WelcomeScreen'
@@ -34,14 +42,37 @@ const NAV_ICONS = {
 
 // ── Onboarding draft ──────────────────────────────────────────────────────────
 
-/** Partial state accumulated across onboarding screens. */
+/**
+ * All state accumulated while the user walks through the onboarding flow.
+ * Passed to PlanReviewScreen to assemble the final Routine.
+ */
 export interface OnboardingDraft {
   direction: Direction | null
   /** The id of the selected ActivityTemplate, or 'custom'. */
   templateId: string | null
+  /** Activity name as typed on the configure screen. */
+  activityName: string
+  /** Measurement values as configured on the configure screen. */
+  measurements: MeasurementConfig[]
+  frequency: Frequency
+  /** Optional preferred days (ISO day-of-week). */
+  scheduledDays: DayOfWeek[]
+  /** Optional preferred time label. */
+  preferredTime: string
+  /** null = no challenge. */
+  challengeDurationDays: ChallengeDuration | null
 }
 
-const EMPTY_DRAFT: OnboardingDraft = { direction: null, templateId: null }
+const EMPTY_DRAFT: OnboardingDraft = {
+  direction: null,
+  templateId: null,
+  activityName: '',
+  measurements: [],
+  frequency: '3x_week',
+  scheduledDays: [],
+  preferredTime: '',
+  challengeDurationDays: null,
+}
 
 // ── Navigate type ─────────────────────────────────────────────────────────────
 
@@ -53,9 +84,13 @@ interface ScreenProps {
   navigate: Navigate
   draft: OnboardingDraft
   setDraft: (patch: Partial<OnboardingDraft>) => void
+  onStartRoutine: () => void
 }
 
-function renderScreen(screen: Screen, { navigate, draft, setDraft }: ScreenProps) {
+function renderScreen(
+  screen: Screen,
+  { navigate, draft, setDraft, onStartRoutine }: ScreenProps,
+) {
   switch (screen) {
     case 'welcome':
       return (
@@ -81,16 +116,47 @@ function renderScreen(screen: Screen, { navigate, draft, setDraft }: ScreenProps
           navigate={navigate}
           templateId={draft.templateId}
           direction={draft.direction}
+          onActivityChange={(name, measurements) =>
+            setDraft({ activityName: name, measurements })
+          }
         />
       )
     case 'set-frequency':
-      return <SetFrequencyScreen navigate={navigate} />
+      return (
+        <SetFrequencyScreen
+          navigate={navigate}
+          frequency={draft.frequency}
+          onFrequencyChange={(f) => setDraft({ frequency: f })}
+        />
+      )
     case 'optional-schedule':
-      return <OptionalScheduleScreen navigate={navigate} />
+      return (
+        <OptionalScheduleScreen
+          navigate={navigate}
+          scheduledDays={draft.scheduledDays}
+          preferredTime={draft.preferredTime}
+          onScheduleChange={(days, time) =>
+            setDraft({ scheduledDays: days, preferredTime: time })
+          }
+        />
+      )
     case 'optional-challenge':
-      return <OptionalChallengeScreen navigate={navigate} />
+      return (
+        <OptionalChallengeScreen
+          navigate={navigate}
+          templateId={draft.templateId}
+          challengeDurationDays={draft.challengeDurationDays}
+          onChallengeChange={(days) => setDraft({ challengeDurationDays: days })}
+        />
+      )
     case 'plan-review':
-      return <PlanReviewScreen navigate={navigate} />
+      return (
+        <PlanReviewScreen
+          navigate={navigate}
+          draft={draft}
+          onStart={onStartRoutine}
+        />
+      )
     case 'dashboard':
       return <DashboardScreen />
     case 'active-session':
@@ -157,6 +223,7 @@ interface AppProps {
 export default function App({ initialScreen = 'welcome' }: AppProps) {
   const [screen, setScreen] = useState<Screen>(initialScreen)
   const [draft, setDraftState] = useState<OnboardingDraft>(EMPTY_DRAFT)
+  const { addRoutine } = useAppStore()
 
   const navigate = useCallback((next: Screen) => {
     setScreen(next)
@@ -165,6 +232,42 @@ export default function App({ initialScreen = 'welcome' }: AppProps) {
   const setDraft = useCallback((patch: Partial<OnboardingDraft>) => {
     setDraftState((prev) => ({ ...prev, ...patch }))
   }, [])
+
+  const onStartRoutine = useCallback(() => {
+    const template = draft.templateId ? findTemplate(draft.templateId) : null
+    const activityName =
+      draft.activityName || template?.defaultName || 'My activity'
+    const direction = draft.direction ?? template?.direction ?? 'DO'
+    const measurements =
+      draft.measurements.length > 0
+        ? draft.measurements
+        : template?.defaultMeasurements ?? []
+
+    addRoutine({
+      id: crypto.randomUUID(),
+      name: activityName,
+      createdAt: new Date().toISOString(),
+      challengeDurationDays: draft.challengeDurationDays ?? undefined,
+      challengeStartDate: draft.challengeDurationDays
+        ? new Date().toISOString().slice(0, 10)
+        : undefined,
+      activities: [
+        {
+          id: crypto.randomUUID(),
+          name: activityName,
+          direction,
+          measurements,
+          frequency: draft.frequency,
+          scheduledDays:
+            draft.scheduledDays.length > 0 ? draft.scheduledDays : undefined,
+          preferredTime: draft.preferredTime || undefined,
+        },
+      ],
+    })
+
+    setDraftState(EMPTY_DRAFT)
+    navigate('dashboard')
+  }, [draft, addRoutine, navigate])
 
   const isOnboarding = ONBOARDING_SCREENS.includes(screen)
 
@@ -179,7 +282,7 @@ export default function App({ initialScreen = 'welcome' }: AppProps) {
           isOnboarding ? '' : 'pb-20',
         ].join(' ')}
       >
-        {renderScreen(screen, { navigate, draft, setDraft })}
+        {renderScreen(screen, { navigate, draft, setDraft, onStartRoutine })}
       </main>
 
       {!isOnboarding && (
