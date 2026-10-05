@@ -109,8 +109,13 @@ function BottomNav({ current, onNavigate }: BottomNavProps) {
 
 // ── App shell ─────────────────────────────────────────────────────────────────
 
-export default function App() {
-  const [screen, setScreen] = useState<Screen>('welcome')
+interface AppProps {
+  /** Override the starting screen. Used in tests only. */
+  initialScreen?: Screen
+}
+
+export default function App({ initialScreen = 'welcome' }: AppProps) {
+  const [screen, setScreen] = useState<Screen>(initialScreen)
 
   const navigate = useCallback((next: Screen) => {
     setScreen(next)
