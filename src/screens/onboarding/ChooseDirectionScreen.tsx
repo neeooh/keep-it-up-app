@@ -11,6 +11,7 @@ interface Props {
   navigate: Navigate
   direction: Direction | null
   onDirectionChange: (direction: Direction) => void
+  onTemplateSelect?: (templateId: string) => void
 }
 
 /** Human-readable heading depending on direction. */
@@ -23,14 +24,14 @@ export function ChooseDirectionScreen({
   navigate,
   direction,
   onDirectionChange: _onDirectionChange,
+  onTemplateSelect,
 }: Props) {
   // Fall back to DO if direction somehow arrives null (deep-link or test)
   const resolvedDirection: Direction = direction ?? 'DO'
   const templates = templatesForDirection(resolvedDirection)
 
   function selectTemplate(template: ActivityTemplate) {
-    // TODO (task 6): persist templateId into draft
-    void template
+    onTemplateSelect?.(template.id)
     navigate('configure-activity')
   }
 

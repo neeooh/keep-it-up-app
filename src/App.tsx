@@ -37,6 +37,7 @@ const NAV_ICONS = {
 /** Partial state accumulated across onboarding screens. */
 export interface OnboardingDraft {
   direction: Direction | null
+  /** The id of the selected ActivityTemplate, or 'custom'. */
   templateId: string | null
 }
 
@@ -69,12 +70,19 @@ function renderScreen(screen: Screen, { navigate, draft, setDraft }: ScreenProps
           navigate={navigate}
           direction={draft.direction}
           onDirectionChange={(d) => setDraft({ direction: d })}
+          onTemplateSelect={(id) => setDraft({ templateId: id })}
         />
       )
     case 'choose-template':
       return <ChooseTemplateScreen navigate={navigate} direction={draft.direction} />
     case 'configure-activity':
-      return <ConfigureActivityScreen navigate={navigate} />
+      return (
+        <ConfigureActivityScreen
+          navigate={navigate}
+          templateId={draft.templateId}
+          direction={draft.direction}
+        />
+      )
     case 'set-frequency':
       return <SetFrequencyScreen navigate={navigate} />
     case 'optional-schedule':
