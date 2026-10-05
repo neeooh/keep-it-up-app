@@ -85,11 +85,22 @@ interface ScreenProps {
   draft: OnboardingDraft
   setDraft: (patch: Partial<OnboardingDraft>) => void
   onStartRoutine: () => void
+  selectedRoutineId: string | null
+  onStartSession: (routineId: string) => void
+  onEditRoutine: (routineId: string) => void
 }
 
 function renderScreen(
   screen: Screen,
-  { navigate, draft, setDraft, onStartRoutine }: ScreenProps,
+  {
+    navigate,
+    draft,
+    setDraft,
+    onStartRoutine,
+    selectedRoutineId,
+    onStartSession,
+    onEditRoutine,
+  }: ScreenProps,
 ) {
   switch (screen) {
     case 'welcome':
@@ -158,17 +169,38 @@ function renderScreen(
         />
       )
     case 'dashboard':
-      return <DashboardScreen />
+      return (
+        <DashboardScreen
+          navigate={navigate}
+          onStartSession={onStartSession}
+          onEditRoutine={onEditRoutine}
+        />
+      )
     case 'active-session':
-      return <ActiveSessionScreen />
+      return (
+        <ActiveSessionScreen
+          navigate={navigate}
+          routineId={selectedRoutineId}
+        />
+      )
     case 'history':
-      return <HistoryScreen />
+      return <HistoryScreen navigate={navigate} />
     case 'progress':
-      return <ProgressScreen />
+      return <ProgressScreen navigate={navigate} />
     case 'weekly-review':
-      return <WeeklyReviewScreen />
+      return (
+        <WeeklyReviewScreen
+          navigate={navigate}
+          onEditRoutine={onEditRoutine}
+        />
+      )
     case 'edit-routine':
-      return <EditRoutineScreen />
+      return (
+        <EditRoutineScreen
+          navigate={navigate}
+          routineId={selectedRoutineId}
+        />
+      )
   }
 }
 
@@ -223,6 +255,7 @@ interface AppProps {
 export default function App({ initialScreen = 'welcome' }: AppProps) {
   const [screen, setScreen] = useState<Screen>(initialScreen)
   const [draft, setDraftState] = useState<OnboardingDraft>(EMPTY_DRAFT)
+  const [selectedRoutineId, setSelectedRoutineId] = useState<string | null>(null)
   const { addRoutine } = useAppStore()
 
   const navigate = useCallback((next: Screen) => {
@@ -269,6 +302,22 @@ export default function App({ initialScreen = 'welcome' }: AppProps) {
     navigate('dashboard')
   }, [draft, addRoutine, navigate])
 
+  const onStartSession = useCallback(
+    (routineId: string) => {
+      setSelectedRoutineId(routineId)
+      navigate('active-session')
+    },
+    [navigate],
+  )
+
+  const onEditRoutine = useCallback(
+    (routineId: string) => {
+      setSelectedRoutineId(routineId)
+      navigate('edit-routine')
+    },
+    [navigate],
+  )
+
   const isOnboarding = ONBOARDING_SCREENS.includes(screen)
 
   return (
@@ -282,7 +331,15 @@ export default function App({ initialScreen = 'welcome' }: AppProps) {
           isOnboarding ? '' : 'pb-20',
         ].join(' ')}
       >
-        {renderScreen(screen, { navigate, draft, setDraft, onStartRoutine })}
+        {renderScreen(screen, {
+          navigate,
+          draft,
+          setDraft,
+          onStartRoutine,
+          selectedRoutineId,
+          onStartSession,
+          onEditRoutine,
+        })}
       </main>
 
       {!isOnboarding && (

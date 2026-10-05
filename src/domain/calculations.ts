@@ -10,7 +10,6 @@
 
 import type {
   Activity,
-  ActivityResult,
   ChallengeProgress,
   DateRange,
   MeasurementType,
