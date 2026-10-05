@@ -1,4 +1,8 @@
-export function SetFrequencyScreen() {
+import type { Navigate } from '../../App'
+
+interface Props { navigate: Navigate }
+
+export function SetFrequencyScreen({ navigate: _navigate }: Props) {
   return (
     <div data-testid="screen-set-frequency" className="flex flex-col items-center justify-center min-h-full p-6">
       <h1 className="text-2xl font-semibold text-foreground">Set frequency</h1>

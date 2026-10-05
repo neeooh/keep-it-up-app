@@ -3,6 +3,7 @@ import { LayoutGrid, Clock, TrendingUp, CalendarCheck } from 'lucide-react'
 
 import type { Screen } from './screens/types'
 import { ONBOARDING_SCREENS, NAV_TABS } from './screens/types'
+import type { Direction } from './domain/types'
 
 // ── Onboarding screens ────────────────────────────────────────────────────────
 import { WelcomeScreen } from './screens/onboarding/WelcomeScreen'
@@ -22,7 +23,7 @@ import { ProgressScreen } from './screens/ProgressScreen'
 import { WeeklyReviewScreen } from './screens/WeeklyReviewScreen'
 import { EditRoutineScreen } from './screens/EditRoutineScreen'
 
-// ── Navigation icons map ──────────────────────────────────────────────────────
+// ── Navigation icons ──────────────────────────────────────────────────────────
 
 const NAV_ICONS = {
   dashboard: LayoutGrid,
@@ -31,26 +32,57 @@ const NAV_ICONS = {
   'weekly-review': CalendarCheck,
 } as const
 
+// ── Onboarding draft ──────────────────────────────────────────────────────────
+
+/** Partial state accumulated across onboarding screens. */
+export interface OnboardingDraft {
+  direction: Direction | null
+  templateId: string | null
+}
+
+const EMPTY_DRAFT: OnboardingDraft = { direction: null, templateId: null }
+
+// ── Navigate type ─────────────────────────────────────────────────────────────
+
+export type Navigate = (screen: Screen) => void
+
 // ── Screen renderer ───────────────────────────────────────────────────────────
 
-function renderScreen(screen: Screen) {
+interface ScreenProps {
+  navigate: Navigate
+  draft: OnboardingDraft
+  setDraft: (patch: Partial<OnboardingDraft>) => void
+}
+
+function renderScreen(screen: Screen, { navigate, draft, setDraft }: ScreenProps) {
   switch (screen) {
     case 'welcome':
-      return <WelcomeScreen />
+      return (
+        <WelcomeScreen
+          navigate={navigate}
+          onDirectionChoose={(d) => setDraft({ direction: d })}
+        />
+      )
     case 'choose-direction':
-      return <ChooseDirectionScreen />
+      return (
+        <ChooseDirectionScreen
+          navigate={navigate}
+          direction={draft.direction}
+          onDirectionChange={(d) => setDraft({ direction: d })}
+        />
+      )
     case 'choose-template':
-      return <ChooseTemplateScreen />
+      return <ChooseTemplateScreen navigate={navigate} direction={draft.direction} />
     case 'configure-activity':
-      return <ConfigureActivityScreen />
+      return <ConfigureActivityScreen navigate={navigate} />
     case 'set-frequency':
-      return <SetFrequencyScreen />
+      return <SetFrequencyScreen navigate={navigate} />
     case 'optional-schedule':
-      return <OptionalScheduleScreen />
+      return <OptionalScheduleScreen navigate={navigate} />
     case 'optional-challenge':
-      return <OptionalChallengeScreen />
+      return <OptionalChallengeScreen navigate={navigate} />
     case 'plan-review':
-      return <PlanReviewScreen />
+      return <PlanReviewScreen navigate={navigate} />
     case 'dashboard':
       return <DashboardScreen />
     case 'active-session':
@@ -70,7 +102,7 @@ function renderScreen(screen: Screen) {
 
 interface BottomNavProps {
   current: Screen
-  onNavigate: (screen: Screen) => void
+  onNavigate: Navigate
 }
 
 function BottomNav({ current, onNavigate }: BottomNavProps) {
@@ -116,9 +148,14 @@ interface AppProps {
 
 export default function App({ initialScreen = 'welcome' }: AppProps) {
   const [screen, setScreen] = useState<Screen>(initialScreen)
+  const [draft, setDraftState] = useState<OnboardingDraft>(EMPTY_DRAFT)
 
   const navigate = useCallback((next: Screen) => {
     setScreen(next)
+  }, [])
+
+  const setDraft = useCallback((patch: Partial<OnboardingDraft>) => {
+    setDraftState((prev) => ({ ...prev, ...patch }))
   }, [])
 
   const isOnboarding = ONBOARDING_SCREENS.includes(screen)
@@ -128,17 +165,15 @@ export default function App({ initialScreen = 'welcome' }: AppProps) {
       data-testid="app-shell"
       className="relative mx-auto flex min-h-svh max-w-md flex-col bg-background"
     >
-      {/* Screen content — pad bottom on main screens to clear the nav bar */}
       <main
         className={[
           'flex flex-1 flex-col',
           isOnboarding ? '' : 'pb-20',
         ].join(' ')}
       >
-        {renderScreen(screen)}
+        {renderScreen(screen, { navigate, draft, setDraft })}
       </main>
 
-      {/* Bottom navigation — hidden during onboarding */}
       {!isOnboarding && (
         <BottomNav current={screen} onNavigate={navigate} />
       )}

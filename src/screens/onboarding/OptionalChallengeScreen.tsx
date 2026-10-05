@@ -1,4 +1,8 @@
-export function OptionalChallengeScreen() {
+import type { Navigate } from '../../App'
+
+interface Props { navigate: Navigate }
+
+export function OptionalChallengeScreen({ navigate: _navigate }: Props) {
   return (
     <div data-testid="screen-optional-challenge" className="flex flex-col items-center justify-center min-h-full p-6">
       <h1 className="text-2xl font-semibold text-foreground">Optional challenge</h1>
