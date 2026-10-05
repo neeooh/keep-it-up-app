@@ -1,127 +1,142 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useCallback, useState } from 'react'
+import { LayoutGrid, Clock, TrendingUp, CalendarCheck } from 'lucide-react'
 
-function App() {
-  const [count, setCount] = useState(0)
+import type { Screen } from './screens/types'
+import { ONBOARDING_SCREENS, NAV_TABS } from './screens/types'
 
+// ── Onboarding screens ────────────────────────────────────────────────────────
+import { WelcomeScreen } from './screens/onboarding/WelcomeScreen'
+import { ChooseDirectionScreen } from './screens/onboarding/ChooseDirectionScreen'
+import { ChooseTemplateScreen } from './screens/onboarding/ChooseTemplateScreen'
+import { ConfigureActivityScreen } from './screens/onboarding/ConfigureActivityScreen'
+import { SetFrequencyScreen } from './screens/onboarding/SetFrequencyScreen'
+import { OptionalScheduleScreen } from './screens/onboarding/OptionalScheduleScreen'
+import { OptionalChallengeScreen } from './screens/onboarding/OptionalChallengeScreen'
+import { PlanReviewScreen } from './screens/onboarding/PlanReviewScreen'
+
+// ── Main app screens ──────────────────────────────────────────────────────────
+import { DashboardScreen } from './screens/DashboardScreen'
+import { ActiveSessionScreen } from './screens/ActiveSessionScreen'
+import { HistoryScreen } from './screens/HistoryScreen'
+import { ProgressScreen } from './screens/ProgressScreen'
+import { WeeklyReviewScreen } from './screens/WeeklyReviewScreen'
+import { EditRoutineScreen } from './screens/EditRoutineScreen'
+
+// ── Navigation icons map ──────────────────────────────────────────────────────
+
+const NAV_ICONS = {
+  dashboard: LayoutGrid,
+  history: Clock,
+  progress: TrendingUp,
+  'weekly-review': CalendarCheck,
+} as const
+
+// ── Screen renderer ───────────────────────────────────────────────────────────
+
+function renderScreen(screen: Screen) {
+  switch (screen) {
+    case 'welcome':
+      return <WelcomeScreen />
+    case 'choose-direction':
+      return <ChooseDirectionScreen />
+    case 'choose-template':
+      return <ChooseTemplateScreen />
+    case 'configure-activity':
+      return <ConfigureActivityScreen />
+    case 'set-frequency':
+      return <SetFrequencyScreen />
+    case 'optional-schedule':
+      return <OptionalScheduleScreen />
+    case 'optional-challenge':
+      return <OptionalChallengeScreen />
+    case 'plan-review':
+      return <PlanReviewScreen />
+    case 'dashboard':
+      return <DashboardScreen />
+    case 'active-session':
+      return <ActiveSessionScreen />
+    case 'history':
+      return <HistoryScreen />
+    case 'progress':
+      return <ProgressScreen />
+    case 'weekly-review':
+      return <WeeklyReviewScreen />
+    case 'edit-routine':
+      return <EditRoutineScreen />
+  }
+}
+
+// ── Bottom navigation ─────────────────────────────────────────────────────────
+
+interface BottomNavProps {
+  current: Screen
+  onNavigate: (screen: Screen) => void
+}
+
+function BottomNav({ current, onNavigate }: BottomNavProps) {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-
-           <h1 className="text-3xl font-bold underline">
-    Hello world! Test! 
-  </h1>
-
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    <nav
+      aria-label="Main navigation"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background"
+    >
+      <div className="mx-auto flex max-w-md items-center justify-around px-2 pb-safe">
+        {NAV_TABS.map(({ screen, label }) => {
+          const Icon = NAV_ICONS[screen as keyof typeof NAV_ICONS]
+          const isActive = current === screen
+          return (
+            <button
+              key={screen}
+              type="button"
+              aria-label={label}
+              aria-current={isActive ? 'page' : undefined}
+              onClick={() => onNavigate(screen)}
+              className={[
+                'flex flex-1 flex-col items-center gap-1 py-3 text-xs font-medium transition-colors',
+                isActive
+                  ? 'text-foreground'
+                  : 'text-muted-foreground hover:text-foreground',
+              ].join(' ')}
+            >
+              <Icon size={22} strokeWidth={isActive ? 2 : 1.5} aria-hidden="true" />
+              <span>{label}</span>
+            </button>
+          )
+        })}
+      </div>
+    </nav>
   )
 }
 
-export default App
+// ── App shell ─────────────────────────────────────────────────────────────────
+
+export default function App() {
+  const [screen, setScreen] = useState<Screen>('welcome')
+
+  const navigate = useCallback((next: Screen) => {
+    setScreen(next)
+  }, [])
+
+  const isOnboarding = ONBOARDING_SCREENS.includes(screen)
+
+  return (
+    <div
+      data-testid="app-shell"
+      className="relative mx-auto flex min-h-svh max-w-md flex-col bg-background"
+    >
+      {/* Screen content — pad bottom on main screens to clear the nav bar */}
+      <main
+        className={[
+          'flex flex-1 flex-col',
+          isOnboarding ? '' : 'pb-20',
+        ].join(' ')}
+      >
+        {renderScreen(screen)}
+      </main>
+
+      {/* Bottom navigation — hidden during onboarding */}
+      {!isOnboarding && (
+        <BottomNav current={screen} onNavigate={navigate} />
+      )}
+    </div>
+  )
+}
