@@ -6,7 +6,8 @@
  */
 
 import type { AppState, Routine, Session } from '../../domain/types'
-import { STORAGE_KEY } from '../../store/useAppStore'
+import { AppStoreProvider, STORAGE_KEY } from '../../store/useAppStore'
+import type { ReactNode } from 'react'
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -153,4 +154,14 @@ export function seedStore(state: AppState): void {
 
 export function clearStore(): void {
   localStorage.removeItem(STORAGE_KEY)
+}
+
+// ─── Provider wrapper for render() ────────────────────────────────────────────
+
+/**
+ * Wraps children in AppStoreProvider.
+ * Call seedStore() BEFORE render() so the provider reads the seeded data.
+ */
+export function StoreWrapper({ children }: { children: ReactNode }) {
+  return <AppStoreProvider>{children}</AppStoreProvider>
 }

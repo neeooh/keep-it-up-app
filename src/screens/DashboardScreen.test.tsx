@@ -18,6 +18,7 @@ import {
   daysAgo,
   seedStore,
   clearStore,
+  StoreWrapper,
 } from './__tests__/fixtures'
 
 afterEach(() => {
@@ -28,11 +29,13 @@ describe('DashboardScreen — empty state', () => {
   it('renders empty state when no routines exist', () => {
     seedStore({ routines: [], sessions: [] })
     render(
-      <DashboardScreen
-        navigate={vi.fn()}
-        onStartSession={vi.fn()}
-        onEditRoutine={vi.fn()}
-      />,
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+          onEditRoutine={vi.fn()}
+        />
+      </StoreWrapper>,
     )
     expect(screen.getByTestId('dashboard-empty')).toBeInTheDocument()
     expect(screen.getByText(/no routines yet/i)).toBeInTheDocument()
@@ -43,11 +46,13 @@ describe('DashboardScreen — empty state', () => {
     const navigate = vi.fn()
     const user = userEvent.setup()
     render(
-      <DashboardScreen
-        navigate={navigate}
-        onStartSession={vi.fn()}
-        onEditRoutine={vi.fn()}
-      />,
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={navigate}
+          onStartSession={vi.fn()}
+          onEditRoutine={vi.fn()}
+        />
+      </StoreWrapper>,
     )
     await user.click(screen.getByTestId('create-routine-button'))
     expect(navigate).toHaveBeenCalledWith('welcome')
@@ -77,11 +82,13 @@ describe('DashboardScreen — with data', () => {
     const onStartSession = vi.fn()
     const onEditRoutine = vi.fn()
     render(
-      <DashboardScreen
-        navigate={navigate}
-        onStartSession={onStartSession}
-        onEditRoutine={onEditRoutine}
-      />,
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={navigate}
+          onStartSession={onStartSession}
+          onEditRoutine={onEditRoutine}
+        />
+      </StoreWrapper>,
     )
     return { navigate, onStartSession, onEditRoutine }
   }

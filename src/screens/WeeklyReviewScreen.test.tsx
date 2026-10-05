@@ -18,6 +18,7 @@ import {
   daysAgo,
   seedStore,
   clearStore,
+  StoreWrapper,
 } from './__tests__/fixtures'
 import { STORAGE_KEY } from '../store/useAppStore'
 
@@ -35,7 +36,9 @@ describe('WeeklyReviewScreen — rendering', () => {
     const navigate = vi.fn()
     const onEditRoutine = vi.fn()
     render(
-      <WeeklyReviewScreen navigate={navigate} onEditRoutine={onEditRoutine} />,
+      <StoreWrapper>
+        <WeeklyReviewScreen navigate={navigate} onEditRoutine={onEditRoutine} />
+      </StoreWrapper>,
     )
     return { navigate, onEditRoutine }
   }
@@ -74,7 +77,9 @@ describe('WeeklyReviewScreen — "Keep routine" navigation', () => {
     const navigate = vi.fn()
     const user = userEvent.setup()
     render(
-      <WeeklyReviewScreen navigate={navigate} onEditRoutine={vi.fn()} />,
+      <StoreWrapper>
+        <WeeklyReviewScreen navigate={navigate} onEditRoutine={vi.fn()} />
+      </StoreWrapper>,
     )
     await user.click(screen.getByTestId('keep-routine-button'))
     expect(navigate).toHaveBeenCalledWith('dashboard')
@@ -91,7 +96,9 @@ describe('WeeklyReviewScreen — reduce frequency', () => {
     })
     const user = userEvent.setup()
     render(
-      <WeeklyReviewScreen navigate={vi.fn()} onEditRoutine={vi.fn()} />,
+      <StoreWrapper>
+        <WeeklyReviewScreen navigate={vi.fn()} onEditRoutine={vi.fn()} />
+      </StoreWrapper>,
     )
     await user.click(screen.getByTestId('reduce-frequency-button'))
 
@@ -109,7 +116,9 @@ describe('WeeklyReviewScreen — conditional suggestions', () => {
     // No sessions at all = 0% consistency
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
     render(
-      <WeeklyReviewScreen navigate={vi.fn()} onEditRoutine={vi.fn()} />,
+      <StoreWrapper>
+        <WeeklyReviewScreen navigate={vi.fn()} onEditRoutine={vi.fn()} />
+      </StoreWrapper>,
     )
     expect(screen.getByTestId('reduce-suggestion')).toBeInTheDocument()
   })
@@ -124,7 +133,9 @@ describe('WeeklyReviewScreen — conditional suggestions', () => {
     ]
     seedStore({ routines: [STRENGTH_ROUTINE], sessions })
     render(
-      <WeeklyReviewScreen navigate={vi.fn()} onEditRoutine={vi.fn()} />,
+      <StoreWrapper>
+        <WeeklyReviewScreen navigate={vi.fn()} onEditRoutine={vi.fn()} />
+      </StoreWrapper>,
     )
     // 3 sessions this week for a 3x_week routine = 100% consistency
     expect(screen.queryByTestId('reduce-suggestion')).not.toBeInTheDocument()
@@ -142,7 +153,9 @@ describe('WeeklyReviewScreen — edit routine', () => {
     const onEditRoutine = vi.fn()
     const user = userEvent.setup()
     render(
-      <WeeklyReviewScreen navigate={vi.fn()} onEditRoutine={onEditRoutine} />,
+      <StoreWrapper>
+        <WeeklyReviewScreen navigate={vi.fn()} onEditRoutine={onEditRoutine} />
+      </StoreWrapper>,
     )
     await user.click(screen.getByTestId('edit-routine-button'))
     expect(onEditRoutine).toHaveBeenCalledWith(STRENGTH_ROUTINE.id)

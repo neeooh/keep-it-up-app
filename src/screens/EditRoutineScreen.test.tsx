@@ -18,6 +18,7 @@ import {
   daysAgo,
   seedStore,
   clearStore,
+  StoreWrapper,
 } from './__tests__/fixtures'
 import { STORAGE_KEY } from '../store/useAppStore'
 
@@ -28,13 +29,13 @@ afterEach(() => {
 describe('EditRoutineScreen — not found', () => {
   it('shows error when routineId is null', () => {
     seedStore({ routines: [], sessions: [] })
-    render(<EditRoutineScreen navigate={vi.fn()} routineId={null} />)
+    render(<StoreWrapper><EditRoutineScreen navigate={vi.fn()} routineId={null} /></StoreWrapper>)
     expect(screen.getByText(/routine not found/i)).toBeInTheDocument()
   })
 
   it('shows error when routineId does not match', () => {
     seedStore({ routines: [], sessions: [] })
-    render(<EditRoutineScreen navigate={vi.fn()} routineId="nonexistent" />)
+    render(<StoreWrapper><EditRoutineScreen navigate={vi.fn()} routineId="nonexistent" /></StoreWrapper>)
     expect(screen.getByText(/routine not found/i)).toBeInTheDocument()
   })
 })
@@ -43,7 +44,9 @@ describe('EditRoutineScreen — pre-population', () => {
   it('pre-populates the routine name', () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
     render(
-      <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />,
+      <StoreWrapper>
+        <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />
+      </StoreWrapper>,
     )
     const input = screen.getByTestId('edit-name') as HTMLInputElement
     expect(input.value).toBe('Strength Training')
@@ -52,7 +55,9 @@ describe('EditRoutineScreen — pre-population', () => {
   it('pre-selects the current frequency', () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
     render(
-      <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />,
+      <StoreWrapper>
+        <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />
+      </StoreWrapper>,
     )
     const radio = screen.getByTestId('edit-frequency-3x_week')
     expect(radio).toHaveAttribute('aria-checked', 'true')
@@ -65,7 +70,9 @@ describe('EditRoutineScreen — save', () => {
     const navigate = vi.fn()
     const user = userEvent.setup()
     render(
-      <EditRoutineScreen navigate={navigate} routineId={STRENGTH_ROUTINE.id} />,
+      <StoreWrapper>
+        <EditRoutineScreen navigate={navigate} routineId={STRENGTH_ROUTINE.id} />
+      </StoreWrapper>,
     )
 
     const input = screen.getByTestId('edit-name') as HTMLInputElement
@@ -84,7 +91,9 @@ describe('EditRoutineScreen — save', () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
     const user = userEvent.setup()
     render(
-      <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />,
+      <StoreWrapper>
+        <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />
+      </StoreWrapper>,
     )
 
     await user.click(screen.getByTestId('edit-frequency-2x_week'))
@@ -101,7 +110,9 @@ describe('EditRoutineScreen — cancel', () => {
     const navigate = vi.fn()
     const user = userEvent.setup()
     render(
-      <EditRoutineScreen navigate={navigate} routineId={STRENGTH_ROUTINE.id} />,
+      <StoreWrapper>
+        <EditRoutineScreen navigate={navigate} routineId={STRENGTH_ROUTINE.id} />
+      </StoreWrapper>,
     )
 
     // Make a change
@@ -125,7 +136,9 @@ describe('EditRoutineScreen — delete', () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
     const user = userEvent.setup()
     render(
-      <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />,
+      <StoreWrapper>
+        <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />
+      </StoreWrapper>,
     )
 
     await user.click(screen.getByTestId('delete-routine-button'))
@@ -144,7 +157,9 @@ describe('EditRoutineScreen — delete', () => {
     const navigate = vi.fn()
     const user = userEvent.setup()
     render(
-      <EditRoutineScreen navigate={navigate} routineId={STRENGTH_ROUTINE.id} />,
+      <StoreWrapper>
+        <EditRoutineScreen navigate={navigate} routineId={STRENGTH_ROUTINE.id} />
+      </StoreWrapper>,
     )
 
     await user.click(screen.getByTestId('delete-routine-button'))
@@ -163,7 +178,9 @@ describe('EditRoutineScreen — delete', () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
     const user = userEvent.setup()
     render(
-      <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />,
+      <StoreWrapper>
+        <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />
+      </StoreWrapper>,
     )
 
     await user.click(screen.getByTestId('delete-routine-button'))

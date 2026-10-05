@@ -10,7 +10,7 @@ import type {
   Frequency,
   MeasurementConfig,
 } from './domain/types'
-import { useAppStore } from './store/useAppStore'
+import { useAppStore, AppStoreProvider } from './store/useAppStore'
 import { findTemplate } from './domain/templates'
 
 // ── Onboarding screens ────────────────────────────────────────────────────────
@@ -253,6 +253,14 @@ interface AppProps {
 }
 
 export default function App({ initialScreen = 'welcome' }: AppProps) {
+  return (
+    <AppStoreProvider>
+      <AppShell initialScreen={initialScreen} />
+    </AppStoreProvider>
+  )
+}
+
+function AppShell({ initialScreen = 'welcome' }: AppProps) {
   const [screen, setScreen] = useState<Screen>(initialScreen)
   const [draft, setDraftState] = useState<OnboardingDraft>(EMPTY_DRAFT)
   const [selectedRoutineId, setSelectedRoutineId] = useState<string | null>(null)

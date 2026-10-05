@@ -16,6 +16,7 @@ import {
   daysAgo,
   seedStore,
   clearStore,
+  StoreWrapper,
 } from './__tests__/fixtures'
 
 afterEach(() => {
@@ -25,7 +26,7 @@ afterEach(() => {
 describe('ProgressScreen — not enough data', () => {
   it('shows "Not enough data yet" with no sessions', () => {
     seedStore({ routines: [RUNNING_ROUTINE], sessions: [] })
-    render(<ProgressScreen navigate={vi.fn()} />)
+    render(<StoreWrapper><ProgressScreen navigate={vi.fn()} /></StoreWrapper>)
     expect(screen.getByTestId('progress-not-enough-data')).toBeInTheDocument()
     expect(screen.getByText(/not enough data yet/i)).toBeInTheDocument()
   })
@@ -39,13 +40,13 @@ describe('ProgressScreen — not enough data', () => {
       30,
     )
     seedStore({ routines: [RUNNING_ROUTINE], sessions: [session] })
-    render(<ProgressScreen navigate={vi.fn()} />)
+    render(<StoreWrapper><ProgressScreen navigate={vi.fn()} /></StoreWrapper>)
     expect(screen.getByTestId('progress-not-enough-data')).toBeInTheDocument()
   })
 
   it('shows "Not enough data yet" with no routines', () => {
     seedStore({ routines: [], sessions: [] })
-    render(<ProgressScreen navigate={vi.fn()} />)
+    render(<StoreWrapper><ProgressScreen navigate={vi.fn()} /></StoreWrapper>)
     expect(screen.getByTestId('progress-not-enough-data')).toBeInTheDocument()
   })
 })
@@ -58,7 +59,7 @@ describe('ProgressScreen — with data', () => {
       makeRunningSession(RUNNING_ROUTINE.id, 'act-run', daysAgo(1), 5.5, 29),
     ]
     seedStore({ routines: [RUNNING_ROUTINE], sessions })
-    render(<ProgressScreen navigate={vi.fn()} />)
+    render(<StoreWrapper><ProgressScreen navigate={vi.fn()} /></StoreWrapper>)
     return { sessions }
   }
 

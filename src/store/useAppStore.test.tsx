@@ -11,11 +11,15 @@
  * - updateRoutine: does nothing for an unknown id
  * - deleteRoutine: removes the routine and all its sessions
  * - addSession: appends a new session
+ * - Context: useAppStore throws outside AppStoreProvider
+ * - Context: two consumers share the same state
  */
 
 import { renderHook, act } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ReactNode } from 'react'
 import {
+  AppStoreProvider,
   EMPTY_STATE,
   STORAGE_KEY,
   loadState,
@@ -55,6 +59,12 @@ function makeSession(id: string, routineId: string): Session {
       },
     ],
   }
+}
+
+// ─── Provider wrapper for renderHook ──────────────────────────────────────────
+
+function wrapper({ children }: { children: ReactNode }) {
+  return <AppStoreProvider>{children}</AppStoreProvider>
 }
 
 // ─── Setup / teardown ─────────────────────────────────────────────────────────
@@ -155,11 +165,24 @@ describe('serialisation round-trip', () => {
   })
 })
 
+// ─── useAppStore — context safety ─────────────────────────────────────────────
+
+describe('useAppStore — context', () => {
+  it('throws when used outside AppStoreProvider', () => {
+    // Suppress React error boundary output in test
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(() => renderHook(() => useAppStore())).toThrow(
+      'useAppStore must be used within an AppStoreProvider',
+    )
+    spy.mockRestore()
+  })
+})
+
 // ─── useAppStore — addRoutine ─────────────────────────────────────────────────
 
 describe('useAppStore — addRoutine', () => {
   it('appends a new routine to state', () => {
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addRoutine(makeRoutine('r1'))
@@ -170,7 +193,7 @@ describe('useAppStore — addRoutine', () => {
   })
 
   it('appends multiple routines in order', () => {
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addRoutine(makeRoutine('r1'))
@@ -187,7 +210,7 @@ describe('useAppStore — addRoutine', () => {
       STORAGE_KEY,
       JSON.stringify({ routines: [], sessions: [makeSession('s1', 'r-existing')] }),
     )
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addRoutine(makeRoutine('r1'))
@@ -197,7 +220,7 @@ describe('useAppStore — addRoutine', () => {
   })
 
   it('persists the new routine to localStorage', () => {
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addRoutine(makeRoutine('r1'))
@@ -213,7 +236,7 @@ describe('useAppStore — addRoutine', () => {
 
 describe('useAppStore — updateRoutine', () => {
   it('replaces an existing routine by id', () => {
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addRoutine(makeRoutine('r1'))
@@ -230,7 +253,7 @@ describe('useAppStore — updateRoutine', () => {
   })
 
   it('does not change the number of routines', () => {
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addRoutine(makeRoutine('r1'))
@@ -245,7 +268,7 @@ describe('useAppStore — updateRoutine', () => {
   })
 
   it('only updates the matching routine, leaving others unchanged', () => {
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addRoutine(makeRoutine('r1'))
@@ -260,7 +283,7 @@ describe('useAppStore — updateRoutine', () => {
   })
 
   it('does nothing when the id does not exist', () => {
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addRoutine(makeRoutine('r1'))
@@ -275,7 +298,7 @@ describe('useAppStore — updateRoutine', () => {
   })
 
   it('persists the updated routine to localStorage', () => {
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addRoutine(makeRoutine('r1'))
@@ -293,7 +316,7 @@ describe('useAppStore — updateRoutine', () => {
 
 describe('useAppStore — deleteRoutine', () => {
   it('removes the routine with the given id', () => {
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addRoutine(makeRoutine('r1'))
@@ -309,7 +332,7 @@ describe('useAppStore — deleteRoutine', () => {
   })
 
   it('removes all sessions that belong to the deleted routine', () => {
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addRoutine(makeRoutine('r1'))
@@ -327,7 +350,7 @@ describe('useAppStore — deleteRoutine', () => {
   })
 
   it('leaves other routines and sessions intact', () => {
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addRoutine(makeRoutine('r1'))
@@ -344,7 +367,7 @@ describe('useAppStore — deleteRoutine', () => {
   })
 
   it('does nothing when the id does not exist', () => {
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addRoutine(makeRoutine('r1'))
@@ -358,7 +381,7 @@ describe('useAppStore — deleteRoutine', () => {
   })
 
   it('persists the deletion to localStorage', () => {
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addRoutine(makeRoutine('r1'))
@@ -376,7 +399,7 @@ describe('useAppStore — deleteRoutine', () => {
 
 describe('useAppStore — addSession', () => {
   it('appends a new session to state', () => {
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addSession(makeSession('s1', 'r1'))
@@ -387,7 +410,7 @@ describe('useAppStore — addSession', () => {
   })
 
   it('appends multiple sessions in order', () => {
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addSession(makeSession('s1', 'r1'))
@@ -400,7 +423,7 @@ describe('useAppStore — addSession', () => {
   })
 
   it('does not affect existing routines', () => {
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addRoutine(makeRoutine('r1'))
@@ -411,7 +434,7 @@ describe('useAppStore — addSession', () => {
   })
 
   it('persists the new session to localStorage', () => {
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
       result.current.addSession(makeSession('s1', 'r1'))
@@ -433,7 +456,7 @@ describe('useAppStore — initial load', () => {
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
 
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     expect(result.current.state.routines).toHaveLength(1)
     expect(result.current.state.routines[0]!.id).toBe('r1')
@@ -443,7 +466,7 @@ describe('useAppStore — initial load', () => {
   it('falls back to empty state when localStorage is corrupt', () => {
     localStorage.setItem(STORAGE_KEY, 'not json at all {{{{')
 
-    const { result } = renderHook(() => useAppStore())
+    const { result } = renderHook(() => useAppStore(), { wrapper })
 
     expect(result.current.state).toEqual(EMPTY_STATE)
   })

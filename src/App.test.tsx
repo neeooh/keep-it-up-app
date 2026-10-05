@@ -11,15 +11,24 @@
 
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
 import { ONBOARDING_SCREENS, MAIN_SCREENS, type Screen } from './screens/types'
+import { STORAGE_KEY } from './store/useAppStore'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function renderAt(initialScreen: Screen) {
   return render(<App initialScreen={initialScreen} />)
 }
+
+beforeEach(() => {
+  localStorage.clear()
+})
+
+afterEach(() => {
+  localStorage.clear()
+})
 
 // ─── Initial render ───────────────────────────────────────────────────────────
 
@@ -137,5 +146,74 @@ describe('App — active nav tab has aria-current="page"', () => {
     expect(screen.getByRole('button', { name: 'History' })).not.toHaveAttribute(
       'aria-current',
     )
+  })
+})
+
+// ─── BUG-001 regression: adding a second routine ──────────────────────────────
+
+/**
+ * Walks through the full onboarding flow: welcome → choose-direction →
+ * configure-activity → set-frequency → optional-schedule → optional-challenge
+ * → plan-review → "Start today".
+ *
+ * After completion the dashboard should be active and contain the new routine.
+ */
+async function completeOnboarding(
+  user: ReturnType<typeof userEvent.setup>,
+  templateTestId: string,
+) {
+  // Step 1: Welcome — pick "Do something"
+  await user.click(screen.getByTestId('direction-do'))
+
+  // Step 2: Choose-direction — pick a template
+  await user.click(screen.getByTestId(templateTestId))
+
+  // Step 3: Configure-activity — accept defaults, click Continue
+  await user.click(screen.getByTestId('continue-button'))
+
+  // Step 4: Set-frequency — accept default, click Continue
+  await user.click(screen.getByTestId('continue-button'))
+
+  // Step 5: Optional-schedule — skip
+  await user.click(screen.getByTestId('skip-button'))
+
+  // Step 6: Optional-challenge — skip
+  await user.click(screen.getByTestId('skip-button'))
+
+  // Step 7: Plan-review — Start today
+  await user.click(screen.getByTestId('start-button'))
+}
+
+describe('BUG-001 regression — adding a second routine', () => {
+  it('shows both routines in the dashboard after adding two via onboarding', async () => {
+    const user = userEvent.setup()
+    renderAt('welcome')
+
+    // First routine: Running
+    await completeOnboarding(user, 'template-card-running')
+
+    // Should land on dashboard with 1 routine
+    expect(screen.getByTestId('screen-dashboard')).toBeInTheDocument()
+    expect(screen.getAllByText('Running').length).toBeGreaterThanOrEqual(1)
+
+    // Verify it is in localStorage
+    const state1 = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
+    expect(state1.routines).toHaveLength(1)
+
+    // Click "+" to add another routine
+    await user.click(screen.getByTestId('add-routine-button'))
+
+    // Second routine: Walking
+    await completeOnboarding(user, 'template-card-walking')
+
+    // Should land on dashboard with 2 routines
+    expect(screen.getByTestId('screen-dashboard')).toBeInTheDocument()
+
+    const state2 = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
+    expect(state2.routines).toHaveLength(2)
+
+    // Both routines should appear in the "This week" section
+    expect(screen.getAllByText('Running').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Walking').length).toBeGreaterThanOrEqual(1)
   })
 })

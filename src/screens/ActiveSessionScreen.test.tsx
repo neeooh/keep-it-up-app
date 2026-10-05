@@ -21,6 +21,7 @@ import {
   daysAgo,
   seedStore,
   clearStore,
+  StoreWrapper,
 } from './__tests__/fixtures'
 import { STORAGE_KEY } from '../store/useAppStore'
 
@@ -32,14 +33,16 @@ describe('ActiveSessionScreen — routine not found', () => {
   it('shows error state when routineId does not match any routine', () => {
     seedStore({ routines: [], sessions: [] })
     render(
-      <ActiveSessionScreen navigate={vi.fn()} routineId="nonexistent" />,
+      <StoreWrapper>
+        <ActiveSessionScreen navigate={vi.fn()} routineId="nonexistent" />
+      </StoreWrapper>,
     )
     expect(screen.getByText(/routine not found/i)).toBeInTheDocument()
   })
 
   it('shows error state when routineId is null', () => {
     seedStore({ routines: [], sessions: [] })
-    render(<ActiveSessionScreen navigate={vi.fn()} routineId={null} />)
+    render(<StoreWrapper><ActiveSessionScreen navigate={vi.fn()} routineId={null} /></StoreWrapper>)
     expect(screen.getByText(/routine not found/i)).toBeInTheDocument()
   })
 
@@ -47,7 +50,7 @@ describe('ActiveSessionScreen — routine not found', () => {
     seedStore({ routines: [], sessions: [] })
     const navigate = vi.fn()
     const user = userEvent.setup()
-    render(<ActiveSessionScreen navigate={navigate} routineId={null} />)
+    render(<StoreWrapper><ActiveSessionScreen navigate={navigate} routineId={null} /></StoreWrapper>)
     await user.click(screen.getByTestId('back-to-dashboard'))
     expect(navigate).toHaveBeenCalledWith('dashboard')
   })
@@ -57,10 +60,12 @@ describe('ActiveSessionScreen — strength activity', () => {
   it('renders set rows for a strength activity', () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
     render(
-      <ActiveSessionScreen
-        navigate={vi.fn()}
-        routineId={STRENGTH_ROUTINE.id}
-      />,
+      <StoreWrapper>
+        <ActiveSessionScreen
+          navigate={vi.fn()}
+          routineId={STRENGTH_ROUTINE.id}
+        />
+      </StoreWrapper>,
     )
     expect(screen.getByTestId('set-row-0')).toBeInTheDocument()
   })
@@ -68,10 +73,12 @@ describe('ActiveSessionScreen — strength activity', () => {
   it('complete button is disabled when no sets are filled', () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
     render(
-      <ActiveSessionScreen
-        navigate={vi.fn()}
-        routineId={STRENGTH_ROUTINE.id}
-      />,
+      <StoreWrapper>
+        <ActiveSessionScreen
+          navigate={vi.fn()}
+          routineId={STRENGTH_ROUTINE.id}
+        />
+      </StoreWrapper>,
     )
     expect(screen.getByTestId('complete-session-button')).toBeDisabled()
   })
@@ -86,10 +93,12 @@ describe('ActiveSessionScreen — strength activity', () => {
     )
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [lastSession] })
     render(
-      <ActiveSessionScreen
-        navigate={vi.fn()}
-        routineId={STRENGTH_ROUTINE.id}
-      />,
+      <StoreWrapper>
+        <ActiveSessionScreen
+          navigate={vi.fn()}
+          routineId={STRENGTH_ROUTINE.id}
+        />
+      </StoreWrapper>,
     )
     // Should have pre-filled weight inputs with 70
     const weightInput = screen.getByTestId('set-weight-0') as HTMLInputElement
@@ -101,10 +110,12 @@ describe('ActiveSessionScreen — strength activity', () => {
     const navigate = vi.fn()
     const user = userEvent.setup()
     render(
-      <ActiveSessionScreen
-        navigate={navigate}
-        routineId={STRENGTH_ROUTINE.id}
-      />,
+      <StoreWrapper>
+        <ActiveSessionScreen
+          navigate={navigate}
+          routineId={STRENGTH_ROUTINE.id}
+        />
+      </StoreWrapper>,
     )
 
     // Fill in first set
@@ -132,10 +143,12 @@ describe('ActiveSessionScreen — metric activity', () => {
   it('renders metric inputs for running', () => {
     seedStore({ routines: [RUNNING_ROUTINE], sessions: [] })
     render(
-      <ActiveSessionScreen
-        navigate={vi.fn()}
-        routineId={RUNNING_ROUTINE.id}
-      />,
+      <StoreWrapper>
+        <ActiveSessionScreen
+          navigate={vi.fn()}
+          routineId={RUNNING_ROUTINE.id}
+        />
+      </StoreWrapper>,
     )
     expect(screen.getByTestId('metric-distance')).toBeInTheDocument()
     expect(screen.getByTestId('metric-duration')).toBeInTheDocument()
@@ -144,10 +157,12 @@ describe('ActiveSessionScreen — metric activity', () => {
   it('complete button is disabled when no measurements filled', () => {
     seedStore({ routines: [RUNNING_ROUTINE], sessions: [] })
     render(
-      <ActiveSessionScreen
-        navigate={vi.fn()}
-        routineId={RUNNING_ROUTINE.id}
-      />,
+      <StoreWrapper>
+        <ActiveSessionScreen
+          navigate={vi.fn()}
+          routineId={RUNNING_ROUTINE.id}
+        />
+      </StoreWrapper>,
     )
     expect(screen.getByTestId('complete-session-button')).toBeDisabled()
   })
@@ -157,10 +172,12 @@ describe('ActiveSessionScreen — metric activity', () => {
     const navigate = vi.fn()
     const user = userEvent.setup()
     render(
-      <ActiveSessionScreen
-        navigate={navigate}
-        routineId={RUNNING_ROUTINE.id}
-      />,
+      <StoreWrapper>
+        <ActiveSessionScreen
+          navigate={navigate}
+          routineId={RUNNING_ROUTINE.id}
+        />
+      </StoreWrapper>,
     )
 
     await user.type(screen.getByTestId('metric-distance'), '5.2')
@@ -177,10 +194,12 @@ describe('ActiveSessionScreen — AVOID activity', () => {
   it('renders the stay-on-track buttons', () => {
     seedStore({ routines: [AVOID_ROUTINE], sessions: [] })
     render(
-      <ActiveSessionScreen
-        navigate={vi.fn()}
-        routineId={AVOID_ROUTINE.id}
-      />,
+      <StoreWrapper>
+        <ActiveSessionScreen
+          navigate={vi.fn()}
+          routineId={AVOID_ROUTINE.id}
+        />
+      </StoreWrapper>,
     )
     expect(screen.getByTestId('avoid-yes')).toBeInTheDocument()
     expect(screen.getByTestId('avoid-no')).toBeInTheDocument()
@@ -189,10 +208,12 @@ describe('ActiveSessionScreen — AVOID activity', () => {
   it('complete button is disabled until stayedOnTrack is set', () => {
     seedStore({ routines: [AVOID_ROUTINE], sessions: [] })
     render(
-      <ActiveSessionScreen
-        navigate={vi.fn()}
-        routineId={AVOID_ROUTINE.id}
-      />,
+      <StoreWrapper>
+        <ActiveSessionScreen
+          navigate={vi.fn()}
+          routineId={AVOID_ROUTINE.id}
+        />
+      </StoreWrapper>,
     )
     expect(screen.getByTestId('complete-session-button')).toBeDisabled()
   })
@@ -202,10 +223,12 @@ describe('ActiveSessionScreen — AVOID activity', () => {
     const navigate = vi.fn()
     const user = userEvent.setup()
     render(
-      <ActiveSessionScreen
-        navigate={navigate}
-        routineId={AVOID_ROUTINE.id}
-      />,
+      <StoreWrapper>
+        <ActiveSessionScreen
+          navigate={navigate}
+          routineId={AVOID_ROUTINE.id}
+        />
+      </StoreWrapper>,
     )
 
     await user.click(screen.getByTestId('avoid-yes'))
@@ -220,10 +243,12 @@ describe('ActiveSessionScreen — AVOID activity', () => {
     const navigate = vi.fn()
     const user = userEvent.setup()
     render(
-      <ActiveSessionScreen
-        navigate={navigate}
-        routineId={AVOID_ROUTINE.id}
-      />,
+      <StoreWrapper>
+        <ActiveSessionScreen
+          navigate={navigate}
+          routineId={AVOID_ROUTINE.id}
+        />
+      </StoreWrapper>,
     )
 
     await user.click(screen.getByTestId('avoid-no'))

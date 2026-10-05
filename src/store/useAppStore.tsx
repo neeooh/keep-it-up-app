@@ -1,15 +1,23 @@
 /**
  * useAppStore — the single source of truth for all application state.
  *
- * Reads from localStorage on first render and writes back on every state
- * change.  Exposes typed actions so components never touch localStorage
- * or raw state directly.
+ * A React Context holds the one state instance. The AppStoreProvider
+ * reads from localStorage on mount and writes back on every state
+ * change. All components that call useAppStore() share the same state.
  *
- * No external state-management library is used — plain React state is
+ * No external state-management library is used — React Context is
  * sufficient for a client-only MVP with local persistence.
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+import type { ReactNode } from 'react'
 import type { AppState, Routine, Session } from '../domain/types'
 
 // ─── Storage key ──────────────────────────────────────────────────────────────
@@ -64,7 +72,7 @@ export function saveState(state: AppState): void {
   }
 }
 
-// ─── Hook return type ─────────────────────────────────────────────────────────
+// ─── Store interface ──────────────────────────────────────────────────────────
 
 export interface AppStore {
   /** The current application state. */
@@ -94,9 +102,13 @@ export interface AppStore {
   addSession: (session: Session) => void
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
+// ─── Context ──────────────────────────────────────────────────────────────────
 
-export function useAppStore(): AppStore {
+const AppStoreContext = createContext<AppStore | null>(null)
+
+// ─── Provider ─────────────────────────────────────────────────────────────────
+
+export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(loadState)
 
   // Persist to localStorage whenever state changes.
@@ -132,5 +144,22 @@ export function useAppStore(): AppStore {
     }))
   }, [])
 
-  return { state, addRoutine, updateRoutine, deleteRoutine, addSession }
+  const store = useMemo<AppStore>(
+    () => ({ state, addRoutine, updateRoutine, deleteRoutine, addSession }),
+    [state, addRoutine, updateRoutine, deleteRoutine, addSession],
+  )
+
+  return (
+    <AppStoreContext.Provider value={store}>{children}</AppStoreContext.Provider>
+  )
+}
+
+// ─── Hook ─────────────────────────────────────────────────────────────────────
+
+export function useAppStore(): AppStore {
+  const store = useContext(AppStoreContext)
+  if (store === null) {
+    throw new Error('useAppStore must be used within an AppStoreProvider')
+  }
+  return store
 }

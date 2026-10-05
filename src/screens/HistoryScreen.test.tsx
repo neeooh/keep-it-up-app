@@ -18,6 +18,7 @@ import {
   daysAgo,
   seedStore,
   clearStore,
+  StoreWrapper,
 } from './__tests__/fixtures'
 
 afterEach(() => {
@@ -27,7 +28,7 @@ afterEach(() => {
 describe('HistoryScreen — empty state', () => {
   it('shows "No sessions yet" when no sessions exist', () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
-    render(<HistoryScreen navigate={vi.fn()} />)
+    render(<StoreWrapper><HistoryScreen navigate={vi.fn()} /></StoreWrapper>)
     expect(screen.getByTestId('history-empty')).toBeInTheDocument()
     expect(screen.getByText(/no sessions yet/i)).toBeInTheDocument()
   })
@@ -59,7 +60,7 @@ describe('HistoryScreen — with sessions', () => {
     const sessions = [session1, session2, session3]
     seedStore({ routines: [STRENGTH_ROUTINE], sessions })
     const navigate = vi.fn()
-    render(<HistoryScreen navigate={navigate} />)
+    render(<StoreWrapper><HistoryScreen navigate={navigate} /></StoreWrapper>)
     return { navigate, sessions }
   }
 
