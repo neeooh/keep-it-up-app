@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "shadcn-ui": {
+      "command": "npx",
+      "args": ["-y", "shadcn@latest", "mcp"],
+      "timeout": 30000
+    }
+  }
+}
