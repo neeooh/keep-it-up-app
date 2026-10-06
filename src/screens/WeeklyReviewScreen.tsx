@@ -22,6 +22,7 @@ import type {
   Frequency,
   MeasurementType,
   Routine,
+  Session,
   WeeklySummary,
 } from '../domain/types'
 
@@ -77,9 +78,14 @@ function metricUnit(type: MeasurementType): string {
 
 // ─── Reflection logic ─────────────────────────────────────────────────────────
 
-function generateReflection(summary: WeeklySummary): string {
+function generateReflection(summary: WeeklySummary, sessions: Session[]): string {
   if (summary.entries.length === 0) {
     return 'Start logging sessions to see your weekly review.'
+  }
+
+  // Day-one: no sessions recorded yet — encourage, do not score.
+  if (sessions.length === 0) {
+    return 'Your first week starts now. Log a session when you are ready — there is no rush.'
   }
 
   const overallRate = summary.overallConsistency
@@ -99,11 +105,27 @@ function generateReflection(summary: WeeklySummary): string {
     return 'Solid progress this week. You completed most of your planned sessions.'
   }
 
-  // Under 50%
+  // Under 50% — but only suggest reducing if the user has been active for at least a week
+  const oldestSession = sessions[0]
+  const daysSinceFirst = oldestSession
+    ? Math.floor((Date.now() - new Date(oldestSession.completedAt).getTime()) / 86_400_000)
+    : 0
+
+  if (daysSinceFirst < 7) {
+    return 'You are just getting started. Focus on showing up — the numbers will follow.'
+  }
+
   return 'You missed several planned sessions this week. A lower frequency target may be more realistic and help you build consistency.'
 }
 
-function shouldSuggestReduce(summary: WeeklySummary): boolean {
+function shouldSuggestReduce(summary: WeeklySummary, sessions: Session[]): boolean {
+  if (sessions.length === 0) return false
+  // Only suggest reducing after the user has been active for at least a week
+  const oldestSession = sessions[0]
+  const daysSinceFirst = oldestSession
+    ? Math.floor((Date.now() - new Date(oldestSession.completedAt).getTime()) / 86_400_000)
+    : 0
+  if (daysSinceFirst < 7) return false
   return summary.overallConsistency < 50 && summary.entries.some((e) => e.planned > 0)
 }
 
@@ -326,9 +348,9 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
               data-testid="review-reflection"
               className="text-sm text-foreground mt-1"
             >
-              {generateReflection(summary)}
+              {generateReflection(summary, sessions)}
             </p>
-            {shouldSuggestReduce(summary) && (
+            {shouldSuggestReduce(summary, sessions) && (
               <p
                 data-testid="reduce-suggestion"
                 className="text-xs text-muted-foreground mt-2 italic"

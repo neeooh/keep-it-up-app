@@ -113,8 +113,13 @@ describe('WeeklyReviewScreen — reduce frequency', () => {
 
 describe('WeeklyReviewScreen — conditional suggestions', () => {
   it('shows reduce suggestion when consistency is below 50%', () => {
-    // No sessions at all = 0% consistency
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    // Need at least one session older than 7 days so the age gate passes
+    seedStore({
+      routines: [STRENGTH_ROUTINE],
+      sessions: [
+        makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', daysAgo(10), 50, 8),
+      ],
+    })
     render(
       <StoreWrapper>
         <WeeklyReviewScreen navigate={vi.fn()} onEditRoutine={vi.fn()} />

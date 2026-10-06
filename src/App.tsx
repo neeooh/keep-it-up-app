@@ -252,7 +252,7 @@ interface AppProps {
   initialScreen?: Screen
 }
 
-export default function App({ initialScreen = 'welcome' }: AppProps) {
+export default function App({ initialScreen }: AppProps) {
   return (
     <AppStoreProvider>
       <AppShell initialScreen={initialScreen} />
@@ -260,11 +260,16 @@ export default function App({ initialScreen = 'welcome' }: AppProps) {
   )
 }
 
-function AppShell({ initialScreen = 'welcome' }: AppProps) {
-  const [screen, setScreen] = useState<Screen>(initialScreen)
+function AppShell({ initialScreen }: AppProps) {
+  const { addRoutine, state: appState } = useAppStore()
+
+  // Route to dashboard when routines already exist, unless explicitly overridden.
+  const resolvedInitial =
+    initialScreen ?? (appState.routines.length > 0 ? 'dashboard' : 'welcome')
+
+  const [screen, setScreen] = useState<Screen>(resolvedInitial)
   const [draft, setDraftState] = useState<OnboardingDraft>(EMPTY_DRAFT)
   const [selectedRoutineId, setSelectedRoutineId] = useState<string | null>(null)
-  const { addRoutine } = useAppStore()
 
   const navigate = useCallback((next: Screen) => {
     setScreen(next)

@@ -210,7 +210,7 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
       <div className="px-4 pt-8 pb-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Your momentum
+            {sessions.length === 0 ? 'Let\u2019s get started' : 'Your momentum'}
           </h1>
           <Button
             variant="ghost"
@@ -229,24 +229,40 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
         <Card>
           <CardContent className="pt-5">
             <p className="text-sm text-muted-foreground">Overall consistency</p>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span
-                data-testid="overall-consistency"
-                className="text-4xl font-bold text-foreground"
-              >
-                {overallConsistency}%
-              </span>
-              {hasPreviousData && consistencyDelta !== 0 && (
-                <span
-                  data-testid="consistency-delta"
-                  className={`text-sm font-medium ${consistencyDelta > 0 ? 'text-green-600' : 'text-red-500'}`}
+            {sessions.length === 0 ? (
+              <>
+                <p
+                  data-testid="day-one-message"
+                  className="text-lg font-semibold text-foreground mt-2"
                 >
-                  {consistencyDelta > 0 ? '+' : ''}
-                  {consistencyDelta}% vs last month
-                </span>
-              )}
-            </div>
-            <Progress value={overallConsistency} className="mt-3 h-2" />
+                  Ready for your first session?
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Your consistency score starts after your first workout.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <span
+                    data-testid="overall-consistency"
+                    className="text-4xl font-bold text-foreground"
+                  >
+                    {overallConsistency}%
+                  </span>
+                  {hasPreviousData && consistencyDelta !== 0 && (
+                    <span
+                      data-testid="consistency-delta"
+                      className={`text-sm font-medium ${consistencyDelta > 0 ? 'text-green-600' : 'text-red-500'}`}
+                    >
+                      {consistencyDelta > 0 ? '+' : ''}
+                      {consistencyDelta}% vs last month
+                    </span>
+                  )}
+                </div>
+                <Progress value={overallConsistency} className="mt-3 h-2" />
+              </>
+            )}
           </CardContent>
         </Card>
 
