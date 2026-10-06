@@ -28,7 +28,7 @@ describe('ProgressScreen — not enough data', () => {
     seedStore({ routines: [RUNNING_ROUTINE], sessions: [] })
     render(<StoreWrapper><ProgressScreen navigate={vi.fn()} /></StoreWrapper>)
     expect(screen.getByTestId('progress-not-enough-data')).toBeInTheDocument()
-    expect(screen.getByText(/not enough data yet/i)).toBeInTheDocument()
+    expect(screen.getByText(/your progress charts will appear here/i)).toBeInTheDocument()
   })
 
   it('shows "Not enough data yet" with only 1 session', () => {

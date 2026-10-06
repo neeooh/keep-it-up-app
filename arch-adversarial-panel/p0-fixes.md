@@ -76,3 +76,49 @@ The `EditRoutineScreen` already had a "Delete routine" button with a confirmatio
 **Fix.** `PlanReviewScreen` now reads the store via `useAppStore()` and checks if a routine with the same name (case-insensitive) already exists. If so, it shows a warning banner: "You already have a routine called X. You can still create this one, but consider renaming it to tell them apart." The user is not blocked — the warning is informational.
 
 **Files changed.** `src/screens/onboarding/PlanReviewScreen.tsx`, `src/screens/onboarding/task7.test.tsx`
+
+---
+
+# P2 bug fixes — 6 October 2026
+
+Five P2 items. All five fixed. All 334 tests pass.
+
+## P2-8: "Repeat last session" quick-log
+
+**Problem.** Returning users who do the same workout every session had to re-enter all values manually. No shortcut existed.
+
+**Fix.** The dashboard routine card now shows a "Repeat" button next to "Log session" when the routine has at least one previous session. One tap clones the last session's results with a new timestamp and saves it.
+
+**Files changed.** `src/screens/DashboardScreen.tsx`
+
+## P2-9: Restart challenge
+
+**Problem.** A user who wanted to restart their 30-day challenge had no way to do so. The only option was to delete the routine and re-create it.
+
+**Fix.** `EditRoutineScreen` now shows a "Restart X-day challenge" button when the routine has a challenge duration. One tap resets `challengeStartDate` to today. A confirmation message appears after the restart.
+
+**Files changed.** `src/screens/EditRoutineScreen.tsx`
+
+## P2-10: Empty states rewritten
+
+**Problem.** The History and Progress tabs showed factual but lifeless empty states ("No sessions yet", "Not enough data yet") with no call to action.
+
+**Fix.** Both empty states now have positive headings ("Your history starts here", "Your progress charts will appear here"), encouraging subtext, and a CTA button ("Log your first session" / "Log a session") that navigates to the dashboard.
+
+**Files changed.** `src/screens/HistoryScreen.tsx`, `src/screens/ProgressScreen.tsx`, `src/screens/HistoryScreen.test.tsx`, `src/screens/ProgressScreen.test.tsx`
+
+## P2-11: Review tab tone tuning
+
+**Problem.** The mid-range (50-79%) review messaging named missed routines ("you missed some sessions for X"), which felt like a report card.
+
+**Fix.** The 50-79% message now leads with the positive: "You completed X sessions this week. That counts." The 80%+ message was sharpened to "Strong week. You showed up consistently." The under-50% first-week message (from P0-3) remains encouraging.
+
+**Files changed.** `src/screens/WeeklyReviewScreen.tsx`
+
+## P2-12: Calendar reminder prompt
+
+**Problem.** The app collected preferred days and times during onboarding but never reminded the user to actually open the app. Push notifications are out of scope for the MVP.
+
+**Fix.** The `OptionalScheduleScreen` now shows a calendar-reminder prompt when the user has selected at least one day and a specific time (not "Anytime"). The message reads: "Add a recurring calendar reminder on your phone to help you remember. This app does not send push notifications yet."
+
+**Files changed.** `src/screens/onboarding/OptionalScheduleScreen.tsx`

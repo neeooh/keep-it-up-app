@@ -26,11 +26,11 @@ afterEach(() => {
 })
 
 describe('HistoryScreen — empty state', () => {
-  it('shows "No sessions yet" when no sessions exist', () => {
+  it('shows empty state when no sessions exist', () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
     render(<StoreWrapper><HistoryScreen navigate={vi.fn()} /></StoreWrapper>)
     expect(screen.getByTestId('history-empty')).toBeInTheDocument()
-    expect(screen.getByText(/no sessions yet/i)).toBeInTheDocument()
+    expect(screen.getByText(/your history starts here/i)).toBeInTheDocument()
   })
 })
 

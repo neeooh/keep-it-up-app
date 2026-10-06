@@ -6,7 +6,7 @@
  * Spec reference: mvp_product_spec.md section 10.
  */
 
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, CalendarPlus } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import type { Navigate } from '../../App'
 import type { DayOfWeek } from '../../domain/types'
@@ -133,6 +133,20 @@ export function OptionalScheduleScreen({
             })}
           </div>
         </div>
+
+        {/* Calendar reminder prompt */}
+        {scheduledDays.length > 0 && preferredTime && preferredTime !== 'Anytime' && (
+          <div
+            data-testid="calendar-reminder-prompt"
+            className="flex items-start gap-3 rounded-xl bg-muted px-4 py-3"
+          >
+            <CalendarPlus size={18} className="text-muted-foreground mt-0.5 shrink-0" aria-hidden="true" />
+            <p className="text-sm text-muted-foreground">
+              Add a recurring calendar reminder on your phone to help you remember.
+              This app does not send push notifications yet.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Actions */}

@@ -7,7 +7,8 @@
  * Spec reference: mvp_product_spec.md section 16.
  */
 
-import { BarChart3, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { BarChart3, TrendingUp, TrendingDown, Minus, Play } from 'lucide-react'
+import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
 import { Progress } from '../components/ui/progress'
 import { useAppStore } from '../store/useAppStore'
@@ -147,7 +148,7 @@ function TrendChart({
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export function ProgressScreen({ navigate: _navigate }: Props) {
+export function ProgressScreen({ navigate }: Props) {
   const { state } = useAppStore()
   const { routines, sessions } = state
 
@@ -176,10 +177,18 @@ export function ProgressScreen({ navigate: _navigate }: Props) {
             className="text-muted-foreground mb-3"
             aria-hidden="true"
           />
-          <p className="text-muted-foreground">Not enough data yet</p>
+          <p className="text-foreground font-medium">Your progress charts will appear here</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Complete at least two sessions to see your progress.
+            Complete two sessions to start tracking your trends.
           </p>
+          <Button
+            data-testid="progress-empty-cta"
+            onClick={() => navigate('dashboard')}
+            className="mt-4"
+          >
+            <Play size={16} className="mr-2" aria-hidden="true" />
+            Log a session
+          </Button>
         </div>
       </div>
     )

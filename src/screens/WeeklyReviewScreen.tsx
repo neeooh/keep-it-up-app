@@ -91,18 +91,18 @@ function generateReflection(summary: WeeklySummary, sessions: Session[]): string
   const overallRate = summary.overallConsistency
 
   if (overallRate >= 80) {
-    return 'You are doing well this week. Keep the momentum going.'
+    return 'Strong week. You showed up consistently — keep it going.'
   }
 
   if (overallRate >= 50) {
+    const completedCount = summary.entries.reduce((sum, e) => sum + e.completed, 0)
     const missedEntries = summary.entries.filter(
       (e) => e.planned > 0 && e.completed < e.planned,
     )
     if (missedEntries.length > 0) {
-      const names = missedEntries.map((e) => e.routineName).join(', ')
-      return `Good effort this week. You missed some sessions for ${names}. Consider whether your schedule needs adjusting.`
+      return `You completed ${completedCount} session${completedCount !== 1 ? 's' : ''} this week. That counts. If the schedule feels tight, you can adjust it below.`
     }
-    return 'Solid progress this week. You completed most of your planned sessions.'
+    return 'Solid week. You completed most of your planned sessions.'
   }
 
   // Under 50% — but only suggest reducing if the user has been active for at least a week

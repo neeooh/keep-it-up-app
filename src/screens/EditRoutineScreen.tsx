@@ -9,7 +9,7 @@
  */
 
 import { useState } from 'react'
-import { ChevronLeft, Trash2 } from 'lucide-react'
+import { ChevronLeft, Trash2, RotateCcw } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -80,6 +80,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
     routine?.activities[0]?.preferredTime ?? '',
   )
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [challengeRestarted, setChallengeRestarted] = useState(false)
 
   // Not-found state
   if (!routine) {
@@ -260,6 +261,40 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
             })}
           </div>
         </div>
+
+        {/* Restart challenge */}
+        {routine.challengeDurationDays && (
+          <Card>
+            <CardContent className="pt-4">
+              {challengeRestarted ? (
+                <p
+                  data-testid="restart-confirmation"
+                  className="text-sm text-green-600"
+                >
+                  Challenge restarted — {routine.challengeDurationDays} days from
+                  today.
+                </p>
+              ) : (
+                <Button
+                  data-testid="restart-challenge-button"
+                  variant="outline"
+                  onClick={() => {
+                    const updated: Routine = {
+                      ...routine,
+                      challengeStartDate: new Date().toISOString().slice(0, 10),
+                    }
+                    updateRoutine(updated)
+                    setChallengeRestarted(true)
+                  }}
+                  className="w-full"
+                >
+                  <RotateCcw size={16} className="mr-2" aria-hidden="true" />
+                  Restart {routine.challengeDurationDays}-day challenge
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Delete button */}
         <Card className="border-destructive/30">

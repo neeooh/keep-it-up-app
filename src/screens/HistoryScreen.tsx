@@ -8,7 +8,8 @@
  */
 
 import { useState } from 'react'
-import { Clock } from 'lucide-react'
+import { Clock, Play } from 'lucide-react'
+import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
 import {
   Sheet,
@@ -93,7 +94,7 @@ function topMetric(session: Session): string | null {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export function HistoryScreen({ navigate: _navigate }: Props) {
+export function HistoryScreen({ navigate }: Props) {
   const { state } = useAppStore()
   const { routines, sessions } = state
 
@@ -117,10 +118,18 @@ export function HistoryScreen({ navigate: _navigate }: Props) {
           className="flex flex-1 flex-col items-center justify-center px-6 text-center"
         >
           <Clock size={40} className="text-muted-foreground mb-3" aria-hidden="true" />
-          <p className="text-muted-foreground">No sessions yet</p>
+          <p className="text-foreground font-medium">Your history starts here</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Complete a session to see your history here.
+            Every session you complete shows up in this log.
           </p>
+          <Button
+            data-testid="history-empty-cta"
+            onClick={() => navigate('dashboard')}
+            className="mt-4"
+          >
+            <Play size={16} className="mr-2" aria-hidden="true" />
+            Log your first session
+          </Button>
         </div>
       </div>
     )
