@@ -9,7 +9,7 @@
  * Spec reference: mvp_product_spec.md section 13.
  */
 
-import { Plus, Play, TrendingUp, TrendingDown, Minus, Pencil } from 'lucide-react'
+import { Plus, Play, TrendingUp, TrendingDown, Minus, Pencil, Check } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
 import { Progress } from '../components/ui/progress'
@@ -197,7 +197,10 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
       rSessions.length > 0
         ? formatDate(rSessions[rSessions.length - 1]!.completedAt)
         : null
-    return { routine: r, highlight, lastSessionDate: lastDate }
+    const doneToday = rSessions.some(
+      (s) => s.completedAt.slice(0, 10) === todayStr,
+    )
+    return { routine: r, highlight, lastSessionDate: lastDate, doneToday }
   })
 
   // Progress deltas
@@ -293,11 +296,21 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
         <div>
           <h2 className="text-sm font-medium text-muted-foreground mb-2">Your Plan for Today</h2>
           <div className="flex flex-col gap-3">
-            {routineDetails.map(({ routine, highlight, lastSessionDate }) => (
+            {routineDetails.map(({ routine, highlight, lastSessionDate, doneToday }) => (
               <Card key={routine.id} data-testid={`plan-card-${routine.id}`}>
                 <CardContent className="pt-4">
                   <div className="flex items-center justify-between">
-                    <p className="font-semibold text-foreground">{routine.name}</p>
+                    <div className="flex items-center gap-2">
+                      {doneToday && (
+                        <div
+                          data-testid={`done-today-${routine.id}`}
+                          className="flex items-center justify-center size-6 rounded-full bg-foreground"
+                        >
+                          <Check size={14} className="text-background" aria-hidden="true" />
+                        </div>
+                      )}
+                      <p className="font-semibold text-foreground">{routine.name}</p>
+                    </div>
                     <button
                       type="button"
                       data-testid={`edit-routine-button-${routine.id}`}
@@ -308,12 +321,16 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
                       <Pencil size={14} aria-hidden="true" />
                     </button>
                   </div>
-                  {lastSessionDate && (
+                  {doneToday ? (
+                    <p data-testid={`done-label-${routine.id}`} className="text-sm text-green-600 mt-1">
+                      Done today
+                    </p>
+                  ) : lastSessionDate ? (
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Last session: {lastSessionDate}
                     </p>
-                  )}
-                  {highlight && (
+                  ) : null}
+                  {highlight && !doneToday && (
                     <p
                       data-testid={`session-highlight-${routine.id}`}
                       className="text-sm text-muted-foreground mt-1"
@@ -323,11 +340,12 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
                   )}
                   <Button
                     data-testid={`log-session-button-${routine.id}`}
+                    variant={doneToday ? 'outline' : 'default'}
                     onClick={() => onStartSession(routine.id)}
                     className="w-full mt-4"
                   >
                     <Play size={16} className="mr-2" aria-hidden="true" />
-                    Log session
+                    {doneToday ? 'Log another session' : 'Log session'}
                   </Button>
                 </CardContent>
               </Card>
