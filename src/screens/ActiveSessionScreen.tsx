@@ -10,7 +10,7 @@
  */
 
 import { useState, useMemo } from 'react'
-import { ChevronLeft, Plus, Trash2, Check, X } from 'lucide-react'
+import { ChevronLeft, Plus, Trash2, Check, X, Info } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -326,6 +326,21 @@ export function ActiveSessionScreen({ navigate, routineId }: Props) {
     return map
   }, [routine, state.sessions])
 
+  // Detect whether pre-fill is active (strength activities with previous data)
+  const lastSessionDate = useMemo(() => {
+    if (!routine) return null
+    const prev = sessionsForRoutine(state.sessions, routine.id)
+    if (prev.length === 0) return null
+    const last = prev[prev.length - 1]!
+    // Only show notice for strength activities (where pre-fill is meaningful)
+    const hasStrength = routine.activities.some(isStrengthActivity)
+    if (!hasStrength) return null
+    return new Date(last.completedAt).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+    })
+  }, [routine, state.sessions])
+
   const [activityStates, setActivityStates] = useState<ActivityState[]>(() => {
     if (!routine) return []
     return routine.activities.map((activity) => {
@@ -444,6 +459,19 @@ export function ActiveSessionScreen({ navigate, routineId }: Props) {
           {routine.name}
         </h1>
       </div>
+
+      {/* Pre-fill notice */}
+      {lastSessionDate && (
+        <div
+          data-testid="prefill-notice"
+          className="mx-4 flex items-start gap-2 rounded-xl bg-muted px-4 py-3"
+        >
+          <Info size={16} className="text-muted-foreground mt-0.5 shrink-0" aria-hidden="true" />
+          <p className="text-sm text-muted-foreground">
+            Pre-filled from your last session on {lastSessionDate}. Adjust any values before completing.
+          </p>
+        </div>
+      )}
 
       {/* Activity forms */}
       <div className="flex-1 overflow-y-auto px-4 pb-6 flex flex-col gap-4">

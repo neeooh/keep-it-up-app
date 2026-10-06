@@ -9,7 +9,7 @@
  * Spec reference: mvp_product_spec.md section 13.
  */
 
-import { Plus, Play, Repeat, TrendingUp, TrendingDown, Minus, Pencil } from 'lucide-react'
+import { Plus, Play, TrendingUp, TrendingDown, Minus, Pencil } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
 import { Progress } from '../components/ui/progress'
@@ -146,7 +146,7 @@ function EmptyState({ navigate }: { navigate: Navigate }) {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Props) {
-  const { state, addSession } = useAppStore()
+  const { state } = useAppStore()
   const { routines, sessions } = state
 
   if (routines.length === 0) {
@@ -321,36 +321,14 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
                       {highlight.label} · {highlight.value}
                     </p>
                   )}
-                  <div className="flex gap-2 mt-4">
-                    <Button
-                      data-testid={`log-session-button-${routine.id}`}
-                      onClick={() => onStartSession(routine.id)}
-                      className="flex-1"
-                    >
-                      <Play size={16} className="mr-2" aria-hidden="true" />
-                      Log session
-                    </Button>
-                    {sessionsForRoutine(sessions, routine.id).length > 0 && (
-                      <Button
-                        data-testid={`repeat-session-button-${routine.id}`}
-                        variant="outline"
-                        onClick={() => {
-                          const prev = sessionsForRoutine(sessions, routine.id)
-                          const last = prev[prev.length - 1]!
-                          addSession({
-                            id: crypto.randomUUID(),
-                            routineId: routine.id,
-                            completedAt: new Date().toISOString(),
-                            results: last.results,
-                          })
-                        }}
-                        className="shrink-0"
-                      >
-                        <Repeat size={16} className="mr-1" aria-hidden="true" />
-                        Repeat
-                      </Button>
-                    )}
-                  </div>
+                  <Button
+                    data-testid={`log-session-button-${routine.id}`}
+                    onClick={() => onStartSession(routine.id)}
+                    className="w-full mt-4"
+                  >
+                    <Play size={16} className="mr-2" aria-hidden="true" />
+                    Log session
+                  </Button>
                 </CardContent>
               </Card>
             ))}
