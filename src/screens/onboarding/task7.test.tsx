@@ -16,6 +16,7 @@ import { OptionalChallengeScreen } from './OptionalChallengeScreen'
 import { PlanReviewScreen } from './PlanReviewScreen'
 import type { OnboardingDraft } from '../../App'
 import type { Frequency } from '../../domain/types'
+import { StoreWrapper, clearStore } from '../__tests__/fixtures'
 
 // ─── Shared draft fixture ─────────────────────────────────────────────────────
 
@@ -35,6 +36,7 @@ const BASE_DRAFT: OnboardingDraft = {
 
 afterEach(() => {
   vi.clearAllMocks()
+  clearStore()
 })
 
 // ─── SetFrequencyScreen ───────────────────────────────────────────────────────
@@ -281,7 +283,7 @@ describe('PlanReviewScreen', () => {
     const navigate = vi.fn()
     const onStart = vi.fn()
     const draft: OnboardingDraft = { ...BASE_DRAFT, ...draftOverrides }
-    render(<PlanReviewScreen navigate={navigate} draft={draft} onStart={onStart} />)
+    render(<StoreWrapper><PlanReviewScreen navigate={navigate} draft={draft} onStart={onStart} /></StoreWrapper>)
     return { navigate, onStart }
   }
 

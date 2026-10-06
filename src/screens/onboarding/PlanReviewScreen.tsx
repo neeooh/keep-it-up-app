@@ -6,8 +6,9 @@
  * Spec reference: mvp_product_spec.md section 12.
  */
 
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, AlertTriangle } from 'lucide-react'
 import { Button } from '../../components/ui/button'
+import { useAppStore } from '../../store/useAppStore'
 import type { Navigate, OnboardingDraft } from '../../App'
 import { findTemplate } from '../../domain/templates'
 import type { Frequency } from '../../domain/types'
@@ -33,6 +34,7 @@ const DAY_NAMES: Record<number, string> = {
 }
 
 export function PlanReviewScreen({ navigate, draft, onStart }: Props) {
+  const { state } = useAppStore()
   const template = draft.templateId ? findTemplate(draft.templateId) : null
   const activityName =
     draft.activityName || template?.defaultName || 'My activity'
@@ -40,6 +42,10 @@ export function PlanReviewScreen({ navigate, draft, onStart }: Props) {
     draft.measurements.length > 0
       ? draft.measurements
       : template?.defaultMeasurements ?? []
+
+  const isDuplicate = state.routines.some(
+    (r) => r.name.toLowerCase() === activityName.toLowerCase(),
+  )
 
   return (
     <div data-testid="screen-plan-review" className="flex flex-col min-h-full">
@@ -60,6 +66,18 @@ export function PlanReviewScreen({ navigate, draft, onStart }: Props) {
 
       {/* Plan summary card */}
       <div className="flex-1 px-4 pb-6">
+        {isDuplicate && (
+          <div
+            data-testid="duplicate-warning"
+            className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 mb-4"
+          >
+            <AlertTriangle size={16} className="text-destructive mt-0.5 shrink-0" aria-hidden="true" />
+            <p className="text-sm text-foreground">
+              You already have a routine called "{activityName}". You can still
+              create this one, but consider renaming it to tell them apart.
+            </p>
+          </div>
+        )}
         <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4">
 
           {/* Activity name + frequency */}

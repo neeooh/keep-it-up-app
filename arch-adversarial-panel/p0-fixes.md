@@ -42,3 +42,37 @@ Test (`WeeklyReviewScreen.test.tsx`):
 - The reduce-suggestion test now seeds a session 10 days in the past so the 7-day age gate passes.
 
 **Files changed.** `src/screens/DashboardScreen.tsx`, `src/screens/WeeklyReviewScreen.tsx`, `src/screens/WeeklyReviewScreen.test.tsx`
+
+---
+
+# P1 bug fixes — 6 October 2026
+
+Four P1 items assessed. Two already implemented, two fixed. All 334 tests pass.
+
+## P1-4: Direction-aware session logging — already implemented
+
+The `ActiveSessionScreen` already had an `AvoidInput` component that renders "Did you stay on track?" with Yes/No buttons for `AVOID`-direction activities. The `isActivityComplete` function checks `stayedOnTrack !== null` for avoidance habits. No code change needed.
+
+## P1-5: Template frequency not passed as default
+
+**Problem.** When a user picked "No smoking" (template `defaultFrequency: 'daily'`), the frequency screen defaulted to "3× per week" because the onboarding draft hardcoded `frequency: '3x_week'`.
+
+**Root cause.** `onTemplateSelect` in `App.tsx` only set `draft.templateId`. It did not read the template's `defaultFrequency` and apply it to the draft.
+
+**Fix.** `onTemplateSelect` now calls `findTemplate(id)` and sets both `templateId` and `frequency` from `tmpl.defaultFrequency`.
+
+**Files changed.** `src/App.tsx`
+
+## P1-6: Delete routine — already implemented
+
+The `EditRoutineScreen` already had a "Delete routine" button with a confirmation dialog. The `deleteRoutine` function in the store removes the routine and all associated sessions. No code change needed.
+
+## P1-7: Duplicate routines created silently
+
+**Problem.** The app created a new routine every time the user went through onboarding, even if a routine with the same name already existed. The duplicate routines confused the dashboard and split session data across multiple routine IDs.
+
+**Root cause.** `addRoutine` in the store appended without checking for existing names. The `PlanReviewScreen` had no awareness of existing routines.
+
+**Fix.** `PlanReviewScreen` now reads the store via `useAppStore()` and checks if a routine with the same name (case-insensitive) already exists. If so, it shows a warning banner: "You already have a routine called X. You can still create this one, but consider renaming it to tell them apart." The user is not blocked — the warning is informational.
+
+**Files changed.** `src/screens/onboarding/PlanReviewScreen.tsx`, `src/screens/onboarding/task7.test.tsx`

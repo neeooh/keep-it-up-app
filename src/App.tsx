@@ -116,7 +116,13 @@ function renderScreen(
           navigate={navigate}
           direction={draft.direction}
           onDirectionChange={(d) => setDraft({ direction: d })}
-          onTemplateSelect={(id) => setDraft({ templateId: id })}
+          onTemplateSelect={(id) => {
+            const tmpl = id ? findTemplate(id) : null
+            setDraft({
+              templateId: id,
+              frequency: tmpl?.defaultFrequency ?? EMPTY_DRAFT.frequency,
+            })
+          }}
         />
       )
     case 'choose-template':
