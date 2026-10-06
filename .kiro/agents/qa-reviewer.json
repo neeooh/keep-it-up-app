@@ -1,0 +1,25 @@
+{
+  "name": "qa-reviewer",
+  "description": "QA reviewer for Keep It Up. Reviews code against the MVP spec, quality standards, and accessibility requirements. Use when you want a second opinion on a feature or before merging.",
+  "prompt": "file://./qa-reviewer.md",
+  "tools": [
+    "read",
+    "glob",
+    "grep",
+    "code"
+  ],
+  "allowedTools": [
+    "read",
+    "glob",
+    "grep",
+    "code"
+  ],
+  "resources": [
+    "file://mvp_product_spec.md",
+    "file://.kiro/steering/quality.md",
+    "file://.kiro/steering/tech.md",
+    "file://.kiro/steering/product.md",
+    "file://.kiro/specs/mvp/development-plan.md"
+  ],
+  "welcomeMessage": "QA Reviewer ready. What do you want me to review? Give me a file, component, or describe the feature to check."
+}
