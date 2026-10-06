@@ -9,7 +9,7 @@
  * - findTemplate and templatesForDirection behave correctly
  */
 
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import {
   allTemplates,
   avoidTemplates,
@@ -374,5 +374,72 @@ describe('templatesForDirection', () => {
 
   it('always includes the custom sentinel for AVOID', () => {
     expect(templatesForDirection('AVOID').some((t) => t.isCustom)).toBe(true)
+  })
+})
+
+// ─── needsConfigureScreen ─────────────────────────────────────────────────────
+
+describe('needsConfigureScreen', () => {
+  // Import at the top of this block to keep tests self-contained
+  let needsConfigureScreen: typeof import('./templates').needsConfigureScreen
+
+  beforeAll(async () => {
+    const mod = await import('./templates')
+    needsConfigureScreen = mod.needsConfigureScreen
+  })
+
+  it('returns true for null (no template)', () => {
+    expect(needsConfigureScreen(null)).toBe(true)
+  })
+
+  it('returns true for undefined', () => {
+    expect(needsConfigureScreen(undefined)).toBe(true)
+  })
+
+  it('returns true for the custom template', () => {
+    expect(needsConfigureScreen(customTemplate)).toBe(true)
+  })
+
+  it('returns true for strength workout (has sets measurement)', () => {
+    const strength = findTemplate('strength-workout')!
+    expect(needsConfigureScreen(strength)).toBe(true)
+  })
+
+  it('returns false for running', () => {
+    expect(needsConfigureScreen(findTemplate('running')!)).toBe(false)
+  })
+
+  it('returns false for walking', () => {
+    expect(needsConfigureScreen(findTemplate('walking')!)).toBe(false)
+  })
+
+  it('returns false for reading', () => {
+    expect(needsConfigureScreen(findTemplate('reading')!)).toBe(false)
+  })
+
+  it('returns false for meditation', () => {
+    expect(needsConfigureScreen(findTemplate('meditation')!)).toBe(false)
+  })
+
+  it('returns false for no-smoking (AVOID)', () => {
+    expect(needsConfigureScreen(findTemplate('no-smoking')!)).toBe(false)
+  })
+
+  it('returns false for no-alcohol (AVOID)', () => {
+    expect(needsConfigureScreen(findTemplate('no-alcohol')!)).toBe(false)
+  })
+
+  it('returns false for yoga', () => {
+    expect(needsConfigureScreen(findTemplate('yoga')!)).toBe(false)
+  })
+
+  it('returns false for all non-strength, non-custom templates', () => {
+    const simple = allTemplates.filter(
+      (t) => !t.isCustom && !t.defaultMeasurements.some((m) => m.type === 'sets'),
+    )
+    expect(simple.length).toBeGreaterThan(0)
+    for (const t of simple) {
+      expect(needsConfigureScreen(t)).toBe(false)
+    }
   })
 })

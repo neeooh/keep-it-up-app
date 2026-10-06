@@ -17,6 +17,8 @@ interface Props {
   navigate: Navigate
   draft: OnboardingDraft
   onStart: () => void
+  /** When true, "Edit plan" goes to choose-direction instead of configure-activity. */
+  skippedConfigure?: boolean
 }
 
 function frequencyLabel(f: Frequency): string {
@@ -33,7 +35,7 @@ const DAY_NAMES: Record<number, string> = {
   1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 7: 'Sun',
 }
 
-export function PlanReviewScreen({ navigate, draft, onStart }: Props) {
+export function PlanReviewScreen({ navigate, draft, onStart, skippedConfigure }: Props) {
   const { state } = useAppStore()
   const template = draft.templateId ? findTemplate(draft.templateId) : null
   const activityName =
@@ -166,7 +168,7 @@ export function PlanReviewScreen({ navigate, draft, onStart }: Props) {
           type="button"
           variant="ghost"
           data-testid="edit-button"
-          onClick={() => navigate('configure-activity')}
+          onClick={() => navigate(skippedConfigure ? 'choose-direction' : 'configure-activity')}
           className="w-full text-muted-foreground"
         >
           Edit plan

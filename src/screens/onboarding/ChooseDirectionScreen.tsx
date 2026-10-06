@@ -4,6 +4,7 @@ import type { Direction } from '../../domain/types'
 import {
   type ActivityTemplate,
   customTemplate,
+  needsConfigureScreen,
   templatesForDirection,
 } from '../../domain/templates'
 
@@ -32,7 +33,11 @@ export function ChooseDirectionScreen({
 
   function selectTemplate(template: ActivityTemplate) {
     onTemplateSelect?.(template.id)
-    navigate('configure-activity')
+    if (needsConfigureScreen(template)) {
+      navigate('configure-activity')
+    } else {
+      navigate('set-frequency')
+    }
   }
 
   return (

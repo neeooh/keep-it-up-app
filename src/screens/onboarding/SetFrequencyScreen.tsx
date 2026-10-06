@@ -14,6 +14,8 @@ interface Props {
   navigate: Navigate
   frequency: Frequency
   onFrequencyChange: (frequency: Frequency) => void
+  /** When true, back goes to choose-direction instead of configure-activity. */
+  skippedConfigure?: boolean
 }
 
 interface FrequencyOption {
@@ -30,7 +32,7 @@ const FREQUENCY_OPTIONS: FrequencyOption[] = [
   { value: 'flexible', label: "I'll decide each time", sublabel: 'No fixed schedule' },
 ]
 
-export function SetFrequencyScreen({ navigate, frequency, onFrequencyChange }: Props) {
+export function SetFrequencyScreen({ navigate, frequency, onFrequencyChange, skippedConfigure }: Props) {
   return (
     <div data-testid="screen-set-frequency" className="flex flex-col min-h-full">
       {/* Header */}
@@ -38,7 +40,7 @@ export function SetFrequencyScreen({ navigate, frequency, onFrequencyChange }: P
         <button
           type="button"
           aria-label="Back"
-          onClick={() => navigate('configure-activity')}
+          onClick={() => navigate(skippedConfigure ? 'choose-direction' : 'configure-activity')}
           className="rounded-full p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <ChevronLeft size={20} aria-hidden="true" />

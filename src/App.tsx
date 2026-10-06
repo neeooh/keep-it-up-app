@@ -11,7 +11,7 @@ import type {
   MeasurementConfig,
 } from './domain/types'
 import { useAppStore, AppStoreProvider } from './store/useAppStore'
-import { findTemplate } from './domain/templates'
+import { findTemplate, needsConfigureScreen } from './domain/templates'
 
 // ── Onboarding screens ────────────────────────────────────────────────────────
 import { WelcomeScreen } from './screens/onboarding/WelcomeScreen'
@@ -61,6 +61,8 @@ export interface OnboardingDraft {
   preferredTime: string
   /** null = no challenge. */
   challengeDurationDays: ChallengeDuration | null
+  /** True when the configure-activity screen was skipped (simple templates). */
+  skippedConfigure: boolean
 }
 
 const EMPTY_DRAFT: OnboardingDraft = {
@@ -72,6 +74,7 @@ const EMPTY_DRAFT: OnboardingDraft = {
   scheduledDays: [],
   preferredTime: '',
   challengeDurationDays: null,
+  skippedConfigure: false,
 }
 
 // ── Navigate type ─────────────────────────────────────────────────────────────
@@ -118,9 +121,13 @@ function renderScreen(
           onDirectionChange={(d) => setDraft({ direction: d })}
           onTemplateSelect={(id) => {
             const tmpl = id ? findTemplate(id) : null
+            const skip = tmpl ? !needsConfigureScreen(tmpl) : false
             setDraft({
               templateId: id,
               frequency: tmpl?.defaultFrequency ?? EMPTY_DRAFT.frequency,
+              activityName: skip ? (tmpl?.defaultName ?? '') : EMPTY_DRAFT.activityName,
+              measurements: skip ? (tmpl?.defaultMeasurements ?? []) : EMPTY_DRAFT.measurements,
+              skippedConfigure: skip,
             })
           }}
         />
@@ -144,6 +151,7 @@ function renderScreen(
           navigate={navigate}
           frequency={draft.frequency}
           onFrequencyChange={(f) => setDraft({ frequency: f })}
+          skippedConfigure={draft.skippedConfigure}
         />
       )
     case 'optional-schedule':
@@ -172,6 +180,7 @@ function renderScreen(
           navigate={navigate}
           draft={draft}
           onStart={onStartRoutine}
+          skippedConfigure={draft.skippedConfigure}
         />
       )
     case 'dashboard':

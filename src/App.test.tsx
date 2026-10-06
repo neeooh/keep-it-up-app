@@ -166,21 +166,20 @@ async function completeOnboarding(
   await user.click(screen.getByTestId('direction-do'))
 
   // Step 2: Choose-direction — pick a template
+  // Simple templates (running, walking, etc.) skip configure-activity
+  // and land directly on set-frequency.
   await user.click(screen.getByTestId(templateTestId))
 
-  // Step 3: Configure-activity — accept defaults, click Continue
+  // Step 3: Set-frequency — accept default, click Continue
   await user.click(screen.getByTestId('continue-button'))
 
-  // Step 4: Set-frequency — accept default, click Continue
-  await user.click(screen.getByTestId('continue-button'))
-
-  // Step 5: Optional-schedule — skip
+  // Step 4: Optional-schedule — skip
   await user.click(screen.getByTestId('skip-button'))
 
-  // Step 6: Optional-challenge — skip
+  // Step 5: Optional-challenge — skip
   await user.click(screen.getByTestId('skip-button'))
 
-  // Step 7: Plan-review — Start today
+  // Step 6: Plan-review — Start today
   await user.click(screen.getByTestId('start-button'))
 }
 

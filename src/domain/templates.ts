@@ -379,3 +379,20 @@ export function findTemplate(id: string): ActivityTemplate | undefined {
 export function templatesForDirection(direction: Direction): ActivityTemplate[] {
   return direction === 'DO' ? doTemplates : avoidTemplates
 }
+
+/**
+ * Determine whether a template requires the configure-activity screen.
+ *
+ * Returns true for:
+ * - null (no template — user must type a name)
+ * - custom templates (isCustom: true — user must type a name)
+ * - strength templates (has 'sets' measurement — user builds exercise list)
+ *
+ * Returns false for everything else: the template already provides a name
+ * and sensible measurement defaults, so the configure screen adds no value.
+ */
+export function needsConfigureScreen(template: ActivityTemplate | null | undefined): boolean {
+  if (!template) return true
+  if (template.isCustom) return true
+  return template.defaultMeasurements.some((m) => m.type === 'sets')
+}
