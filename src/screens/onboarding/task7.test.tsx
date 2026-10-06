@@ -87,11 +87,11 @@ describe('SetFrequencyScreen', () => {
     expect(onFrequencyChange).toHaveBeenCalledWith('daily')
   })
 
-  it('Continue navigates to optional-schedule', async () => {
+  it('Continue navigates to plan-review', async () => {
     const user = userEvent.setup()
     const { navigate } = setup()
     await user.click(screen.getByTestId('continue-button'))
-    expect(navigate).toHaveBeenCalledWith('optional-schedule')
+    expect(navigate).toHaveBeenCalledWith('plan-review')
   })
 
   it('Back navigates to configure-activity', async () => {
@@ -352,11 +352,11 @@ describe('PlanReviewScreen', () => {
     expect(navigate).toHaveBeenCalledWith('configure-activity')
   })
 
-  it('Back navigates to optional-challenge', async () => {
+  it('Back navigates to set-frequency', async () => {
     const user = userEvent.setup()
     const { navigate } = setup()
     await user.click(screen.getByRole('button', { name: /back/i }))
-    expect(navigate).toHaveBeenCalledWith('optional-challenge')
+    expect(navigate).toHaveBeenCalledWith('set-frequency')
   })
 
   it('uses template defaults when activityName is empty', () => {

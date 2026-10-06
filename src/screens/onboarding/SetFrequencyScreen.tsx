@@ -83,7 +83,7 @@ export function SetFrequencyScreen({ navigate, frequency, onFrequencyChange, ski
         <Button
           type="button"
           data-testid="continue-button"
-          onClick={() => navigate('optional-schedule')}
+          onClick={() => navigate('plan-review')}
           className="w-full"
         >
           Continue

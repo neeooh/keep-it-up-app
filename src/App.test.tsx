@@ -171,15 +171,10 @@ async function completeOnboarding(
   await user.click(screen.getByTestId(templateTestId))
 
   // Step 3: Set-frequency — accept default, click Continue
+  // Now goes directly to plan-review (schedule + challenge removed from onboarding).
   await user.click(screen.getByTestId('continue-button'))
 
-  // Step 4: Optional-schedule — skip
-  await user.click(screen.getByTestId('skip-button'))
-
-  // Step 5: Optional-challenge — skip
-  await user.click(screen.getByTestId('skip-button'))
-
-  // Step 6: Plan-review — Start today
+  // Step 4: Plan-review — Start today
   await user.click(screen.getByTestId('start-button'))
 }
 

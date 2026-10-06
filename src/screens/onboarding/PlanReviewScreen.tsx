@@ -56,7 +56,7 @@ export function PlanReviewScreen({ navigate, draft, onStart, skippedConfigure }:
         <button
           type="button"
           aria-label="Back"
-          onClick={() => navigate('optional-challenge')}
+          onClick={() => navigate('set-frequency')}
           className="rounded-full p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <ChevronLeft size={20} aria-hidden="true" />
