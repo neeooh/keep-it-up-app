@@ -57,6 +57,8 @@ const DAY_OPTIONS: { value: DayOfWeek; short: string }[] = [
   { value: 7, short: 'Sun' },
 ]
 
+const TIME_OPTIONS = ['Morning', 'Afternoon', 'Evening', 'Anytime']
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export function EditRoutineScreen({ navigate, routineId }: Props) {
@@ -229,15 +231,34 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
         </div>
 
         {/* Time preference */}
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="preferred-time">Preferred time (optional)</Label>
-          <Input
-            id="preferred-time"
-            data-testid="edit-preferred-time"
-            placeholder="e.g. Morning"
-            value={preferredTime}
-            onChange={(e) => setPreferredTime(e.target.value)}
-          />
+        <div>
+          <p className="text-sm font-medium text-foreground mb-2">
+            Preferred time (optional)
+          </p>
+          <div className="flex gap-2 flex-wrap">
+            {TIME_OPTIONS.map((time) => {
+              const isSelected = preferredTime === time
+              return (
+                <button
+                  key={time}
+                  type="button"
+                  aria-pressed={isSelected}
+                  data-testid={`edit-time-${time.toLowerCase()}`}
+                  onClick={() =>
+                    setPreferredTime(isSelected ? '' : time)
+                  }
+                  className={[
+                    'rounded-xl border px-4 py-2 text-sm font-medium transition-colors',
+                    isSelected
+                      ? 'border-foreground bg-foreground text-background'
+                      : 'border-border bg-card text-foreground hover:bg-muted',
+                  ].join(' ')}
+                >
+                  {time}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* Delete button */}

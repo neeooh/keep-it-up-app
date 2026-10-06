@@ -191,3 +191,94 @@ describe('EditRoutineScreen — delete', () => {
     expect(state.routines).toHaveLength(1)
   })
 })
+
+describe('EditRoutineScreen — preferred time buttons', () => {
+  it('renders all four time option buttons', () => {
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    render(
+      <StoreWrapper>
+        <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />
+      </StoreWrapper>,
+    )
+    expect(screen.getByTestId('edit-time-morning')).toBeInTheDocument()
+    expect(screen.getByTestId('edit-time-afternoon')).toBeInTheDocument()
+    expect(screen.getByTestId('edit-time-evening')).toBeInTheDocument()
+    expect(screen.getByTestId('edit-time-anytime')).toBeInTheDocument()
+  })
+
+  it('no time button is selected when routine has no preferredTime', () => {
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    render(
+      <StoreWrapper>
+        <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />
+      </StoreWrapper>,
+    )
+    expect(screen.getByTestId('edit-time-morning')).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByTestId('edit-time-afternoon')).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByTestId('edit-time-evening')).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByTestId('edit-time-anytime')).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('pre-selects the time button when routine has preferredTime', () => {
+    const routineWithTime = {
+      ...STRENGTH_ROUTINE,
+      id: 'routine-with-time',
+      activities: STRENGTH_ROUTINE.activities.map((a) => ({
+        ...a,
+        preferredTime: 'Evening',
+      })),
+    }
+    seedStore({ routines: [routineWithTime], sessions: [] })
+    render(
+      <StoreWrapper>
+        <EditRoutineScreen navigate={vi.fn()} routineId="routine-with-time" />
+      </StoreWrapper>,
+    )
+    expect(screen.getByTestId('edit-time-evening')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId('edit-time-morning')).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('clicking a time button selects it and saves the value', async () => {
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    const user = userEvent.setup()
+    render(
+      <StoreWrapper>
+        <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />
+      </StoreWrapper>,
+    )
+
+    await user.click(screen.getByTestId('edit-time-morning'))
+    expect(screen.getByTestId('edit-time-morning')).toHaveAttribute('aria-pressed', 'true')
+
+    await user.click(screen.getByTestId('save-button'))
+
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
+    expect(state.routines[0].activities[0].preferredTime).toBe('Morning')
+  })
+
+  it('clicking a selected time button deselects it', async () => {
+    const routineWithTime = {
+      ...STRENGTH_ROUTINE,
+      id: 'routine-with-time',
+      activities: STRENGTH_ROUTINE.activities.map((a) => ({
+        ...a,
+        preferredTime: 'Morning',
+      })),
+    }
+    seedStore({ routines: [routineWithTime], sessions: [] })
+    const user = userEvent.setup()
+    render(
+      <StoreWrapper>
+        <EditRoutineScreen navigate={vi.fn()} routineId="routine-with-time" />
+      </StoreWrapper>,
+    )
+
+    await user.click(screen.getByTestId('edit-time-morning'))
+    expect(screen.getByTestId('edit-time-morning')).toHaveAttribute('aria-pressed', 'false')
+
+    await user.click(screen.getByTestId('save-button'))
+
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
+    expect(state.routines[0].activities[0].preferredTime).toBeUndefined()
+  })
+})
