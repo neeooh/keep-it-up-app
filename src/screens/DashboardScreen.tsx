@@ -1,9 +1,10 @@
 /**
  * DashboardScreen — the main home screen.
  *
- * Shows overall consistency %, this-week summary, a "continue" card for
- * the next routine, and progress deltas. Handles the empty state when no
- * routines exist.
+ * Shows overall consistency %, this-week summary, "Your Plan for Today"
+ * listing all routines with per-routine Log Session buttons and edit
+ * icons, and progress deltas. Handles the empty state when no routines
+ * exist.
  *
  * Spec reference: mvp_product_spec.md section 13.
  */
@@ -188,14 +189,16 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
     ...calculateCompletionRate(sessions, r, weekStart),
   }))
 
-  // Continue card — pick the first routine
-  const continueRoutine = routines[0]!
-  const highlight = lastSessionHighlight(sessions, continueRoutine)
-  const lastSession = sessionsForRoutine(sessions, continueRoutine.id)
-  const lastSessionDate =
-    lastSession.length > 0
-      ? formatDate(lastSession[lastSession.length - 1]!.completedAt)
-      : null
+  // Per-routine details for "Your Plan for Today"
+  const routineDetails = routines.map((r) => {
+    const highlight = lastSessionHighlight(sessions, r)
+    const rSessions = sessionsForRoutine(sessions, r.id)
+    const lastDate =
+      rSessions.length > 0
+        ? formatDate(rSessions[rSessions.length - 1]!.completedAt)
+        : null
+    return { routine: r, highlight, lastSessionDate: lastDate }
+  })
 
   // Progress deltas
   const progressEntries = routines.flatMap((r) =>
@@ -270,46 +273,50 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
           </Card>
         </div>
 
-        {/* Continue card */}
+        {/* Your Plan for Today — all routines */}
         <div>
-          <h2 className="text-sm font-medium text-muted-foreground mb-2">Continue</h2>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center justify-between">
-                <p className="font-semibold text-foreground">{continueRoutine.name}</p>
-                <button
-                  type="button"
-                  data-testid="edit-routine-button"
-                  aria-label="Edit routine"
-                  onClick={() => onEditRoutine(continueRoutine.id)}
-                  className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                >
-                  <Pencil size={14} aria-hidden="true" />
-                </button>
-              </div>
-              {lastSessionDate && (
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Last session: {lastSessionDate}
-                </p>
-              )}
-              {highlight && (
-                <p
-                  data-testid="session-highlight"
-                  className="text-sm text-muted-foreground mt-1"
-                >
-                  {highlight.label} · {highlight.value}
-                </p>
-              )}
-              <Button
-                data-testid="start-session-button"
-                onClick={() => onStartSession(continueRoutine.id)}
-                className="w-full mt-4"
-              >
-                <Play size={16} className="mr-2" aria-hidden="true" />
-                Start session
-              </Button>
-            </CardContent>
-          </Card>
+          <h2 className="text-sm font-medium text-muted-foreground mb-2">Your Plan for Today</h2>
+          <div className="flex flex-col gap-3">
+            {routineDetails.map(({ routine, highlight, lastSessionDate }) => (
+              <Card key={routine.id} data-testid={`plan-card-${routine.id}`}>
+                <CardContent className="pt-4">
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-foreground">{routine.name}</p>
+                    <button
+                      type="button"
+                      data-testid={`edit-routine-button-${routine.id}`}
+                      aria-label={`Edit ${routine.name}`}
+                      onClick={() => onEditRoutine(routine.id)}
+                      className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    >
+                      <Pencil size={14} aria-hidden="true" />
+                    </button>
+                  </div>
+                  {lastSessionDate && (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Last session: {lastSessionDate}
+                    </p>
+                  )}
+                  {highlight && (
+                    <p
+                      data-testid={`session-highlight-${routine.id}`}
+                      className="text-sm text-muted-foreground mt-1"
+                    >
+                      {highlight.label} · {highlight.value}
+                    </p>
+                  )}
+                  <Button
+                    data-testid={`log-session-button-${routine.id}`}
+                    onClick={() => onStartSession(routine.id)}
+                    className="w-full mt-4"
+                  >
+                    <Play size={16} className="mr-2" aria-hidden="true" />
+                    Log session
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
 
         {/* Progress deltas */}

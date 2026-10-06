@@ -3,8 +3,9 @@
  *
  * - Consistency display with mock sessions
  * - Empty state renders create-routine prompt
- * - "Start session" button calls onStartSession with correct routine ID
+ * - "Log session" button calls onStartSession with correct routine ID
  * - "Create a routine" navigates to welcome
+ * - Multiple routines each get their own plan card, log button, and edit button
  */
 
 import { render, screen } from '@testing-library/react'
@@ -14,6 +15,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DashboardScreen } from './DashboardScreen'
 import {
   STRENGTH_ROUTINE,
+  RUNNING_ROUTINE,
   makeStrengthSession,
   daysAgo,
   seedStore,
@@ -115,16 +117,17 @@ describe('DashboardScreen — with data', () => {
     ).toBeInTheDocument()
   })
 
-  it('shows the continue card with routine name', () => {
+  it('shows the plan card for each routine', () => {
     setup()
-    const matches = screen.getAllByText('Strength Training')
-    expect(matches.length).toBeGreaterThanOrEqual(1)
+    expect(
+      screen.getByTestId(`plan-card-${STRENGTH_ROUTINE.id}`),
+    ).toBeInTheDocument()
   })
 
   it('calls onStartSession with the correct routine ID', async () => {
     const user = userEvent.setup()
     const { onStartSession } = setup()
-    await user.click(screen.getByTestId('start-session-button'))
+    await user.click(screen.getByTestId(`log-session-button-${STRENGTH_ROUTINE.id}`))
     expect(onStartSession).toHaveBeenCalledWith(STRENGTH_ROUTINE.id)
   })
 
@@ -136,5 +139,70 @@ describe('DashboardScreen — with data', () => {
     // At minimum the screen should not crash
     expect(screen.getByTestId('screen-dashboard')).toBeInTheDocument()
     void entries
+  })
+})
+
+describe('DashboardScreen — multiple routines', () => {
+  function setupMulti() {
+    seedStore({ routines: [STRENGTH_ROUTINE, RUNNING_ROUTINE], sessions: [] })
+    const navigate = vi.fn()
+    const onStartSession = vi.fn()
+    const onEditRoutine = vi.fn()
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={navigate}
+          onStartSession={onStartSession}
+          onEditRoutine={onEditRoutine}
+        />
+      </StoreWrapper>,
+    )
+    return { navigate, onStartSession, onEditRoutine }
+  }
+
+  it('renders a plan card for each routine', () => {
+    setupMulti()
+    expect(
+      screen.getByTestId(`plan-card-${STRENGTH_ROUTINE.id}`),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByTestId(`plan-card-${RUNNING_ROUTINE.id}`),
+    ).toBeInTheDocument()
+  })
+
+  it('renders a log-session button for each routine', () => {
+    setupMulti()
+    expect(
+      screen.getByTestId(`log-session-button-${STRENGTH_ROUTINE.id}`),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByTestId(`log-session-button-${RUNNING_ROUTINE.id}`),
+    ).toBeInTheDocument()
+  })
+
+  it('renders an edit button for each routine', () => {
+    setupMulti()
+    expect(
+      screen.getByTestId(`edit-routine-button-${STRENGTH_ROUTINE.id}`),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByTestId(`edit-routine-button-${RUNNING_ROUTINE.id}`),
+    ).toBeInTheDocument()
+  })
+
+  it('calls onStartSession with the correct ID for each routine', async () => {
+    const user = userEvent.setup()
+    const { onStartSession } = setupMulti()
+
+    await user.click(screen.getByTestId(`log-session-button-${RUNNING_ROUTINE.id}`))
+    expect(onStartSession).toHaveBeenCalledWith(RUNNING_ROUTINE.id)
+  })
+
+  it('calls onEditRoutine with the correct ID when edit is clicked', async () => {
+    const user = userEvent.setup()
+    const { onEditRoutine } = setupMulti()
+
+    await user.click(screen.getByTestId(`edit-routine-button-${STRENGTH_ROUTINE.id}`))
+    expect(onEditRoutine).toHaveBeenCalledWith(STRENGTH_ROUTINE.id)
   })
 })
