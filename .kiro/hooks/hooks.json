@@ -1,0 +1,23 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Run tests on source change",
+      "trigger": "PostFileSave",
+      "matcher": "src/.*\\.tsx?$",
+      "action": {
+        "type": "command",
+        "command": "npx vitest run --reporter=verbose 2>&1 | tail -20"
+      }
+    },
+    {
+      "name": "Lint on source change",
+      "trigger": "PostFileSave",
+      "matcher": "src/.*\\.tsx?$",
+      "action": {
+        "type": "command",
+        "command": "npx eslint --no-error-on-unmatched-pattern ${file} 2>&1 | tail -10"
+      }
+    }
+  ]
+}
