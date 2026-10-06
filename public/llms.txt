@@ -1,0 +1,14 @@
+# Keep It Up
+
+A habit tracker that helps you build consistency or break habits you want to leave behind.
+
+## Features
+
+- Track habits with customisable frequency (daily, 3×/week, 2×/week, weekly, flexible)
+- Log strength workouts with sets, reps, and weight
+- Track avoidance habits with daily check-ins
+- View weekly consistency, progress trends, and volume totals
+- Weekly review with adaptive suggestions
+- 30/60/90-day challenge mode
+- Repeat last session with one tap
+- All data stored locally in the browser
