@@ -120,6 +120,11 @@ export function sessionsInRange(sessions: Session[], range: DateRange): Session[
  * Consistency = completed sessions / planned sessions, expressed as a
  * percentage, clamped to [0, 100].
  *
+ * When `today` is provided and the range end falls on or after `today`,
+ * the current (incomplete) week is pro-rated: only elapsed days count
+ * toward planned sessions.  This prevents future days from deflating the
+ * percentage.
+ *
  * Invariants:
  * - Result is always in [0, 100].
  * - Returns 0 when no sessions are planned (flexible frequency).
@@ -129,6 +134,7 @@ export function calculateConsistency(
   sessions: Session[],
   routine: Routine,
   range: DateRange,
+  today?: string,
 ): number {
   const planned = routinePlannedPerWeek(routine)
   if (planned === 0) return 0
@@ -138,8 +144,29 @@ export function calculateConsistency(
   const totalDays = daysBetween(startDate, endDate) + 1
   if (totalDays <= 0) return 0
 
-  const totalWeeks = totalDays / 7
-  const totalPlanned = totalWeeks * planned
+  // Determine whether the range end needs pro-rating.
+  // Pro-rate when `today` is provided and the range end is on or after today.
+  const todayDate = today ? toDate(today) : null
+  const needsProrating =
+    todayDate !== null && endDate.getTime() >= todayDate.getTime()
+
+  let totalPlanned: number
+
+  if (needsProrating) {
+    // Clamp effective end to today (do not count days beyond today).
+    const effectiveEnd = todayDate!
+    const effectiveDays = Math.max(0, daysBetween(startDate, effectiveEnd) + 1)
+
+    // Full weeks that are entirely in the past.
+    const fullWeeks = Math.floor(effectiveDays / 7)
+    const remainderDays = effectiveDays - fullWeeks * 7
+
+    // Pro-rate the partial week: fraction of the week that has elapsed.
+    totalPlanned = fullWeeks * planned + (remainderDays / 7) * planned
+  } else {
+    const totalWeeks = totalDays / 7
+    totalPlanned = totalWeeks * planned
+  }
 
   const completed = sessionsForRoutine(sessions, routine.id).filter((s) => {
     const t = new Date(s.completedAt).getTime()

@@ -202,9 +202,9 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
   const todayStr = today()
   const hasSessions = sessions.length > 0
 
-  // Overall consistency (4 weeks)
+  // Overall consistency (4 weeks), pro-rated for the current partial week
   const consistencies = routines.map((r) =>
-    calculateConsistency(sessions, r, { start: fourWeeksAgo, end: todayStr }),
+    calculateConsistency(sessions, r, { start: fourWeeksAgo, end: todayStr }, todayStr),
   )
   const overallConsistency =
     consistencies.length > 0

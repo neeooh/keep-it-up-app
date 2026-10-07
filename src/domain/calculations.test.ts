@@ -242,6 +242,128 @@ describe('calculateConsistency', () => {
     )
     expect(result).toBe(0)
   })
+
+  // ── Pro-rating tests (today parameter) ────────────────────────────────────
+
+  it('pro-rates partial week: 100% when all elapsed days are covered', () => {
+    // 3x_week routine. Range: Mon Oct 5 – Wed Oct 7 (3 days = partial week).
+    // today = Oct 7 (Wednesday). Elapsed = 3 days. Pro-rated planned = (3/7)*3 ≈ 1.29.
+    // 2 completed sessions → 2 / 1.29 → clamped to 100.
+    const sessions: Session[] = [
+      makeSession('routine-1', '2026-10-05T10:00:00.000Z'), // Mon
+      makeSession('routine-1', '2026-10-07T10:00:00.000Z'), // Wed
+    ]
+    const result = calculateConsistency(
+      sessions,
+      routine,
+      { start: '2026-10-05', end: '2026-10-07' },
+      '2026-10-07',
+    )
+    expect(result).toBe(100)
+  })
+
+  it('pro-rates: full past weeks + partial current week', () => {
+    // 3x_week routine. Range: Mon Sep 28 – Wed Oct 7.
+    // Sep 28–Oct 4 = 7 days (1 full week, planned = 3).
+    // Oct 5–Oct 7 = 3 days (partial week, pro-rated planned = (3/7)*3 ≈ 1.29).
+    // Total planned ≈ 4.29. 4 completed sessions → 4 / 4.29 → 93%.
+    const sessions: Session[] = [
+      makeSession('routine-1', '2026-09-28T10:00:00.000Z'), // Mon wk1
+      makeSession('routine-1', '2026-09-30T10:00:00.000Z'), // Wed wk1
+      makeSession('routine-1', '2026-10-02T10:00:00.000Z'), // Fri wk1
+      makeSession('routine-1', '2026-10-06T10:00:00.000Z'), // Tue wk2
+    ]
+    const result = calculateConsistency(
+      sessions,
+      routine,
+      { start: '2026-09-28', end: '2026-10-07' },
+      '2026-10-07',
+    )
+    // 3 / 3 for full week + 1 / 1.29 for partial → blended ≈ 93%
+    expect(result).toBe(93)
+  })
+
+  it('no pro-rating when range end is in the past', () => {
+    // Range Mon Oct 5 – Sun Oct 11 (full week). today = Oct 15 (after range).
+    // Should behave the same as without the today parameter.
+    const sessions: Session[] = [
+      makeSession('routine-1', '2026-10-05T10:00:00.000Z'),
+      makeSession('routine-1', '2026-10-07T10:00:00.000Z'),
+    ]
+    const withToday = calculateConsistency(
+      sessions,
+      routine,
+      { start: '2026-10-05', end: '2026-10-11' },
+      '2026-10-15',
+    )
+    const withoutToday = calculateConsistency(
+      sessions,
+      routine,
+      { start: '2026-10-05', end: '2026-10-11' },
+    )
+    expect(withToday).toBe(withoutToday)
+  })
+
+  it('exact full weeks with today param produce same result as without', () => {
+    // Range: Mon Oct 5 – Sun Oct 11. today = Sun Oct 11 (last day of week).
+    // 7 elapsed days → fullWeeks = 1, remainder = 0 → same as full week.
+    const sessions: Session[] = [
+      makeSession('routine-1', '2026-10-05T10:00:00.000Z'),
+      makeSession('routine-1', '2026-10-07T10:00:00.000Z'),
+      makeSession('routine-1', '2026-10-09T10:00:00.000Z'),
+    ]
+    const withToday = calculateConsistency(
+      sessions,
+      routine,
+      { start: '2026-10-05', end: '2026-10-11' },
+      '2026-10-11',
+    )
+    const withoutToday = calculateConsistency(
+      sessions,
+      routine,
+      { start: '2026-10-05', end: '2026-10-11' },
+    )
+    expect(withToday).toBe(withoutToday)
+    expect(withToday).toBe(100)
+  })
+
+  it('partial week with no sessions penalizes only elapsed days', () => {
+    // 3x_week routine. 2 full weeks (Mon Sep 28 – Sun Oct 11) + 3 days (Mon Oct 12 – Wed Oct 14).
+    // Full weeks: 2 × 3 = 6 planned.
+    // Partial week: (3/7) × 3 ≈ 1.29 planned.
+    // Total planned ≈ 7.29. 6 completed (all in past weeks, none in current).
+    // 6 / 7.29 ≈ 82%.
+    const sessions: Session[] = [
+      makeSession('routine-1', '2026-09-28T10:00:00.000Z'),
+      makeSession('routine-1', '2026-09-30T10:00:00.000Z'),
+      makeSession('routine-1', '2026-10-02T10:00:00.000Z'),
+      makeSession('routine-1', '2026-10-05T10:00:00.000Z'),
+      makeSession('routine-1', '2026-10-07T10:00:00.000Z'),
+      makeSession('routine-1', '2026-10-09T10:00:00.000Z'),
+    ]
+    const result = calculateConsistency(
+      sessions,
+      routine,
+      { start: '2026-09-28', end: '2026-10-14' },
+      '2026-10-14',
+    )
+    // Without pro-rating: 17 days / 7 = 2.43 weeks → 7.29 planned → 6/7.29 = 82%
+    // With pro-rating: 2 full weeks (6 planned) + 3/7 × 3 (1.29) = 7.29 → same here
+    // because the start is on a Monday. The key difference shows when
+    // comparing to range end = Oct 18 (Sunday) without pro-rating.
+    expect(result).toBe(82)
+
+    // Without pro-rating and range extending to Sunday Oct 18:
+    // 21 days / 7 = 3 weeks → 9 planned → 6/9 = 67%.
+    // With pro-rating to Oct 14: 82%. The user is not punished for Thu-Sun.
+    const withoutProrating = calculateConsistency(
+      sessions,
+      routine,
+      { start: '2026-09-28', end: '2026-10-18' },
+    )
+    expect(withoutProrating).toBe(67)
+    expect(result).toBeGreaterThan(withoutProrating)
+  })
 })
 
 // ─── calculateCompletionRate ──────────────────────────────────────────────────

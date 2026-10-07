@@ -208,3 +208,51 @@ describe('DashboardScreen — multiple routines', () => {
     expect(onEditRoutine).toHaveBeenCalledWith(STRENGTH_ROUTINE.id)
   })
 })
+
+describe('DashboardScreen — momentum pro-rating', () => {
+  /**
+   * Helper: generate strength sessions spread across the last N weeks,
+   * hitting the 3x/week target on Mon, Wed, Fri of each full past week,
+   * plus sessions for elapsed days of the current partial week.
+   */
+  function generatePerfectSessions(): ReturnType<typeof makeStrengthSession>[] {
+    const sessions: ReturnType<typeof makeStrengthSession>[] = []
+    // Create 3 sessions per week for 4 full past weeks
+    for (let week = 4; week >= 1; week--) {
+      for (const dayOffset of [0, 2, 4]) {
+        // Mon, Wed, Fri of each week
+        const d = new Date()
+        d.setUTCDate(d.getUTCDate() - week * 7 + dayOffset)
+        sessions.push(
+          makeStrengthSession(
+            STRENGTH_ROUTINE.id,
+            'act-bench',
+            d.toISOString(),
+            60,
+            8,
+          ),
+        )
+      }
+    }
+    return sessions
+  }
+
+  it('shows high consistency when all past sessions are completed (no future penalty)', () => {
+    const sessions = generatePerfectSessions()
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+          onEditRoutine={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    const el = screen.getByTestId('overall-consistency')
+    const value = parseInt(el.textContent!.replace('%', ''), 10)
+    // With pro-rating, perfect past weeks should yield at least 90%.
+    // Without pro-rating, mid-week deflation would pull this lower.
+    expect(value).toBeGreaterThanOrEqual(90)
+  })
+})
