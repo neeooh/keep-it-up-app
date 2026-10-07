@@ -1,6 +1,7 @@
 import { ChevronLeft, Sparkles } from 'lucide-react'
 import type { Navigate } from '../../App'
 import type { Direction } from '../../domain/types'
+import { OnboardingProgress } from '../../components/OnboardingProgress'
 import {
   type ActivityTemplate,
   customTemplate,
@@ -24,7 +25,6 @@ function heading(direction: Direction | null): string {
 export function ChooseDirectionScreen({
   navigate,
   direction,
-  onDirectionChange: _onDirectionChange,
   onTemplateSelect,
 }: Props) {
   // Fall back to DO if direction somehow arrives null (deep-link or test)
@@ -43,7 +43,7 @@ export function ChooseDirectionScreen({
   return (
     <div data-testid="screen-choose-direction" className="flex flex-col min-h-full">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-12 pb-6">
+      <div className="flex items-center gap-3 px-5 pt-12 pb-6">
         <button
           type="button"
           aria-label="Back"
@@ -57,8 +57,10 @@ export function ChooseDirectionScreen({
         </h1>
       </div>
 
+      <OnboardingProgress current={1} total={4} />
+
       {/* Template cards */}
-      <div className="flex-1 overflow-y-auto px-4 pb-8">
+      <div className="flex-1 overflow-y-auto px-5 pb-8 pt-2">
         <div className="flex flex-col gap-3">
           {templates.map((template) => (
             <button
@@ -68,10 +70,10 @@ export function ChooseDirectionScreen({
               onClick={() => selectTemplate(template)}
               className={[
                 'flex items-center gap-4 w-full rounded-xl border px-4 py-4 text-left',
-                'transition-colors hover:bg-muted active:scale-[0.98]',
+                'transition-colors hover:bg-surface-muted active:scale-[0.98]',
                 template.isCustom
                   ? 'border-dashed border-border bg-transparent'
-                  : 'border-border bg-card shadow-sm',
+                  : 'border-border bg-card',
               ].join(' ')}
             >
               {template.isCustom && (

@@ -16,11 +16,8 @@ import { findTemplate, needsConfigureScreen } from './domain/templates'
 // ── Onboarding screens ────────────────────────────────────────────────────────
 import { WelcomeScreen } from './screens/onboarding/WelcomeScreen'
 import { ChooseDirectionScreen } from './screens/onboarding/ChooseDirectionScreen'
-import { ChooseTemplateScreen } from './screens/onboarding/ChooseTemplateScreen'
 import { ConfigureActivityScreen } from './screens/onboarding/ConfigureActivityScreen'
 import { SetFrequencyScreen } from './screens/onboarding/SetFrequencyScreen'
-import { OptionalScheduleScreen } from './screens/onboarding/OptionalScheduleScreen'
-import { OptionalChallengeScreen } from './screens/onboarding/OptionalChallengeScreen'
 import { PlanReviewScreen } from './screens/onboarding/PlanReviewScreen'
 
 // ── Main app screens ──────────────────────────────────────────────────────────
@@ -132,8 +129,6 @@ function renderScreen(
           }}
         />
       )
-    case 'choose-template':
-      return <ChooseTemplateScreen navigate={navigate} direction={draft.direction} />
     case 'configure-activity':
       return (
         <ConfigureActivityScreen
@@ -154,26 +149,6 @@ function renderScreen(
           skippedConfigure={draft.skippedConfigure}
         />
       )
-    case 'optional-schedule':
-      return (
-        <OptionalScheduleScreen
-          navigate={navigate}
-          scheduledDays={draft.scheduledDays}
-          preferredTime={draft.preferredTime}
-          onScheduleChange={(days, time) =>
-            setDraft({ scheduledDays: days, preferredTime: time })
-          }
-        />
-      )
-    case 'optional-challenge':
-      return (
-        <OptionalChallengeScreen
-          navigate={navigate}
-          templateId={draft.templateId}
-          challengeDurationDays={draft.challengeDurationDays}
-          onChallengeChange={(days) => setDraft({ challengeDurationDays: days })}
-        />
-      )
     case 'plan-review':
       return (
         <PlanReviewScreen
@@ -181,6 +156,13 @@ function renderScreen(
           draft={draft}
           onStart={onStartRoutine}
           skippedConfigure={draft.skippedConfigure}
+          scheduledDays={draft.scheduledDays}
+          preferredTime={draft.preferredTime}
+          challengeDurationDays={draft.challengeDurationDays}
+          onScheduleChange={(days, time) =>
+            setDraft({ scheduledDays: days, preferredTime: time })
+          }
+          onChallengeChange={(days) => setDraft({ challengeDurationDays: days })}
         />
       )
     case 'dashboard':
@@ -230,9 +212,9 @@ function BottomNav({ current, onNavigate }: BottomNavProps) {
   return (
     <nav
       aria-label="Main navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background"
+      className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-md sm:max-w-lg border-t border-border bg-background"
     >
-      <div className="mx-auto flex max-w-md items-center justify-around px-2 pb-safe">
+      <div className="flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)]">
         {NAV_TABS.map(({ screen, label }) => {
           const Icon = NAV_ICONS[screen as keyof typeof NAV_ICONS]
           const isActive = current === screen
@@ -244,13 +226,13 @@ function BottomNav({ current, onNavigate }: BottomNavProps) {
               aria-current={isActive ? 'page' : undefined}
               onClick={() => onNavigate(screen)}
               className={[
-                'flex flex-1 flex-col items-center gap-1 py-3 text-xs font-medium transition-colors',
+                'flex flex-1 flex-col items-center gap-1 py-3.5 text-xs font-medium transition-colors',
                 isActive
-                  ? 'text-foreground'
-                  : 'text-muted-foreground hover:text-foreground',
+                  ? 'text-brand'
+                  : 'text-muted-foreground hover:text-brand',
               ].join(' ')}
             >
-              <Icon size={22} strokeWidth={isActive ? 2 : 1.5} aria-hidden="true" />
+              <Icon size={24} strokeWidth={isActive ? 2 : 1.5} aria-hidden="true" />
               <span>{label}</span>
             </button>
           )
@@ -347,32 +329,35 @@ function AppShell({ initialScreen }: AppProps) {
   )
 
   const isOnboarding = ONBOARDING_SCREENS.includes(screen)
+  const hideBottomNav = isOnboarding || screen === 'active-session'
 
   return (
-    <div
-      data-testid="app-shell"
-      className="relative mx-auto flex min-h-svh max-w-md flex-col bg-background"
-    >
-      <main
-        className={[
-          'flex flex-1 flex-col',
-          isOnboarding ? '' : 'pb-20',
-        ].join(' ')}
+    <div className="min-h-svh bg-surface-muted">
+      <div
+        data-testid="app-shell"
+        className="relative mx-auto flex min-h-svh max-w-md sm:max-w-lg flex-col bg-background"
       >
-        {renderScreen(screen, {
-          navigate,
-          draft,
-          setDraft,
-          onStartRoutine,
-          selectedRoutineId,
-          onStartSession,
-          onEditRoutine,
-        })}
-      </main>
+        <main
+          className={[
+            'flex flex-1 flex-col',
+            hideBottomNav ? '' : 'pb-20',
+          ].join(' ')}
+        >
+          {renderScreen(screen, {
+            navigate,
+            draft,
+            setDraft,
+            onStartRoutine,
+            selectedRoutineId,
+            onStartSession,
+            onEditRoutine,
+          })}
+        </main>
 
-      {!isOnboarding && (
-        <BottomNav current={screen} onNavigate={navigate} />
-      )}
+        {!hideBottomNav && (
+          <BottomNav current={screen} onNavigate={navigate} />
+        )}
+      </div>
     </div>
   )
 }

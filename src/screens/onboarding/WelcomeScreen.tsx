@@ -19,7 +19,11 @@ export function WelcomeScreen({ navigate, onDirectionChoose }: Props) {
       data-testid="screen-welcome"
       className="flex flex-col items-center justify-center min-h-full px-6 py-12 text-center"
     >
-      <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+      <p className="text-sm font-semibold uppercase tracking-wide text-brand">
+        Keep It Up
+      </p>
+
+      <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
         What do you want to work on?
       </h1>
 

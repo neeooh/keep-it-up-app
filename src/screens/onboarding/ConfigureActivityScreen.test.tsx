@@ -121,10 +121,11 @@ describe('ConfigureActivityScreen — strength template', () => {
     expect(screen.getByTestId('exercise-row-0')).toBeInTheDocument()
   })
 
-  it('renders sets and reps inputs on the first row', () => {
+  it('renders sets, reps, and weight inputs on the first row', () => {
     setup('strength-workout')
     expect(screen.getByTestId('exercise-sets-0')).toBeInTheDocument()
     expect(screen.getByTestId('exercise-reps-0')).toBeInTheDocument()
+    expect(screen.getByTestId('exercise-weight-0')).toBeInTheDocument()
   })
 
   it('does NOT render scalar distance or duration fields', () => {
@@ -165,6 +166,21 @@ describe('ConfigureActivityScreen — strength template', () => {
     await user.click(screen.getByRole('button', { name: /remove exercise 1/i }))
     expect(screen.queryByTestId('exercise-row-1')).toBeNull()
     expect(screen.getByTestId('exercise-row-0')).toBeInTheDocument()
+  })
+
+  it('weight input accepts decimal values', async () => {
+    const user = userEvent.setup()
+    setup('strength-workout')
+    const weightInput = screen.getByTestId('exercise-weight-0')
+    await user.type(weightInput, '62.5')
+    expect(weightInput).toHaveValue(62.5)
+  })
+
+  it('newly added exercise row also has a weight input', async () => {
+    const user = userEvent.setup()
+    setup('strength-workout')
+    await user.click(screen.getByTestId('add-exercise'))
+    expect(screen.getByTestId('exercise-weight-1')).toBeInTheDocument()
   })
 })
 

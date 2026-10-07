@@ -72,13 +72,19 @@ describe('App — bottom nav hidden on onboarding screens', () => {
 
 describe('App — bottom nav visible on main screens', () => {
   // Not every main screen is a nav tab destination, but the nav should
-  // be present on all of them.
-  for (const s of MAIN_SCREENS) {
+  // be present on all of them — except the active session, which hides the
+  // nav to keep the user focused on logging.
+  for (const s of MAIN_SCREENS.filter((m) => m !== 'active-session')) {
     it(`shows bottom nav on "${s}"`, () => {
       renderAt(s)
       expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument()
     })
   }
+
+  it('hides bottom nav during an active session', () => {
+    renderAt('active-session')
+    expect(screen.queryByRole('navigation', { name: 'Main navigation' })).toBeNull()
+  })
 })
 
 // ─── Nav tab — click navigation ───────────────────────────────────────────────
@@ -112,11 +118,11 @@ describe('App — nav tab click navigation', () => {
     expect(screen.getByTestId('screen-weekly-review')).toBeInTheDocument()
   })
 
-  it('navigates to Home when the Home tab is clicked', async () => {
+  it('navigates to Today when the Today tab is clicked', async () => {
     const user = userEvent.setup()
     renderAt('history')
 
-    await user.click(screen.getByRole('button', { name: 'Home' }))
+    await user.click(screen.getByRole('button', { name: 'Today' }))
 
     expect(screen.getByTestId('screen-dashboard')).toBeInTheDocument()
   })
@@ -125,9 +131,9 @@ describe('App — nav tab click navigation', () => {
 // ─── Nav tab — aria-current active state ─────────────────────────────────────
 
 describe('App — active nav tab has aria-current="page"', () => {
-  it('marks the Home tab as active when on the dashboard', () => {
+  it('marks the Today tab as active when on the dashboard', () => {
     renderAt('dashboard')
-    expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Today' })).toHaveAttribute(
       'aria-current',
       'page',
     )

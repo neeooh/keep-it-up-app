@@ -1,17 +1,23 @@
 /**
- * PlanReviewScreen — onboarding screen 7.
+ * PlanReviewScreen — onboarding screen 4 of 4.
  *
- * Shows a concise summary of the assembled plan and lets the user start
- * or go back to edit.
+ * Shows a concise summary of the assembled plan. Optional schedule and
+ * challenge settings are now folded into collapsible sections here (the
+ * standalone optional-schedule / optional-challenge screens were removed).
+ * The user can set preferred days, a time preference, and a challenge
+ * duration before creating the plan.
+ *
  * Spec reference: mvp_product_spec.md section 12.
  */
 
-import { ChevronLeft, AlertTriangle } from 'lucide-react'
+import { useState } from 'react'
+import { ChevronLeft, ChevronDown, AlertTriangle, Check } from 'lucide-react'
 import { Button } from '../../components/ui/button'
+import { OnboardingProgress } from '../../components/OnboardingProgress'
 import { useAppStore } from '../../store/useAppStore'
 import type { Navigate, OnboardingDraft } from '../../App'
 import { findTemplate } from '../../domain/templates'
-import type { Frequency } from '../../domain/types'
+import type { ChallengeDuration, DayOfWeek, Frequency } from '../../domain/types'
 
 interface Props {
   navigate: Navigate
@@ -19,6 +25,16 @@ interface Props {
   onStart: () => void
   /** When true, "Edit plan" goes to choose-direction instead of configure-activity. */
   skippedConfigure?: boolean
+  /** Current preferred days from the draft. */
+  scheduledDays?: DayOfWeek[]
+  /** Current preferred time label from the draft. */
+  preferredTime?: string
+  /** Current challenge duration from the draft, or null. */
+  challengeDurationDays?: ChallengeDuration | null
+  /** Update preferred days and time on the draft. */
+  onScheduleChange?: (days: DayOfWeek[], time: string) => void
+  /** Update the challenge duration on the draft. */
+  onChallengeChange?: (days: ChallengeDuration | null) => void
 }
 
 function frequencyLabel(f: Frequency): string {
@@ -35,7 +51,45 @@ const DAY_NAMES: Record<number, string> = {
   1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 7: 'Sun',
 }
 
-export function PlanReviewScreen({ navigate, draft, onStart, skippedConfigure }: Props) {
+interface DayOption {
+  value: DayOfWeek
+  short: string
+}
+
+const DAY_OPTIONS: DayOption[] = [
+  { value: 1, short: 'M' },
+  { value: 2, short: 'T' },
+  { value: 3, short: 'W' },
+  { value: 4, short: 'T' },
+  { value: 5, short: 'F' },
+  { value: 6, short: 'S' },
+  { value: 7, short: 'S' },
+]
+
+const TIME_OPTIONS = ['Morning', 'Afternoon', 'Evening', 'Anytime']
+
+interface ChallengeOption {
+  value: ChallengeDuration
+  label: string
+}
+
+const CHALLENGE_OPTIONS: ChallengeOption[] = [
+  { value: 30, label: '30 days' },
+  { value: 60, label: '60 days' },
+  { value: 90, label: '90 days' },
+]
+
+export function PlanReviewScreen({
+  navigate,
+  draft,
+  onStart,
+  skippedConfigure,
+  scheduledDays: scheduledDaysProp,
+  preferredTime: preferredTimeProp,
+  challengeDurationDays: challengeDurationDaysProp,
+  onScheduleChange,
+  onChallengeChange,
+}: Props) {
   const { state } = useAppStore()
   const template = draft.templateId ? findTemplate(draft.templateId) : null
   const activityName =
@@ -45,14 +99,40 @@ export function PlanReviewScreen({ navigate, draft, onStart, skippedConfigure }:
       ? draft.measurements
       : template?.defaultMeasurements ?? []
 
+  // Prefer explicit props (wired to the draft from App), fall back to the draft.
+  const scheduledDays = scheduledDaysProp ?? draft.scheduledDays
+  const preferredTime = preferredTimeProp ?? draft.preferredTime
+  const challengeDurationDays =
+    challengeDurationDaysProp ?? draft.challengeDurationDays
+
+  // Collapsible section state — both collapsed by default.
+  const [daysOpen, setDaysOpen] = useState(false)
+  const [challengeOpen, setChallengeOpen] = useState(false)
+
   const isDuplicate = state.routines.some(
     (r) => r.name.toLowerCase() === activityName.toLowerCase(),
   )
 
+  function toggleDay(day: DayOfWeek) {
+    const next = scheduledDays.includes(day)
+      ? scheduledDays.filter((d) => d !== day)
+      : [...scheduledDays, day].sort((a, b) => a - b)
+    onScheduleChange?.(next as DayOfWeek[], preferredTime)
+  }
+
+  function selectTime(time: string) {
+    const next = preferredTime === time ? '' : time
+    onScheduleChange?.(scheduledDays, next)
+  }
+
+  function toggleChallenge(days: ChallengeDuration) {
+    onChallengeChange?.(challengeDurationDays === days ? null : days)
+  }
+
   return (
     <div data-testid="screen-plan-review" className="flex flex-col min-h-full">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-12 pb-6">
+      <div className="flex items-center gap-3 px-5 pt-12 pb-6">
         <button
           type="button"
           aria-label="Back"
@@ -62,16 +142,18 @@ export function PlanReviewScreen({ navigate, draft, onStart, skippedConfigure }:
           <ChevronLeft size={20} aria-hidden="true" />
         </button>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Your plan
+          Here's your plan
         </h1>
       </div>
 
+      <OnboardingProgress current={4} total={4} />
+
       {/* Plan summary card */}
-      <div className="flex-1 px-4 pb-6">
+      <div className="flex-1 overflow-y-auto px-5 pb-6 pt-2 flex flex-col gap-4">
         {isDuplicate && (
           <div
             data-testid="duplicate-warning"
-            className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 mb-4"
+            className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3"
           >
             <AlertTriangle size={16} className="text-destructive mt-0.5 shrink-0" aria-hidden="true" />
             <p className="text-sm text-foreground">
@@ -80,8 +162,8 @@ export function PlanReviewScreen({ navigate, draft, onStart, skippedConfigure }:
             </p>
           </div>
         )}
-        <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4">
 
+        <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4">
           {/* Activity name + frequency */}
           <div>
             <p
@@ -119,50 +201,183 @@ export function PlanReviewScreen({ navigate, draft, onStart, skippedConfigure }:
             </div>
           )}
 
-          {/* Scheduled days */}
-          {draft.scheduledDays.length > 0 && (
+          {/* Scheduled days summary */}
+          {scheduledDays.length > 0 && (
             <div>
               <p className="text-xs text-muted-foreground mb-1">Days</p>
               <p
                 data-testid="plan-scheduled-days"
                 className="text-sm text-foreground"
               >
-                {draft.scheduledDays.map((d) => DAY_NAMES[d]).join(' · ')}
+                {scheduledDays.map((d) => DAY_NAMES[d]).join(' · ')}
               </p>
             </div>
           )}
 
-          {/* Time preference */}
-          {draft.preferredTime && (
+          {/* Time preference summary */}
+          {preferredTime && (
             <div>
               <p className="text-xs text-muted-foreground mb-1">Time</p>
               <p data-testid="plan-preferred-time" className="text-sm text-foreground">
-                {draft.preferredTime}
+                {preferredTime}
               </p>
             </div>
           )}
 
-          {/* Challenge */}
-          {draft.challengeDurationDays != null && (
+          {/* Challenge summary */}
+          {challengeDurationDays != null && (
             <div
               data-testid="plan-challenge"
-              className="rounded-xl bg-muted px-4 py-3 text-sm text-foreground"
+              className="rounded-xl bg-brand-light px-4 py-3 text-sm text-foreground"
             >
-              {draft.challengeDurationDays}-day challenge
+              {challengeDurationDays}-day challenge
+            </div>
+          )}
+        </div>
+
+        {/* Collapsible: Set preferred days */}
+        <div className="rounded-2xl border border-border bg-card">
+          <button
+            type="button"
+            data-testid="toggle-schedule"
+            aria-expanded={daysOpen}
+            onClick={() => setDaysOpen((v) => !v)}
+            className="flex items-center justify-between w-full px-5 py-4 text-left"
+          >
+            <span className="text-sm font-medium text-foreground">Set preferred days</span>
+            <ChevronDown
+              size={18}
+              className={[
+                'text-muted-foreground transition-transform',
+                daysOpen ? 'rotate-180' : '',
+              ].join(' ')}
+              aria-hidden="true"
+            />
+          </button>
+
+          {daysOpen && (
+            <div data-testid="schedule-content" className="px-5 pb-5 flex flex-col gap-5">
+              {/* Day picker */}
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">Days</p>
+                <div className="flex gap-2">
+                  {DAY_OPTIONS.map(({ value, short }) => {
+                    const isSelected = scheduledDays.includes(value)
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={isSelected}
+                        data-testid={`day-option-${value}`}
+                        onClick={() => toggleDay(value)}
+                        className={[
+                          'flex-1 rounded-lg border py-2 text-sm font-medium transition-colors',
+                          isSelected
+                            ? 'border-brand bg-brand-light text-foreground'
+                            : 'border-border bg-card text-foreground hover:bg-surface-muted',
+                        ].join(' ')}
+                      >
+                        {short}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Time preference */}
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">Time of day</p>
+                <div className="flex gap-2 flex-wrap">
+                  {TIME_OPTIONS.map((time) => {
+                    const isSelected = preferredTime === time
+                    return (
+                      <button
+                        key={time}
+                        type="button"
+                        aria-pressed={isSelected}
+                        data-testid={`time-option-${time.toLowerCase()}`}
+                        onClick={() => selectTime(time)}
+                        className={[
+                          'inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
+                          isSelected
+                            ? 'border-brand bg-brand-light text-foreground'
+                            : 'border-border bg-card text-foreground hover:bg-surface-muted',
+                        ].join(' ')}
+                      >
+                        {isSelected && <Check size={14} className="text-brand" aria-hidden="true" />}
+                        {time}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Collapsible: Make this a challenge? */}
+        <div className="rounded-2xl border border-border bg-card">
+          <button
+            type="button"
+            data-testid="toggle-challenge"
+            aria-expanded={challengeOpen}
+            onClick={() => setChallengeOpen((v) => !v)}
+            className="flex items-center justify-between w-full px-5 py-4 text-left"
+          >
+            <span className="text-sm font-medium text-foreground">Make this a challenge?</span>
+            <ChevronDown
+              size={18}
+              className={[
+                'text-muted-foreground transition-transform',
+                challengeOpen ? 'rotate-180' : '',
+              ].join(' ')}
+              aria-hidden="true"
+            />
+          </button>
+
+          {challengeOpen && (
+            <div
+              data-testid="challenge-content"
+              className="px-5 pb-5 flex flex-col gap-3"
+              role="radiogroup"
+              aria-label="Challenge duration"
+            >
+              {CHALLENGE_OPTIONS.map(({ value, label }) => {
+                const isSelected = challengeDurationDays === value
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    data-testid={`challenge-option-${value}`}
+                    onClick={() => toggleChallenge(value)}
+                    className={[
+                      'flex items-center justify-between w-full rounded-lg border px-4 py-3 text-left transition-colors',
+                      isSelected
+                        ? 'border-brand bg-brand-light'
+                        : 'border-border bg-card hover:bg-surface-muted',
+                    ].join(' ')}
+                  >
+                    <span className="text-sm font-medium text-foreground">{label}</span>
+                    {isSelected && <Check size={18} className="text-brand" aria-hidden="true" />}
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>
       </div>
 
       {/* Actions */}
-      <div className="px-4 py-4 border-t border-border flex flex-col gap-2">
+      <div className="px-5 py-4 border-t border-border flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <Button
           type="button"
           data-testid="start-button"
           onClick={onStart}
           className="w-full"
         >
-          Start today
+          Create my plan
         </Button>
         <Button
           type="button"

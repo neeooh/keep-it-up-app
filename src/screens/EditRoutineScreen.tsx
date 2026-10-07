@@ -1,19 +1,20 @@
 /**
  * EditRoutineScreen — edit an existing routine.
  *
- * Pre-populates all fields from the current routine. Supports save,
- * delete (with confirmation dialog), and cancel.
+ * Pre-populates all fields from the current routine and groups them into
+ * clear sections: Routine, Schedule, Time, Challenge, and a visually
+ * separated Danger zone. Supports save, delete (with confirmation), and
+ * cancel.
  *
  * Spec reference: mvp_product_spec.md — reachable from weekly review
  * and dashboard.
  */
 
 import { useState } from 'react'
-import { ChevronLeft, Trash2, RotateCcw } from 'lucide-react'
+import { Check, Trash2, RotateCcw } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
-import { Card, CardContent } from '../components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from '../components/ui/dialog'
+import { PageHeader } from '../components/PageHeader'
+import { SectionHeader } from '../components/SectionHeader'
 import { useAppStore } from '../store/useAppStore'
 import type { Navigate } from '../App'
 import type { DayOfWeek, Frequency, Routine } from '../domain/types'
@@ -58,6 +61,13 @@ const DAY_OPTIONS: { value: DayOfWeek; short: string }[] = [
 ]
 
 const TIME_OPTIONS = ['Morning', 'Afternoon', 'Evening', 'Anytime']
+
+// ─── Shared selectable-button styles ──────────────────────────────────────────
+
+const SELECTED_PILL =
+  'bg-brand text-brand-foreground border-brand'
+const UNSELECTED_PILL =
+  'border-border bg-card text-foreground hover:bg-surface-muted'
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -146,38 +156,35 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
 
   return (
     <div data-testid="screen-edit-routine" className="flex flex-col min-h-full">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-8 pb-4">
-        <button
-          type="button"
-          aria-label="Back"
-          onClick={handleCancel}
-          className="rounded-full p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
-          <ChevronLeft size={20} aria-hidden="true" />
-        </button>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Edit routine
-        </h1>
-      </div>
+      <PageHeader title="Edit routine" backAction={handleCancel} />
 
       {/* Form */}
-      <div className="flex-1 overflow-y-auto px-4 pb-6 flex flex-col gap-5">
-        {/* Name */}
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="routine-name">Routine name</Label>
-          <Input
-            id="routine-name"
-            data-testid="edit-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
+      <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-6">
+        {/* a. Routine */}
+        <section>
+          <SectionHeader title="Routine" />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="routine-name">Routine name</Label>
+            <Input
+              id="routine-name"
+              data-testid="edit-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+        </section>
 
-        {/* Frequency */}
-        <div>
+        {/* b. Schedule */}
+        <section>
+          <SectionHeader title="Schedule" />
+
+          {/* Frequency */}
           <p className="text-sm font-medium text-foreground mb-2">Frequency</p>
-          <div className="flex flex-col gap-2" role="radiogroup" aria-label="Frequency">
+          <div
+            className="flex flex-col gap-2"
+            role="radiogroup"
+            aria-label="Frequency"
+          >
             {FREQUENCY_OPTIONS.map(({ value, label }) => {
               const isSelected = frequency === value
               return (
@@ -189,22 +196,23 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                   data-testid={`edit-frequency-${value}`}
                   onClick={() => setFrequency(value)}
                   className={[
-                    'flex items-center w-full rounded-xl border px-4 py-3 text-left text-sm transition-colors',
+                    'flex items-center justify-between w-full rounded-lg border px-4 py-3 text-left text-sm transition-colors',
                     isSelected
-                      ? 'border-foreground bg-card font-medium'
-                      : 'border-border bg-card hover:bg-muted',
+                      ? 'border-brand bg-brand-light text-foreground font-medium'
+                      : 'border-border bg-card hover:bg-surface-muted',
                   ].join(' ')}
                 >
-                  {label}
+                  <span>{label}</span>
+                  {isSelected && (
+                    <Check size={16} aria-hidden="true" className="text-brand" />
+                  )}
                 </button>
               )
             })}
           </div>
-        </div>
 
-        {/* Scheduled days */}
-        <div>
-          <p className="text-sm font-medium text-foreground mb-2">
+          {/* Scheduled days */}
+          <p className="text-sm font-medium text-foreground mt-4 mb-2">
             Preferred days (optional)
           </p>
           <div className="flex gap-2 flex-wrap">
@@ -218,10 +226,8 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                   data-testid={`edit-day-${value}`}
                   onClick={() => toggleDay(value)}
                   className={[
-                    'rounded-xl border px-3 py-2 text-sm font-medium transition-colors min-w-[3rem]',
-                    isSelected
-                      ? 'border-foreground bg-foreground text-background'
-                      : 'border-border bg-card text-foreground hover:bg-muted',
+                    'rounded-lg border px-3 py-2 text-sm font-medium transition-colors min-w-[3rem]',
+                    isSelected ? SELECTED_PILL : UNSELECTED_PILL,
                   ].join(' ')}
                 >
                   {short}
@@ -229,10 +235,11 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
               )
             })}
           </div>
-        </div>
+        </section>
 
-        {/* Time preference */}
-        <div>
+        {/* c. Time */}
+        <section>
+          <SectionHeader title="Time" />
           <p className="text-sm font-medium text-foreground mb-2">
             Preferred time (optional)
           </p>
@@ -245,75 +252,74 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                   type="button"
                   aria-pressed={isSelected}
                   data-testid={`edit-time-${time.toLowerCase()}`}
-                  onClick={() =>
-                    setPreferredTime(isSelected ? '' : time)
-                  }
+                  onClick={() => setPreferredTime(isSelected ? '' : time)}
                   className={[
-                    'rounded-xl border px-4 py-2 text-sm font-medium transition-colors',
-                    isSelected
-                      ? 'border-foreground bg-foreground text-background'
-                      : 'border-border bg-card text-foreground hover:bg-muted',
+                    'inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
+                    isSelected ? SELECTED_PILL : UNSELECTED_PILL,
                   ].join(' ')}
                 >
+                  {isSelected && <Check size={14} aria-hidden="true" />}
                   {time}
                 </button>
               )
             })}
           </div>
-        </div>
+        </section>
 
-        {/* Restart challenge */}
+        {/* d. Challenge */}
         {routine.challengeDurationDays && (
-          <Card>
-            <CardContent className="pt-4">
-              {challengeRestarted ? (
-                <p
-                  data-testid="restart-confirmation"
-                  className="text-sm text-green-600"
-                >
-                  Challenge restarted — {routine.challengeDurationDays} days from
-                  today.
-                </p>
-              ) : (
-                <Button
-                  data-testid="restart-challenge-button"
-                  variant="outline"
-                  onClick={() => {
-                    const updated: Routine = {
-                      ...routine,
-                      challengeStartDate: new Date().toISOString().slice(0, 10),
-                    }
-                    updateRoutine(updated)
-                    setChallengeRestarted(true)
-                  }}
-                  className="w-full"
-                >
-                  <RotateCcw size={16} className="mr-2" aria-hidden="true" />
-                  Restart {routine.challengeDurationDays}-day challenge
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+          <section>
+            <SectionHeader title="Challenge" />
+            {challengeRestarted ? (
+              <p
+                data-testid="restart-confirmation"
+                className="text-sm text-success"
+              >
+                Challenge restarted — {routine.challengeDurationDays} days from
+                today.
+              </p>
+            ) : (
+              <Button
+                data-testid="restart-challenge-button"
+                variant="outline"
+                onClick={() => {
+                  const updated: Routine = {
+                    ...routine,
+                    challengeStartDate: new Date().toISOString().slice(0, 10),
+                  }
+                  updateRoutine(updated)
+                  setChallengeRestarted(true)
+                }}
+                className="w-full"
+              >
+                <RotateCcw size={16} className="mr-2" aria-hidden="true" />
+                Restart {routine.challengeDurationDays}-day challenge
+              </Button>
+            )}
+          </section>
         )}
 
-        {/* Delete button */}
-        <Card className="border-destructive/30">
-          <CardContent className="pt-4">
-            <Button
-              data-testid="delete-routine-button"
-              variant="outline"
-              onClick={() => setShowDeleteDialog(true)}
-              className="w-full text-destructive hover:text-destructive"
-            >
-              <Trash2 size={16} className="mr-2" aria-hidden="true" />
-              Delete routine
-            </Button>
-          </CardContent>
-        </Card>
+        {/* e. Danger zone */}
+        <section className="mt-8">
+          <SectionHeader title="Danger zone" />
+          <Button
+            data-testid="delete-routine-button"
+            variant="destructive"
+            onClick={() => setShowDeleteDialog(true)}
+            className="w-full"
+          >
+            <Trash2 size={16} className="mr-2" aria-hidden="true" />
+            Delete routine
+          </Button>
+          <p className="text-sm text-muted-foreground mt-2">
+            This removes the routine and its future schedule. Past history
+            remains.
+          </p>
+        </section>
       </div>
 
       {/* Actions */}
-      <div className="px-4 py-4 border-t border-border flex flex-col gap-2">
+      <div className="px-5 py-4 border-t border-border flex flex-col gap-2">
         <Button
           data-testid="save-button"
           onClick={handleSave}
@@ -338,8 +344,8 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
             <DialogTitle>Delete routine?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            This will delete "{routine.name}" and all its session history.
-            This action cannot be undone.
+            This removes "{routine.name}" and its schedule. Your completed
+            session history remains.
           </p>
           <DialogFooter>
             <Button

@@ -4,17 +4,17 @@
  * Adapts to the routine's activity types:
  * - Strength (sets/reps/weight): set-by-set entry with pre-fill from last session
  * - Metric (distance, duration, quantity): simple number inputs
- * - AVOID: "Did you stay on track?" binary
+ * - AVOID: "Did you stay on track today?" binary with supportive feedback
  *
  * Spec reference: mvp_product_spec.md section 14.
  */
 
 import { useState, useMemo } from 'react'
-import { ChevronLeft, Plus, Trash2, Check, X, Info } from 'lucide-react'
+import { Plus, Trash2, Check, X, Info } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
-import { Card, CardContent } from '../components/ui/card'
+import { PageHeader } from '../components/PageHeader'
 import { useAppStore } from '../store/useAppStore'
 import { sessionsForRoutine } from '../domain/calculations'
 import type { Navigate } from '../App'
@@ -120,7 +120,6 @@ function isActivityComplete(activity: Activity, state: ActivityState): boolean {
 // ─── Strength input ───────────────────────────────────────────────────────────
 
 function StrengthInput({
-  activity: _activity,
   state,
   onChange,
 }: {
@@ -157,38 +156,40 @@ function StrengthInput({
         <div
           key={set.id}
           data-testid={`set-row-${index}`}
-          className="flex items-center gap-2"
+          className="flex items-center gap-3"
         >
-          <span className="text-xs text-muted-foreground w-12">
-            Set {index + 1}
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface-muted text-sm font-semibold text-foreground">
+            {index + 1}
           </span>
           <Input
             data-testid={`set-weight-${index}`}
             type="number"
             inputMode="decimal"
             placeholder="kg"
+            aria-label={`Set ${index + 1} weight`}
             value={set.weight}
             onChange={(e) => updateSet(index, 'weight', e.target.value)}
-            className="w-20"
+            className="w-24"
           />
-          <span className="text-xs text-muted-foreground">×</span>
+          <span className="text-sm text-muted-foreground">×</span>
           <Input
             data-testid={`set-reps-${index}`}
             type="number"
             inputMode="numeric"
             placeholder="reps"
+            aria-label={`Set ${index + 1} reps`}
             value={set.reps}
             onChange={(e) => updateSet(index, 'reps', e.target.value)}
-            className="w-20"
+            className="w-24"
           />
           {state.sets.length > 1 && (
             <button
               type="button"
               aria-label={`Remove set ${index + 1}`}
               onClick={() => removeSet(index)}
-              className="p-1 text-muted-foreground hover:text-destructive"
+              className="ml-auto flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-surface-muted transition-colors"
             >
-              <Trash2 size={14} aria-hidden="true" />
+              <Trash2 size={16} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -199,6 +200,7 @@ function StrengthInput({
         size="sm"
         data-testid="add-set-button"
         onClick={addSet}
+        className="self-start"
       >
         <Plus size={14} className="mr-1" aria-hidden="true" />
         Add set
@@ -248,7 +250,7 @@ function MetricInput({
                     },
                   })
                 }
-                className="w-28"
+                className="w-32"
               />
               {unit && (
                 <span className="text-sm text-muted-foreground">{unit}</span>
@@ -275,30 +277,82 @@ function AvoidInput({
   state: ActivityState
   onChange: (updated: ActivityState) => void
 }) {
+  const choice = state.stayedOnTrack
+
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-sm text-foreground">Did you stay on track?</p>
-      <div className="flex gap-3">
-        <Button
+    <div className="flex flex-col gap-4">
+      <p className="text-center text-lg font-semibold text-foreground">
+        Did you stay on track today?
+      </p>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <button
           type="button"
           data-testid="avoid-yes"
-          variant={state.stayedOnTrack === true ? 'default' : 'outline'}
+          aria-pressed={choice === true}
           onClick={() => onChange({ ...state, stayedOnTrack: true })}
-          className="flex-1"
+          className={[
+            'flex flex-1 min-h-[60px] items-center justify-center gap-2 rounded-xl px-4 py-4 text-base font-semibold transition-colors',
+            choice === true
+              ? 'bg-brand text-brand-foreground'
+              : 'bg-brand/10 text-brand hover:bg-brand/20',
+          ].join(' ')}
         >
-          <Check size={16} className="mr-2" aria-hidden="true" />
-          Yes, I am on track
-        </Button>
-        <Button
+          <Check size={22} aria-hidden="true" />
+          Yes, I did
+        </button>
+        <button
           type="button"
           data-testid="avoid-no"
-          variant={state.stayedOnTrack === false ? 'default' : 'outline'}
+          aria-pressed={choice === false}
           onClick={() => onChange({ ...state, stayedOnTrack: false })}
-          className="flex-1"
+          className={[
+            'flex flex-1 min-h-[60px] items-center justify-center gap-2 rounded-xl px-4 py-4 text-base font-semibold transition-colors',
+            choice === false
+              ? 'bg-muted text-foreground ring-1 ring-border'
+              : 'bg-surface-muted text-muted-foreground hover:bg-muted',
+          ].join(' ')}
         >
-          <X size={16} className="mr-2" aria-hidden="true" />
+          <X size={22} aria-hidden="true" />
           No
-        </Button>
+        </button>
+      </div>
+
+      {choice === true && (
+        <p
+          data-testid="avoid-feedback-yes"
+          className="text-center text-sm font-medium text-success"
+        >
+          Great work! One more day on track.
+        </p>
+      )}
+      {choice === false && (
+        <p
+          data-testid="avoid-feedback-no"
+          className="text-center text-sm text-muted-foreground"
+        >
+          Tomorrow is a new day. What matters is that you keep going.
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ─── Session progress indicator ───────────────────────────────────────────────
+
+function SessionProgress({ total }: { total: number }) {
+  if (total <= 0) return null
+  return (
+    <div data-testid="session-progress" className="px-5 pb-4">
+      <p className="mb-2 text-xs font-medium text-muted-foreground">
+        {total === 1 ? '1 activity' : `${total} activities`}
+      </p>
+      <div className="flex gap-1.5" aria-hidden="true">
+        {Array.from({ length: total }, (_, i) => (
+          <div
+            key={i}
+            className="h-1.5 flex-1 rounded-full bg-brand"
+          />
+        ))}
       </div>
     </div>
   )
@@ -446,25 +500,16 @@ export function ActiveSessionScreen({ navigate, routineId }: Props) {
   return (
     <div data-testid="screen-active-session" className="flex flex-col min-h-full">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-8 pb-4">
-        <button
-          type="button"
-          aria-label="Back"
-          onClick={() => navigate('dashboard')}
-          className="rounded-full p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
-          <ChevronLeft size={20} aria-hidden="true" />
-        </button>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          {routine.name}
-        </h1>
-      </div>
+      <PageHeader title={routine.name} backAction={() => navigate('dashboard')} />
+
+      {/* Session progress indicator */}
+      <SessionProgress total={routine.activities.length} />
 
       {/* Pre-fill notice */}
       {lastSessionDate && (
         <div
           data-testid="prefill-notice"
-          className="mx-4 flex items-start gap-2 rounded-xl bg-muted px-4 py-3"
+          className="mx-5 flex items-start gap-2 rounded-xl bg-surface-muted px-4 py-3"
         >
           <Info size={16} className="text-muted-foreground mt-0.5 shrink-0" aria-hidden="true" />
           <p className="text-sm text-muted-foreground">
@@ -474,51 +519,53 @@ export function ActiveSessionScreen({ navigate, routineId }: Props) {
       )}
 
       {/* Activity forms */}
-      <div className="flex-1 overflow-y-auto px-4 pb-6 flex flex-col gap-4">
+      <div className="flex-1 overflow-y-auto px-5 pb-6">
         {routine.activities.map((activity, index) => (
-          <Card key={activity.id} data-testid={`activity-card-${activity.id}`}>
-            <CardContent className="pt-4">
-              <h2 className="text-base font-semibold text-foreground mb-3">
-                {activity.name}
-              </h2>
+          <div
+            key={activity.id}
+            data-testid={`activity-card-${activity.id}`}
+            className="border-b border-border/50 py-5 first:pt-2 last:border-0"
+          >
+            <h2 className="text-base font-semibold text-foreground mb-3">
+              {activity.name}
+            </h2>
 
-              {activity.direction === 'AVOID' && (
-                <AvoidInput
-                  state={activityStates[index]!}
-                  onChange={(updated) => updateActivity(index, updated)}
-                />
-              )}
+            {activity.direction === 'AVOID' && (
+              <AvoidInput
+                state={activityStates[index]!}
+                onChange={(updated) => updateActivity(index, updated)}
+              />
+            )}
 
-              {activity.direction === 'DO' && isStrengthActivity(activity) && (
-                <StrengthInput
-                  activity={activity}
-                  state={activityStates[index]!}
-                  onChange={(updated) => updateActivity(index, updated)}
-                />
-              )}
+            {activity.direction === 'DO' && isStrengthActivity(activity) && (
+              <StrengthInput
+                activity={activity}
+                state={activityStates[index]!}
+                onChange={(updated) => updateActivity(index, updated)}
+              />
+            )}
 
-              {activity.direction === 'DO' && !isStrengthActivity(activity) && (
-                <MetricInput
-                  activity={activity}
-                  state={activityStates[index]!}
-                  onChange={(updated) => updateActivity(index, updated)}
-                />
-              )}
-            </CardContent>
-          </Card>
+            {activity.direction === 'DO' && !isStrengthActivity(activity) && (
+              <MetricInput
+                activity={activity}
+                state={activityStates[index]!}
+                onChange={(updated) => updateActivity(index, updated)}
+              />
+            )}
+          </div>
         ))}
       </div>
 
       {/* Complete button */}
-      <div className="px-4 py-4 border-t border-border">
+      <div className="px-5 py-4 border-t border-border">
         <Button
           type="button"
           data-testid="complete-session-button"
           onClick={handleComplete}
           disabled={!allComplete}
-          className="w-full"
+          className="w-full bg-brand text-brand-foreground hover:bg-brand/90"
         >
-          Complete
+          Complete session
         </Button>
       </div>
     </div>

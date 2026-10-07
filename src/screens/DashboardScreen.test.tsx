@@ -95,10 +95,12 @@ describe('DashboardScreen — with data', () => {
     return { navigate, onStartSession, onEditRoutine }
   }
 
-  it('renders the "Your momentum" heading', () => {
+  it('renders a page header with today\u2019s date when sessions exist', () => {
     setup()
+    // With sessions, the header shows the formatted current date (weekday name).
+    const weekday = new Date().toLocaleDateString('en-GB', { weekday: 'long' })
     expect(
-      screen.getByRole('heading', { name: /your momentum/i }),
+      screen.getByRole('heading', { name: new RegExp(weekday, 'i') }),
     ).toBeInTheDocument()
   })
 

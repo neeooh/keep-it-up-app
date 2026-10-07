@@ -1,16 +1,19 @@
 /**
  * HistoryScreen — session history list.
  *
- * Shows sessions in reverse chronological order. Tapping a session opens
- * a detail sheet with all activity results.
+ * Shows sessions in reverse chronological order, grouped by date with smart
+ * "Today" / "Yesterday" / formatted headers. Tapping a session opens a detail
+ * sheet with all activity results.
  *
  * Spec reference: mvp_product_spec.md section 15.
  */
 
 import { useState } from 'react'
-import { Clock, Play } from 'lucide-react'
-import { Button } from '../components/ui/button'
-import { Card, CardContent } from '../components/ui/card'
+import { Clock } from 'lucide-react'
+import { PageHeader } from '../components/PageHeader'
+import { EmptyState } from '../components/EmptyState'
+import { StatusBadge } from '../components/StatusBadge'
+import { SectionHeader } from '../components/SectionHeader'
 import {
   Sheet,
   SheetContent,
@@ -38,12 +41,27 @@ function formatDate(iso: string): string {
   })
 }
 
-function formatDateShort(iso: string): string {
+/** YYYY-MM-DD in local time for day-level grouping/comparison. */
+function dayKey(iso: string): string {
   const d = new Date(iso)
-  return d.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-  })
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+/** Smart header: "Today", "Yesterday", or a formatted date ("5 October"). */
+function groupLabel(iso: string): string {
+  const key = dayKey(iso)
+  const now = new Date()
+  const todayKey = dayKey(now.toISOString())
+  const yesterday = new Date(now)
+  yesterday.setDate(now.getDate() - 1)
+  const yesterdayKey = dayKey(yesterday.toISOString())
+
+  if (key === todayKey) return 'Today'
+  if (key === yesterdayKey) return 'Yesterday'
+  return formatDate(iso)
 }
 
 function metricUnit(type: MeasurementType): string {
@@ -82,14 +100,24 @@ function topMetric(session: Session): string | null {
     }
   }
 
-  // AVOID
+  return null
+}
+
+/**
+ * Status badge for a session.
+ * AVOID sessions reflect stayedOnTrack; everything else is a completed "Done".
+ */
+function sessionStatus(
+  session: Session,
+): { variant: 'success' | 'warning'; label: string } {
   for (const result of session.results) {
     if (result.stayedOnTrack !== undefined) {
-      return result.stayedOnTrack ? 'On track' : 'Slipped'
+      return result.stayedOnTrack
+        ? { variant: 'success', label: 'On track' }
+        : { variant: 'warning', label: 'Slipped' }
     }
   }
-
-  return null
+  return { variant: 'success', label: 'Done' }
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -100,83 +128,92 @@ export function HistoryScreen({ navigate }: Props) {
 
   const [selectedSession, setSelectedSession] = useState<Session | null>(null)
 
-  // Reverse chronological
-  const sorted = [...sessions].sort((a, b) =>
-    b.completedAt.localeCompare(a.completedAt),
-  )
-
   if (sessions.length === 0) {
     return (
       <div data-testid="screen-history" className="flex flex-col min-h-full">
-        <div className="px-4 pt-8 pb-6">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            History
-          </h1>
-        </div>
-        <div
-          data-testid="history-empty"
-          className="flex flex-1 flex-col items-center justify-center px-6 text-center"
-        >
-          <Clock size={40} className="text-muted-foreground mb-3" aria-hidden="true" />
-          <p className="text-foreground font-medium">Your history starts here</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Every session you complete shows up in this log.
-          </p>
-          <Button
-            data-testid="history-empty-cta"
-            onClick={() => navigate('dashboard')}
-            className="mt-4"
-          >
-            <Play size={16} className="mr-2" aria-hidden="true" />
-            Log your first session
-          </Button>
+        <PageHeader title="History" />
+        <div data-testid="history-empty" className="flex flex-1 flex-col">
+          <EmptyState
+            icon={<Clock size={32} aria-hidden="true" />}
+            title="Your history starts here"
+            description="Complete your first session and it will appear here."
+            actionLabel="Log your first session"
+            onAction={() => navigate('dashboard')}
+          />
         </div>
       </div>
     )
   }
 
+  // Reverse chronological
+  const sorted = [...sessions].sort((a, b) =>
+    b.completedAt.localeCompare(a.completedAt),
+  )
+
+  // Group into contiguous date groups (already newest-first).
+  const groups: { label: string; sessions: Session[] }[] = []
+  for (const session of sorted) {
+    const label = groupLabel(session.completedAt)
+    const current = groups[groups.length - 1]
+    if (current && current.label === label) {
+      current.sessions.push(session)
+    } else {
+      groups.push({ label, sessions: [session] })
+    }
+  }
+
   return (
     <div data-testid="screen-history" className="flex flex-col min-h-full">
-      <div className="px-4 pt-8 pb-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          History
-        </h1>
-      </div>
+      <PageHeader title="History" />
 
-      <div className="flex-1 overflow-y-auto px-4 pb-6 flex flex-col gap-3">
-        {sorted.map((session) => {
-          const routine = routines.find((r) => r.id === session.routineId)
-          const metric = topMetric(session)
+      <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-6">
+        {groups.map((group) => (
+          <div key={`${group.label}-${group.sessions[0]!.id}`}>
+            <SectionHeader title={group.label} />
+            <div>
+              {group.sessions.map((session) => {
+                const routine = routines.find((r) => r.id === session.routineId)
+                const metric = topMetric(session)
+                const status = sessionStatus(session)
 
-          return (
-            <Card
-              key={session.id}
-              data-testid={`history-entry-${session.id}`}
-              className="cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => setSelectedSession(session)}
-            >
-              <CardContent className="py-3">
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground">
-                      {formatDateShort(session.completedAt)}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {routine?.name ?? 'Unknown routine'} ·{' '}
-                      {session.results.length}{' '}
-                      {session.results.length === 1 ? 'activity' : 'activities'}
-                    </p>
+                return (
+                  <div
+                    key={session.id}
+                    data-testid={`history-entry-${session.id}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedSession(session)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        setSelectedSession(session)
+                      }
+                    }}
+                    className="flex cursor-pointer items-center justify-between py-3 border-b border-border/50 last:border-0"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground truncate">
+                        {routine?.name ?? 'Unknown routine'}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        {session.results.length}{' '}
+                        {session.results.length === 1 ? 'activity' : 'activities'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 ml-3 shrink-0">
+                      <StatusBadge variant={status.variant} label={status.label} />
+                      {metric && (
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">
+                          {metric}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  {metric && (
-                    <span className="text-sm text-muted-foreground whitespace-nowrap ml-3">
-                      {metric}
-                    </span>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Detail sheet */}

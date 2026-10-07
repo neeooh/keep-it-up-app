@@ -1,16 +1,21 @@
 /**
- * WeeklyReviewScreen — weekly review and plan adjustment.
+ * WeeklyReviewScreen — reflective weekly review.
  *
- * Shows consistency, progress highlights, momentum stat, deterministic
- * reflection, and adjustment options (keep / reduce / change schedule / edit).
+ * Shows a completion summary, a positive insight, an optional struggle
+ * note, a momentum stat, and two forward-looking actions (keep / adjust).
+ * Schedule and frequency changes happen through the Edit Routine screen.
  *
  * Spec reference: mvp_product_spec.md section 17.
  */
 
-import { useState } from 'react'
+import { CalendarCheck } from 'lucide-react'
 import { Button } from '../components/ui/button'
-import { Card, CardContent } from '../components/ui/card'
 import { Progress } from '../components/ui/progress'
+import { PageHeader } from '../components/PageHeader'
+import { SectionHeader } from '../components/SectionHeader'
+import { StatCard } from '../components/StatCard'
+import { StatusBadge } from '../components/StatusBadge'
+import { EmptyState } from '../components/EmptyState'
 import { useAppStore } from '../store/useAppStore'
 import {
   calculateWeeklySummary,
@@ -18,10 +23,7 @@ import {
 } from '../domain/calculations'
 import type { Navigate } from '../App'
 import type {
-  DayOfWeek,
-  Frequency,
   MeasurementType,
-  Routine,
   Session,
   WeeklySummary,
 } from '../domain/types'
@@ -43,27 +45,15 @@ function startOfISOWeek(d: Date): string {
   return monday.toISOString().slice(0, 10)
 }
 
-// ─── Frequency helpers ────────────────────────────────────────────────────────
-
-function frequencyLabel(f: Frequency): string {
-  switch (f) {
-    case 'daily': return 'Every day'
-    case '3x_week': return '3× per week'
-    case '2x_week': return '2× per week'
-    case '1x_week': return 'Once a week'
-    case 'flexible': return 'Flexible'
-  }
+function daysSinceFirstSession(sessions: Session[]): number {
+  const oldest = sessions[0]
+  if (!oldest) return 0
+  return Math.floor(
+    (Date.now() - new Date(oldest.completedAt).getTime()) / 86_400_000,
+  )
 }
 
-function stepDownFrequency(f: Frequency): Frequency {
-  switch (f) {
-    case 'daily': return '3x_week'
-    case '3x_week': return '2x_week'
-    case '2x_week': return '1x_week'
-    case '1x_week': return '1x_week'
-    case 'flexible': return 'flexible'
-  }
-}
+// ─── Metric helpers ───────────────────────────────────────────────────────────
 
 function metricUnit(type: MeasurementType): string {
   switch (type) {
@@ -76,358 +66,237 @@ function metricUnit(type: MeasurementType): string {
   }
 }
 
-// ─── Reflection logic ─────────────────────────────────────────────────────────
-
-function generateReflection(summary: WeeklySummary, sessions: Session[]): string {
-  if (summary.entries.length === 0) {
-    return 'Start logging sessions to see your weekly review.'
+function metricLabel(type: MeasurementType): string {
+  switch (type) {
+    case 'weight': return 'weight'
+    case 'distance': return 'distance'
+    case 'duration': return 'duration'
+    case 'quantity': return 'count'
+    case 'sets': return 'sets'
+    case 'reps': return 'reps'
   }
-
-  // Day-one: no sessions recorded yet — encourage, do not score.
-  if (sessions.length === 0) {
-    return 'Your first week starts now. Log a session when you are ready — there is no rush.'
-  }
-
-  const overallRate = summary.overallConsistency
-
-  if (overallRate >= 80) {
-    return 'Strong week. You showed up consistently — keep it going.'
-  }
-
-  if (overallRate >= 50) {
-    const completedCount = summary.entries.reduce((sum, e) => sum + e.completed, 0)
-    const missedEntries = summary.entries.filter(
-      (e) => e.planned > 0 && e.completed < e.planned,
-    )
-    if (missedEntries.length > 0) {
-      return `You completed ${completedCount} session${completedCount !== 1 ? 's' : ''} this week. That counts. If the schedule feels tight, you can adjust it below.`
-    }
-    return 'Solid week. You completed most of your planned sessions.'
-  }
-
-  // Under 50% — but only suggest reducing if the user has been active for at least a week
-  const oldestSession = sessions[0]
-  const daysSinceFirst = oldestSession
-    ? Math.floor((Date.now() - new Date(oldestSession.completedAt).getTime()) / 86_400_000)
-    : 0
-
-  if (daysSinceFirst < 7) {
-    return 'You are just getting started. Focus on showing up — the numbers will follow.'
-  }
-
-  return 'You missed several planned sessions this week. A lower frequency target may be more realistic and help you build consistency.'
-}
-
-function shouldSuggestReduce(summary: WeeklySummary, sessions: Session[]): boolean {
-  if (sessions.length === 0) return false
-  // Only suggest reducing after the user has been active for at least a week
-  const oldestSession = sessions[0]
-  const daysSinceFirst = oldestSession
-    ? Math.floor((Date.now() - new Date(oldestSession.completedAt).getTime()) / 86_400_000)
-    : 0
-  if (daysSinceFirst < 7) return false
-  return summary.overallConsistency < 50 && summary.entries.some((e) => e.planned > 0)
-}
-
-// ─── Schedule change inline ───────────────────────────────────────────────────
-
-const DAY_OPTIONS: { value: DayOfWeek; short: string }[] = [
-  { value: 1, short: 'Mon' },
-  { value: 2, short: 'Tue' },
-  { value: 3, short: 'Wed' },
-  { value: 4, short: 'Thu' },
-  { value: 5, short: 'Fri' },
-  { value: 6, short: 'Sat' },
-  { value: 7, short: 'Sun' },
-]
-
-function ScheduleEditor({
-  routine,
-  onSave,
-  onCancel,
-}: {
-  routine: Routine
-  onSave: (days: DayOfWeek[]) => void
-  onCancel: () => void
-}) {
-  const currentDays = routine.activities[0]?.scheduledDays ?? []
-  const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>(currentDays)
-
-  function toggleDay(day: DayOfWeek) {
-    setSelectedDays((prev) =>
-      prev.includes(day)
-        ? prev.filter((d) => d !== day)
-        : [...prev, day].sort((a, b) => a - b),
-    )
-  }
-
-  return (
-    <div data-testid="schedule-editor" className="flex flex-col gap-3">
-      <p className="text-sm text-muted-foreground">Pick your preferred days</p>
-      <div className="flex gap-2 flex-wrap">
-        {DAY_OPTIONS.map(({ value, short }) => {
-          const isSelected = selectedDays.includes(value)
-          return (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={isSelected}
-              data-testid={`schedule-day-${value}`}
-              onClick={() => toggleDay(value)}
-              className={[
-                'rounded-xl border px-3 py-2 text-sm font-medium transition-colors min-w-[3rem]',
-                isSelected
-                  ? 'border-foreground bg-foreground text-background'
-                  : 'border-border bg-card text-foreground hover:bg-muted',
-              ].join(' ')}
-            >
-              {short}
-            </button>
-          )
-        })}
-      </div>
-      <div className="flex gap-2">
-        <Button
-          data-testid="schedule-save"
-          onClick={() => onSave(selectedDays)}
-          size="sm"
-        >
-          Save schedule
-        </Button>
-        <Button
-          data-testid="schedule-cancel"
-          variant="ghost"
-          onClick={onCancel}
-          size="sm"
-        >
-          Cancel
-        </Button>
-      </div>
-    </div>
-  )
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
-  const { state, updateRoutine } = useAppStore()
+  const { state } = useAppStore()
   const { routines, sessions } = state
-  const [showScheduleFor, setShowScheduleFor] = useState<string | null>(null)
-  const [reducedRoutineId, setReducedRoutineId] = useState<string | null>(null)
 
   const weekStart = startOfISOWeek(new Date())
-  const summary = calculateWeeklySummary(sessions, routines, weekStart)
+  const summary: WeeklySummary = calculateWeeklySummary(
+    sessions,
+    routines,
+    weekStart,
+  )
 
-  // Progress highlights
+  const consistency = summary.overallConsistency
+  const planned = summary.entries.reduce((sum, e) => sum + e.planned, 0)
+  const completed = summary.entries.reduce((sum, e) => sum + e.completed, 0)
+  const missed = Math.max(planned - completed, 0)
+
+  // Progress highlights (positive deltas drive "what went well").
   const progressEntries = routines.flatMap((r) =>
     r.activities.flatMap((a) => calculateProgress(sessions, a)),
   )
+  const positiveProgress = progressEntries.filter((e) => e.deltaPercent > 0)
 
-  // Single routine mode for adjust actions
+  // A routine that hit 100% this week.
+  const perfectRoutine = summary.entries.find(
+    (e) => e.planned > 0 && e.completed >= e.planned,
+  )
+
+  // The weakest routine (for the struggle note) when it is clearly behind.
+  const sortedByRate = [...summary.entries]
+    .filter((e) => e.planned > 0)
+    .sort((a, b) => a.consistencyRate - b.consistencyRate)
+  const weakest = sortedByRate[0]
+  const hasClearWeakest =
+    sortedByRate.length > 1 &&
+    weakest !== undefined &&
+    weakest.consistencyRate < 0.5
+
+  const activeDays = daysSinceFirstSession(sessions)
+
   const primaryRoutine = routines[0]
 
-  function handleReduceFrequency(routine: Routine) {
-    const currentFreq = routine.activities[0]?.frequency ?? '3x_week'
-    const newFreq = stepDownFrequency(currentFreq)
-    if (newFreq === currentFreq) return
-
-    const updated: Routine = {
-      ...routine,
-      activities: routine.activities.map((a) => ({
-        ...a,
-        frequency: newFreq,
-      })),
-    }
-    updateRoutine(updated)
-    setReducedRoutineId(routine.id)
+  // ─── "What went well" lines ──────────────────────────────────────────────
+  const wentWell: string[] = []
+  if (consistency >= 80) {
+    wentWell.push(`Strong week. You completed ${completed} of ${planned} sessions.`)
   }
-
-  function handleScheduleSave(routine: Routine, days: DayOfWeek[]) {
-    const updated: Routine = {
-      ...routine,
-      activities: routine.activities.map((a) => ({
-        ...a,
-        scheduledDays: days.length > 0 ? days : undefined,
-      })),
-    }
-    updateRoutine(updated)
-    setShowScheduleFor(null)
+  if (perfectRoutine) {
+    wentWell.push(`You hit every ${perfectRoutine.routineName} session.`)
+  }
+  for (const entry of positiveProgress.slice(0, 2)) {
+    wentWell.push(
+      `Your ${entry.activityName} improved — ${metricLabel(entry.metric)} went up.`,
+    )
   }
 
   return (
     <div data-testid="screen-weekly-review" className="flex flex-col min-h-full">
-      <div className="px-4 pt-8 pb-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Your week
-        </h1>
-      </div>
+      <PageHeader title="Your week" />
 
-      <div className="flex-1 overflow-y-auto px-4 pb-6 flex flex-col gap-5">
-        {/* Consistency */}
-        <Card>
-          <CardContent className="pt-5">
-            <p className="text-sm text-muted-foreground">Consistency</p>
-            {summary.entries.map((entry) => (
-              <div key={entry.routineId} className="mt-2">
-                <div className="flex items-center justify-between text-sm mb-1">
+      {sessions.length === 0 ? (
+        <EmptyState
+          icon={<CalendarCheck size={32} aria-hidden="true" />}
+          title="Your weekly review"
+          description="Complete your first week of sessions and your review will appear here."
+        />
+      ) : (
+      <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-6">
+        {/* a. Completion summary */}
+        <section>
+          <StatCard label="Consistency" value={`${consistency}%`} />
+          <Progress
+            value={consistency}
+            data-testid="review-consistency-bar"
+            className="mt-3 h-2"
+          />
+          {/* hidden accessible value kept for existing assertions */}
+          <span data-testid="review-consistency" className="sr-only">
+            {consistency}%
+          </span>
+
+          {summary.entries.length > 0 && (
+            <div className="mt-4 flex flex-col gap-2">
+              {summary.entries.map((entry) => (
+                <div
+                  key={entry.routineId}
+                  className="flex items-center justify-between text-sm"
+                >
                   <span className="text-foreground">{entry.routineName}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">
+                      {entry.completed} / {entry.planned}
+                    </span>
+                    {entry.planned > 0 && entry.completed >= entry.planned && (
+                      <StatusBadge variant="success" label="Done" />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* b. What went well */}
+        {wentWell.length > 0 && (
+          <section>
+            <SectionHeader title="What went well" />
+            <div className="flex flex-col gap-1.5">
+              {wentWell.map((line, i) => (
+                <p
+                  key={i}
+                  data-testid={i === 0 ? 'review-went-well' : undefined}
+                  className="text-sm text-foreground"
+                >
+                  {line}
+                </p>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* c. Where you struggled — only below 80% */}
+        {consistency < 80 && planned > 0 && (
+          <section>
+            <SectionHeader title="Where you struggled" />
+            <div className="flex flex-col gap-1.5">
+              <p data-testid="review-struggled" className="text-sm text-foreground">
+                You missed {missed} planned session{missed !== 1 ? 's' : ''} this week.
+              </p>
+              {hasClearWeakest && weakest && (
+                <p className="text-sm text-foreground">
+                  {weakest.routineName} was the hardest to keep up.
+                </p>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Progress detail (kept as a scannable list) */}
+        {progressEntries.length > 0 && (
+          <section>
+            <SectionHeader title="Progress" />
+            <div className="flex flex-col gap-2">
+              {progressEntries.slice(0, 3).map((entry) => (
+                <div
+                  key={`${entry.activityId}-${entry.metric}`}
+                  className="flex items-center justify-between text-sm"
+                >
+                  <span className="text-foreground">{entry.activityName}</span>
                   <span className="text-muted-foreground">
-                    {entry.completed} / {entry.planned}
+                    {entry.firstValue} → {entry.latestValue}{' '}
+                    {metricUnit(entry.metric)}
+                    {entry.deltaPercent !== 0 && (
+                      <span
+                        className={
+                          entry.deltaPercent > 0
+                            ? 'text-success ml-1'
+                            : 'text-destructive ml-1'
+                        }
+                      >
+                        {entry.deltaPercent > 0 ? '+' : ''}
+                        {entry.deltaPercent}%
+                      </span>
+                    )}
                   </span>
                 </div>
-              </div>
-            ))}
-            <div className="flex items-baseline gap-2 mt-3">
-              <span
-                data-testid="review-consistency"
-                className="text-3xl font-bold text-foreground"
-              >
-                {summary.overallConsistency}%
-              </span>
+              ))}
             </div>
-            <Progress value={summary.overallConsistency} className="mt-2 h-2" />
-          </CardContent>
-        </Card>
-
-        {/* Progress highlights */}
-        {progressEntries.length > 0 && (
-          <Card>
-            <CardContent className="pt-5">
-              <p className="text-sm text-muted-foreground mb-2">Progress</p>
-              <div className="flex flex-col gap-2">
-                {progressEntries.slice(0, 3).map((entry) => (
-                  <div
-                    key={`${entry.activityId}-${entry.metric}`}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <span className="text-foreground">{entry.activityName}</span>
-                    <span className="text-muted-foreground">
-                      {entry.firstValue} → {entry.latestValue}{' '}
-                      {metricUnit(entry.metric)}
-                      {entry.deltaPercent !== 0 && (
-                        <span
-                          className={
-                            entry.deltaPercent > 0
-                              ? 'text-green-600 ml-1'
-                              : 'text-red-500 ml-1'
-                          }
-                        >
-                          {entry.deltaPercent > 0 ? '+' : ''}
-                          {entry.deltaPercent}%
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          </section>
         )}
 
-        {/* Momentum */}
+        {/* d. Momentum */}
         {summary.recentPlanned > 0 && (
-          <Card>
-            <CardContent className="pt-5">
-              <p className="text-sm text-muted-foreground">Momentum</p>
-              <p
-                data-testid="review-momentum"
-                className="text-sm text-foreground mt-1"
-              >
-                {summary.recentCompleted} of your last {summary.recentPlanned}{' '}
-                planned sessions completed.
-              </p>
-            </CardContent>
-          </Card>
+          <section>
+            <SectionHeader title="Momentum" />
+            <p
+              data-testid="review-momentum"
+              className="text-sm text-foreground"
+            >
+              {summary.recentCompleted} of your last {summary.recentPlanned}{' '}
+              planned sessions completed.
+            </p>
+          </section>
         )}
 
-        {/* Reflection */}
-        <Card>
-          <CardContent className="pt-5">
-            <p className="text-sm text-muted-foreground">Reflection</p>
-            <p
-              data-testid="review-reflection"
-              className="text-sm text-foreground mt-1"
-            >
-              {generateReflection(summary, sessions)}
-            </p>
-            {shouldSuggestReduce(summary, sessions) && (
+        {/* e. Next week */}
+        {primaryRoutine && (
+          <section>
+            <SectionHeader title="Next week" />
+            {consistency < 50 && activeDays > 7 && (
               <p
                 data-testid="reduce-suggestion"
-                className="text-xs text-muted-foreground mt-2 italic"
+                className="text-sm text-muted-foreground mb-3"
               >
-                Consider reducing your frequency to build consistency first.
+                Your current target may be too ambitious. A lower frequency can
+                help you build consistency.
               </p>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Adjust your plan */}
-        {primaryRoutine && (
-          <div>
-            <h2 className="text-sm font-medium text-muted-foreground mb-2">
-              Adjust your plan
-            </h2>
-            <Card>
-              <CardContent className="pt-4 flex flex-col gap-2">
-                {/* Reduced confirmation */}
-                {reducedRoutineId === primaryRoutine.id && (
-                  <p
-                    data-testid="reduced-confirmation"
-                    className="text-xs text-green-600 mb-1"
-                  >
-                    Frequency reduced to{' '}
-                    {frequencyLabel(primaryRoutine.activities[0]?.frequency ?? 'flexible')}
-                  </p>
-                )}
-
-                {/* Schedule editor */}
-                {showScheduleFor === primaryRoutine.id ? (
-                  <ScheduleEditor
-                    routine={primaryRoutine}
-                    onSave={(days) => handleScheduleSave(primaryRoutine, days)}
-                    onCancel={() => setShowScheduleFor(null)}
-                  />
-                ) : (
-                  <>
-                    <Button
-                      data-testid="keep-routine-button"
-                      variant="outline"
-                      onClick={() => navigate('dashboard')}
-                      className="w-full"
-                    >
-                      Keep routine
-                    </Button>
-                    <Button
-                      data-testid="reduce-frequency-button"
-                      variant="outline"
-                      onClick={() => handleReduceFrequency(primaryRoutine)}
-                      className="w-full"
-                    >
-                      Reduce frequency
-                    </Button>
-                    <Button
-                      data-testid="change-schedule-button"
-                      variant="outline"
-                      onClick={() => setShowScheduleFor(primaryRoutine.id)}
-                      className="w-full"
-                    >
-                      Change schedule
-                    </Button>
-                    <Button
-                      data-testid="edit-routine-button"
-                      variant="outline"
-                      onClick={() => onEditRoutine(primaryRoutine.id)}
-                      className="w-full"
-                    >
-                      Edit routine
-                    </Button>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+            <div className="flex flex-col gap-2">
+              <Button
+                data-testid="keep-routine-button"
+                onClick={() => navigate('dashboard')}
+                className="w-full"
+              >
+                Keep my plan
+              </Button>
+              <Button
+                data-testid="edit-routine-button"
+                variant="outline"
+                onClick={() => onEditRoutine(primaryRoutine.id)}
+                className="w-full"
+              >
+                Adjust my plan
+              </Button>
+            </div>
+          </section>
         )}
       </div>
+      )}
     </div>
   )
 }

@@ -1,32 +1,41 @@
 /**
  * ProgressScreen — trends and progress.
  *
- * Shows consistency %, performance deltas, volume/duration totals, and
- * inline SVG trend charts. Handles the "not enough data" state.
+ * Shows a time-range selector, consistency, performance deltas, volume/duration
+ * totals, and inline SVG trend charts. Progress is goal-aware:
+ * - AVOID activities show successful days, completion rate, and longest streak.
+ * - DO activities show current performance metrics and trends.
  *
  * Spec reference: mvp_product_spec.md section 16.
  */
 
-import { BarChart3, TrendingUp, TrendingDown, Minus, Play } from 'lucide-react'
-import { Button } from '../components/ui/button'
-import { Card, CardContent } from '../components/ui/card'
-import { Progress } from '../components/ui/progress'
+import { useState } from 'react'
+import { BarChart3, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { PageHeader } from '../components/PageHeader'
+import { EmptyState } from '../components/EmptyState'
+import { StatCard } from '../components/StatCard'
+import { SectionHeader } from '../components/SectionHeader'
 import { useAppStore } from '../store/useAppStore'
 import {
   calculateConsistency,
   calculateProgress,
   calculateTrend,
   calculateVolume,
+  sessionsForRoutine,
   sessionsInRange,
 } from '../domain/calculations'
 import type { Navigate } from '../App'
-import type { MeasurementType, TrendPoint } from '../domain/types'
+import type { MeasurementType, Routine, Session, TrendPoint } from '../domain/types'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
   navigate: Navigate
 }
+
+type Range = '7d' | '30d' | '90d'
+
+const RANGE_WEEKS: Record<Range, number> = { '7d': 1, '30d': 4, '90d': 13 }
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -38,14 +47,6 @@ function weeksAgo(weeks: number): string {
   const d = new Date()
   d.setUTCDate(d.getUTCDate() - weeks * 7)
   return d.toISOString().slice(0, 10)
-}
-
-function startOfISOWeek(d: Date): string {
-  const day = d.getUTCDay()
-  const diff = day === 0 ? -6 : 1 - day
-  const monday = new Date(d)
-  monday.setUTCDate(d.getUTCDate() + diff)
-  return monday.toISOString().slice(0, 10)
 }
 
 function metricUnit(type: MeasurementType): string {
@@ -65,6 +66,28 @@ function formatDuration(totalMinutes: number): string {
   if (hours === 0) return `${mins}m`
   if (mins === 0) return `${hours}h`
   return `${hours}h ${mins}m`
+}
+
+/** True when a routine's first activity is an AVOID goal. */
+function isAvoidRoutine(routine: Routine): boolean {
+  return routine.activities.some((a) => a.direction === 'AVOID')
+}
+
+/** Longest run of consecutive stayedOnTrack=true sessions (chronological). */
+function longestStreak(sessions: Session[], routineId: string): number {
+  const ordered = sessionsForRoutine(sessions, routineId)
+  let best = 0
+  let current = 0
+  for (const session of ordered) {
+    const onTrack = session.results.some((r) => r.stayedOnTrack === true)
+    if (onTrack) {
+      current += 1
+      best = Math.max(best, current)
+    } else {
+      current = 0
+    }
+  }
+  return best
 }
 
 // ─── Inline SVG trend chart ───────────────────────────────────────────────────
@@ -112,7 +135,7 @@ function TrendChart({
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
-          className="text-foreground"
+          className="text-brand"
         />
         {coords.map((c, i) => (
           <circle
@@ -120,7 +143,7 @@ function TrendChart({
             cx={c.x}
             cy={c.y}
             r="3"
-            className="fill-foreground"
+            className="fill-brand text-brand"
           />
         ))}
         {/* First label */}
@@ -152,9 +175,7 @@ export function ProgressScreen({ navigate }: Props) {
   const { state } = useAppStore()
   const { routines, sessions } = state
 
-  const todayStr = today()
-  const fourWeeksAgo = weeksAgo(4)
-  const weekStart = startOfISOWeek(new Date())
+  const [range, setRange] = useState<Range>('30d')
 
   // Check if we have enough data
   const totalSessions = sessions.length
@@ -163,80 +184,82 @@ export function ProgressScreen({ navigate }: Props) {
   if (routines.length === 0 || !hasEnoughData) {
     return (
       <div data-testid="screen-progress" className="flex flex-col min-h-full">
-        <div className="px-4 pt-8 pb-6">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Progress
-          </h1>
-        </div>
-        <div
-          data-testid="progress-not-enough-data"
-          className="flex flex-1 flex-col items-center justify-center px-6 text-center"
-        >
-          <BarChart3
-            size={40}
-            className="text-muted-foreground mb-3"
-            aria-hidden="true"
+        <PageHeader title="Progress" />
+        <div data-testid="progress-not-enough-data" className="flex flex-1 flex-col">
+          <EmptyState
+            icon={<BarChart3 size={32} aria-hidden="true" />}
+            title="Your progress charts will appear here"
+            description="Complete two sessions to start tracking your trends."
+            actionLabel="Log a session"
+            onAction={() => navigate('dashboard')}
           />
-          <p className="text-foreground font-medium">Your progress charts will appear here</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Complete two sessions to start tracking your trends.
-          </p>
-          <Button
-            data-testid="progress-empty-cta"
-            onClick={() => navigate('dashboard')}
-            className="mt-4"
-          >
-            <Play size={16} className="mr-2" aria-hidden="true" />
-            Log a session
-          </Button>
         </div>
       </div>
     )
   }
 
-  // Consistency per routine (4 weeks)
+  const weeks = RANGE_WEEKS[range]
+  const todayStr = today()
+  const rangeStart = weeksAgo(weeks)
+  const dateRange = { start: rangeStart, end: todayStr }
+
+  const avoidRoutines = routines.filter(isAvoidRoutine)
+  const doRoutines = routines.filter((r) => !isAvoidRoutine(r))
+
+  // Consistency per routine over the selected range
   const consistencyData = routines.map((r) => ({
     routine: r,
-    consistency: calculateConsistency(sessions, r, {
-      start: fourWeeksAgo,
-      end: todayStr,
-    }),
+    consistency: calculateConsistency(sessions, r, dateRange),
   }))
 
-  // Progress deltas
-  const progressEntries = routines.flatMap((r) =>
+  const rangeSessions = sessionsInRange(sessions, dateRange)
+
+  // ── AVOID stats ───────────────────────────────────────────────────────────
+  const avoidStats = avoidRoutines.map((routine) => {
+    const inRange = rangeSessions.filter((s) => s.routineId === routine.id)
+    const successfulDays = inRange.filter((s) =>
+      s.results.some((r) => r.stayedOnTrack === true),
+    ).length
+    const completionRate =
+      inRange.length > 0
+        ? Math.round((successfulDays / inRange.length) * 100)
+        : 0
+    const streak = longestStreak(sessions, routine.id)
+    return { routine, successfulDays, completionRate, streak }
+  })
+
+  // ── DO: performance deltas (only DO activities) ─────────────────────────────
+  const progressEntries = doRoutines.flatMap((r) =>
     r.activities.flatMap((a) => calculateProgress(sessions, a)),
   )
 
-  // Volume this week (weight-based activities)
-  const weekSessions = sessionsInRange(sessions, {
-    start: weekStart,
-    end: todayStr,
-  })
-  let weeklyVolume = 0
-  for (const routine of routines) {
+  // ── DO: volume + duration over the selected range (weight-based only) ───────
+  let rangeVolume = 0
+  for (const routine of doRoutines) {
     for (const activity of routine.activities) {
       if (activity.measurements.some((m) => m.type === 'weight')) {
-        for (const session of weekSessions) {
-          weeklyVolume += calculateVolume(session, activity.id)
+        for (const session of rangeSessions) {
+          if (session.routineId === routine.id) {
+            rangeVolume += calculateVolume(session, activity.id)
+          }
         }
       }
     }
   }
 
-  // Duration this week
-  let weeklyDuration = 0
-  for (const session of weekSessions) {
+  let rangeDuration = 0
+  for (const session of rangeSessions) {
+    if (!doRoutines.some((r) => r.id === session.routineId)) continue
     for (const result of session.results) {
       const dur = result.measurements['duration']
       if (dur !== undefined) {
-        weeklyDuration += dur
+        rangeDuration += dur
       }
     }
   }
 
-  // Trend data — pick the first meaningful metric per activity
-  const trendData = routines.flatMap((r) =>
+  // ── DO: trend data — pick the first meaningful metric per activity ──────────
+  const trendData = doRoutines.flatMap((r) =>
     r.activities.flatMap((a) => {
       const metricTypes = a.measurements
         .filter((m) => m.type !== 'sets' && m.type !== 'reps')
@@ -261,139 +284,149 @@ export function ProgressScreen({ navigate }: Props) {
     }),
   )
 
+  const rangeLabel =
+    range === '7d' ? 'last 7 days' : range === '30d' ? 'last 30 days' : 'last 90 days'
+
   return (
     <div data-testid="screen-progress" className="flex flex-col min-h-full">
-      <div className="px-4 pt-8 pb-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Progress
-        </h1>
+      <PageHeader title="Progress" />
+
+      {/* Time range selector */}
+      <div className="flex gap-1 bg-surface-muted rounded-lg p-1 mx-5 mb-4">
+        {(['7d', '30d', '90d'] as const).map((r) => (
+          <button
+            key={r}
+            type="button"
+            data-testid={`range-${r}`}
+            onClick={() => setRange(r)}
+            aria-pressed={range === r}
+            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              range === r
+                ? 'bg-brand text-brand-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {r === '7d' ? '7 days' : r === '30d' ? '30 days' : '90 days'}
+          </button>
+        ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-6 flex flex-col gap-5">
+      <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-6">
         {/* Consistency per routine */}
         <div>
-          <h2 className="text-sm font-medium text-muted-foreground mb-2">
-            Consistency (4 weeks)
-          </h2>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex flex-col gap-3">
-                {consistencyData.map(({ routine, consistency }) => (
-                  <div key={routine.id}>
-                    <div className="flex items-center justify-between text-sm mb-1">
-                      <span className="text-foreground truncate mr-4">
-                        {routine.name}
-                      </span>
-                      <span className="text-muted-foreground">{consistency}%</span>
-                    </div>
-                    <Progress value={consistency} className="h-2" />
+          <SectionHeader title={`Consistency (${rangeLabel})`} />
+          <div className="rounded-xl bg-surface p-4 ring-1 ring-foreground/5">
+            <div className="flex flex-col gap-3">
+              {consistencyData.map(({ routine, consistency }) => (
+                <div key={routine.id}>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="text-foreground truncate mr-4">
+                      {routine.name}
+                    </span>
+                    <span className="text-muted-foreground">{consistency}%</span>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-surface-muted">
+                    <div
+                      className="h-full rounded-full bg-brand"
+                      style={{ width: `${consistency}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Performance deltas */}
+        {/* AVOID progress (goal-aware — no weight/volume stats) */}
+        {avoidStats.map(({ routine, successfulDays, completionRate, streak }) => (
+          <div key={routine.id}>
+            <SectionHeader title={routine.name} />
+            <div className="grid grid-cols-3 gap-3">
+              <StatCard label="On track" value={successfulDays} unit="days" />
+              <StatCard label="Success rate" value={completionRate} unit="%" />
+              <StatCard label="Best streak" value={streak} unit="days" />
+            </div>
+          </div>
+        ))}
+
+        {/* DO: Performance deltas */}
         {progressEntries.length > 0 && (
           <div>
-            <h2 className="text-sm font-medium text-muted-foreground mb-2">
-              Performance
-            </h2>
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex flex-col gap-3">
-                  {progressEntries.map((entry) => {
-                    const Icon =
-                      entry.deltaPercent > 0
-                        ? TrendingUp
-                        : entry.deltaPercent < 0
-                          ? TrendingDown
-                          : Minus
-                    const colorClass =
-                      entry.deltaPercent > 0
-                        ? 'text-green-600'
-                        : entry.deltaPercent < 0
-                          ? 'text-red-500'
-                          : 'text-muted-foreground'
-                    return (
-                      <div
-                        key={`${entry.activityId}-${entry.metric}`}
-                        data-testid="progress-performance-entry"
-                        className="flex items-center justify-between"
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
-                            {entry.activityName}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {entry.firstValue} → {entry.latestValue}{' '}
-                            {metricUnit(entry.metric)}
-                          </p>
-                        </div>
-                        <div className={`flex items-center gap-1 ${colorClass}`}>
-                          <Icon size={14} aria-hidden="true" />
-                          <span className="text-sm font-medium">
-                            {entry.deltaPercent > 0 ? '+' : ''}
-                            {entry.deltaPercent}%
-                          </span>
-                        </div>
+            <SectionHeader title="Performance" />
+            <div className="rounded-xl bg-surface p-4 ring-1 ring-foreground/5">
+              <div className="flex flex-col gap-3">
+                {progressEntries.map((entry) => {
+                  const Icon =
+                    entry.deltaPercent > 0
+                      ? TrendingUp
+                      : entry.deltaPercent < 0
+                        ? TrendingDown
+                        : Minus
+                  const colorClass =
+                    entry.deltaPercent > 0
+                      ? 'text-success'
+                      : entry.deltaPercent < 0
+                        ? 'text-destructive'
+                        : 'text-muted-foreground'
+                  return (
+                    <div
+                      key={`${entry.activityId}-${entry.metric}`}
+                      data-testid="progress-performance-entry"
+                      className="flex items-center justify-between"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-foreground">
+                          {entry.activityName}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {entry.firstValue} → {entry.latestValue}{' '}
+                          {metricUnit(entry.metric)}
+                        </p>
                       </div>
-                    )
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+                      <div className={`flex items-center gap-1 ${colorClass}`}>
+                        <Icon size={14} aria-hidden="true" />
+                        <span className="text-sm font-medium">
+                          {entry.deltaPercent > 0 ? '+' : ''}
+                          {entry.deltaPercent}%
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Volume this week */}
-        {weeklyVolume > 0 && (
+        {/* DO: Volume + duration totals */}
+        {(rangeVolume > 0 || rangeDuration > 0) && (
           <div>
-            <h2 className="text-sm font-medium text-muted-foreground mb-2">
-              Volume
-            </h2>
-            <Card>
-              <CardContent className="pt-4">
-                <p className="text-2xl font-bold text-foreground">
-                  {weeklyVolume.toLocaleString()} kg
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  this week
-                </p>
-              </CardContent>
-            </Card>
+            <SectionHeader title="Totals" />
+            <div className="grid grid-cols-2 gap-3">
+              {rangeVolume > 0 && (
+                <StatCard
+                  label="Volume"
+                  value={rangeVolume.toLocaleString()}
+                  unit="kg"
+                />
+              )}
+              {rangeDuration > 0 && (
+                <StatCard label="Duration" value={formatDuration(rangeDuration)} />
+              )}
+            </div>
           </div>
         )}
 
-        {/* Duration this week */}
-        {weeklyDuration > 0 && (
-          <div>
-            <h2 className="text-sm font-medium text-muted-foreground mb-2">
-              Duration
-            </h2>
-            <Card>
-              <CardContent className="pt-4">
-                <p className="text-2xl font-bold text-foreground">
-                  {formatDuration(weeklyDuration)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  this week
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Trend charts */}
+        {/* DO: Trend charts */}
         {trendData.length > 0 && (
           <div>
-            <h2 className="text-sm font-medium text-muted-foreground mb-2">
-              Trends
-            </h2>
-            {trendData.map(({ activity, metric, points }) => (
-              <Card key={`${activity.id}-${metric}`} className="mb-3">
-                <CardContent className="pt-4">
+            <SectionHeader title="Trends" />
+            <div className="flex flex-col gap-3">
+              {trendData.map(({ activity, metric, points }) => (
+                <div
+                  key={`${activity.id}-${metric}`}
+                  className="rounded-xl bg-surface p-4 ring-1 ring-foreground/5"
+                >
                   <p className="text-sm font-medium text-foreground">
                     {activity.name}
                   </p>
@@ -401,9 +434,9 @@ export function ProgressScreen({ navigate }: Props) {
                     {metric} ({metricUnit(metric)})
                   </p>
                   <TrendChart points={points} unit={metricUnit(metric)} />
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

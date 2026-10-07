@@ -1,12 +1,13 @@
 /**
- * SetFrequencyScreen — onboarding screen 4.
+ * SetFrequencyScreen — onboarding screen 3 of 4.
  *
  * The user picks how often they intend to perform the activity.
  * Spec reference: mvp_product_spec.md section 9.
  */
 
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Check } from 'lucide-react'
 import { Button } from '../../components/ui/button'
+import { OnboardingProgress } from '../../components/OnboardingProgress'
 import type { Navigate } from '../../App'
 import type { Frequency } from '../../domain/types'
 
@@ -36,7 +37,7 @@ export function SetFrequencyScreen({ navigate, frequency, onFrequencyChange, ski
   return (
     <div data-testid="screen-set-frequency" className="flex flex-col min-h-full">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-12 pb-6">
+      <div className="flex items-center gap-3 px-5 pt-12 pb-6">
         <button
           type="button"
           aria-label="Back"
@@ -50,8 +51,10 @@ export function SetFrequencyScreen({ navigate, frequency, onFrequencyChange, ski
         </h1>
       </div>
 
+      <OnboardingProgress current={3} total={4} />
+
       {/* Options */}
-      <div className="flex-1 px-4 pb-6">
+      <div className="flex-1 px-5 pb-6 pt-2">
         <div className="flex flex-col gap-3" role="radiogroup" aria-label="Frequency">
           {FREQUENCY_OPTIONS.map(({ value, label, sublabel }) => {
             const isSelected = frequency === value
@@ -64,22 +67,31 @@ export function SetFrequencyScreen({ navigate, frequency, onFrequencyChange, ski
                 data-testid={`frequency-option-${value}`}
                 onClick={() => onFrequencyChange(value)}
                 className={[
-                  'flex flex-col items-start w-full rounded-xl border px-4 py-3.5 text-left transition-colors',
+                  'flex items-center justify-between w-full rounded-xl border px-4 py-3.5 text-left transition-colors',
                   isSelected
-                    ? 'border-foreground bg-card'
-                    : 'border-border bg-card hover:bg-muted',
+                    ? 'border-brand bg-brand-light'
+                    : 'border-border bg-card hover:bg-surface-muted',
                 ].join(' ')}
               >
-                <span className="text-sm font-medium text-foreground">{label}</span>
-                <span className="text-xs text-muted-foreground mt-0.5">{sublabel}</span>
+                <span className="flex flex-col items-start">
+                  <span className="text-sm font-medium text-foreground">{label}</span>
+                  <span className="text-xs text-muted-foreground mt-0.5">{sublabel}</span>
+                </span>
+                {isSelected && (
+                  <Check size={18} className="shrink-0 text-brand" aria-hidden="true" />
+                )}
               </button>
             )
           })}
         </div>
+
+        <p className="text-sm text-muted-foreground mt-4">
+          Choose what you can realistically keep doing. Consistency beats ambition.
+        </p>
       </div>
 
       {/* Continue */}
-      <div className="px-4 py-4 border-t border-border">
+      <div className="px-5 py-4 border-t border-border pb-[max(1rem,env(safe-area-inset-bottom))]">
         <Button
           type="button"
           data-testid="continue-button"

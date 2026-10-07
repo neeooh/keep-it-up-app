@@ -19,6 +19,7 @@ import { Label } from '../../components/ui/label'
 import type { Navigate } from '../../App'
 import type { Direction, MeasurementConfig, MeasurementType } from '../../domain/types'
 import { findTemplate } from '../../domain/templates'
+import { OnboardingProgress } from '../../components/OnboardingProgress'
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -106,6 +107,7 @@ interface ExerciseRow {
   name: string
   sets: string
   reps: string
+  weight: string
 }
 
 interface ExerciseRowProps {
@@ -126,6 +128,7 @@ function ExerciseRowField({ row, index, onChange, onRemove, canRemove }: Exercis
         <Input
           data-testid={`exercise-name-${index}`}
           placeholder="Exercise name"
+          aria-label={`Exercise ${index + 1} name`}
           value={row.name}
           onChange={(e) => onChange({ ...row, name: e.target.value })}
           className="flex-1"
@@ -169,6 +172,19 @@ function ExerciseRowField({ row, index, onChange, onRemove, canRemove }: Exercis
             onChange={(e) => onChange({ ...row, reps: e.target.value })}
           />
         </div>
+        <div className="flex flex-col gap-1 flex-1">
+          <Label htmlFor={`weight-${index}`} className="text-xs">Weight (kg)</Label>
+          <Input
+            id={`weight-${index}`}
+            data-testid={`exercise-weight-${index}`}
+            type="number"
+            inputMode="decimal"
+            min={0}
+            placeholder="0"
+            value={row.weight}
+            onChange={(e) => onChange({ ...row, weight: e.target.value })}
+          />
+        </div>
       </div>
     </div>
   )
@@ -196,7 +212,7 @@ export function ConfigureActivityScreen({ navigate, templateId, direction, onAct
 
   // Strength exercise rows
   const [exercises, setExercises] = useState<ExerciseRow[]>([
-    { id: crypto.randomUUID(), name: '', sets: '3', reps: '10' },
+    { id: crypto.randomUUID(), name: '', sets: '3', reps: '10', weight: '' },
   ])
 
   // All measurement types (for custom template)
@@ -228,7 +244,7 @@ export function ConfigureActivityScreen({ navigate, templateId, direction, onAct
   function addExercise() {
     setExercises((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), name: '', sets: '3', reps: '10' },
+      { id: crypto.randomUUID(), name: '', sets: '3', reps: '10', weight: '' },
     ])
   }
 
@@ -251,7 +267,7 @@ export function ConfigureActivityScreen({ navigate, templateId, direction, onAct
   return (
     <div data-testid="screen-configure-activity" className="flex flex-col min-h-full">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-12 pb-6">
+      <div className="flex items-center gap-3 px-5 pt-12 pb-6">
         <button
           type="button"
           aria-label="Back"
@@ -265,8 +281,10 @@ export function ConfigureActivityScreen({ navigate, templateId, direction, onAct
         </h1>
       </div>
 
+      <OnboardingProgress current={2} total={4} />
+
       {/* Form */}
-      <div className="flex-1 overflow-y-auto px-4 pb-6 flex flex-col gap-6">
+      <div className="flex-1 overflow-y-auto px-5 pb-6 pt-2 flex flex-col gap-6">
 
         {/* Activity name — always shown */}
         <div className="flex flex-col gap-1.5">
@@ -327,7 +345,7 @@ export function ConfigureActivityScreen({ navigate, templateId, direction, onAct
       </div>
 
       {/* Continue */}
-      <div className="px-4 py-4 border-t border-border">
+      <div className="px-5 py-4 border-t border-border pb-[max(1rem,env(safe-area-inset-bottom))]">
         <Button
           type="button"
           data-testid="continue-button"

@@ -25,7 +25,9 @@ import {
 } from './calculations'
 import type {
   Activity,
+  ActivityResult,
   Frequency,
+  MeasurementConfig,
   Routine,
   Session,
   SetResult,
@@ -63,7 +65,7 @@ const activityArb: fc.Arbitrary<Activity> = fc.record({
   id: fc.uuid(),
   name: fc.string({ minLength: 1, maxLength: 30 }),
   direction: fc.constantFrom('DO' as const, 'AVOID' as const),
-  measurements: fc.constant([]),
+  measurements: fc.constant([] as MeasurementConfig[]),
   frequency: frequencyArb,
 })
 
@@ -79,7 +81,7 @@ function sessionArb(routineId: string): fc.Arbitrary<Session> {
     id: fc.uuid(),
     routineId: fc.constant(routineId),
     completedAt: isoDateArb,
-    results: fc.constant([]),
+    results: fc.constant([] as ActivityResult[]),
   })
 }
 
@@ -88,7 +90,7 @@ function sessionWithRoutineIdArb(): fc.Arbitrary<Session> {
     id: fc.uuid(),
     routineId: fc.uuid(),
     completedAt: isoDateArb,
-    results: fc.constant([]),
+    results: fc.constant([] as ActivityResult[]),
   })
 }
 
@@ -144,9 +146,8 @@ describe('Property-based tests — domain calculations', () => {
           fc.record({
             id: fc.uuid(),
             routineId: fc.uuid(),
-            completedAt: fc.date({ min: new Date('2026-01-01'), max: new Date('2026-12-31') })
-              .map((d) => d.toISOString()),
-            results: fc.constant([]),
+            completedAt: isoDateArb,
+            results: fc.constant([] as ActivityResult[]),
           }),
           { maxLength: 30 },
         ),
@@ -215,9 +216,8 @@ describe('Property-based tests — domain calculations', () => {
           fc.record({
             id: fc.uuid(),
             routineId: fc.uuid(),
-            completedAt: fc.date({ min: new Date('2026-09-28'), max: new Date('2026-10-04') })
-              .map((d) => d.toISOString()),
-            results: fc.constant([]),
+            completedAt: weekDateArb,
+            results: fc.constant([] as ActivityResult[]),
           }),
           { maxLength: 20 },
         ),
@@ -265,7 +265,7 @@ describe('Property-based tests — domain calculations', () => {
         fc.record({
           id: fc.uuid(),
           name: fc.string({ minLength: 1 }),
-          activities: fc.constant([]),
+          activities: fc.constant([] as Activity[]),
           createdAt: fc.constant('2026-01-01T00:00:00Z'),
         }),
         (routine) => {
@@ -284,9 +284,8 @@ describe('Property-based tests — domain calculations', () => {
           fc.record({
             id: fc.uuid(),
             routineId: fc.constant('other-routine-id'),
-            completedAt: fc.date({ min: new Date('2026-06-01'), max: new Date('2026-06-30') })
-              .map((d) => d.toISOString()),
-            results: fc.constant([]),
+            completedAt: juneDateArb,
+            results: fc.constant([] as ActivityResult[]),
           }),
           { maxLength: 10 },
         ),
