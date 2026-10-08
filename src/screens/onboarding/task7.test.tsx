@@ -27,6 +27,7 @@ const BASE_DRAFT: OnboardingDraft = {
     { type: 'distance', unit: 'km', target: 5 },
     { type: 'duration', unit: 'min', target: 30 },
   ],
+  exercises: [],
   frequency: '3x_week',
   scheduledDays: [],
   preferredTime: '',

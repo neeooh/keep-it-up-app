@@ -179,7 +179,7 @@ export function PlanReviewScreen({
 
         <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4">
           {/* Activity name + frequency */}
-          <div className="flex items-start gap-3">
+          <div className="flex items-center gap-3">
             <ActivityIcon name={activityName} size={32} className="mt-0.5" />
             <div>
               <p
@@ -213,6 +213,26 @@ export function PlanReviewScreen({
                       {m.unit ? ` ${m.unit}` : ''}
                     </span>
                   )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Exercises (strength workouts) */}
+          {(draft.exercises?.length ?? 0) > 0 && (
+            <div className="flex flex-col gap-2">
+              <p className="text-xs text-muted-foreground">Exercises</p>
+              {draft.exercises.map((ex, i) => (
+                <div
+                  key={i}
+                  data-testid={`plan-exercise-${i}`}
+                  className="flex items-center justify-between text-sm"
+                >
+                  <span className="text-foreground font-medium">{ex.name}</span>
+                  <span className="text-muted-foreground">
+                    {ex.sets} × {ex.reps}
+                    {ex.weight > 0 && ` · ${ex.weight} kg`}
+                  </span>
                 </div>
               ))}
             </div>
