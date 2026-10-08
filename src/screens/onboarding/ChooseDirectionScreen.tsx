@@ -1,4 +1,4 @@
-import { ChevronLeft, Sparkles } from 'lucide-react'
+import { ChevronLeft, Sparkles, X } from 'lucide-react'
 import type { Navigate } from '../../App'
 import type { Direction } from '../../domain/types'
 import { OnboardingProgress } from '../../components/OnboardingProgress'
@@ -14,6 +14,7 @@ interface Props {
   direction: Direction | null
   onDirectionChange: (direction: Direction) => void
   onTemplateSelect?: (templateId: string) => void
+  onClose?: () => void
 }
 
 /** Human-readable heading depending on direction. */
@@ -26,6 +27,7 @@ export function ChooseDirectionScreen({
   navigate,
   direction,
   onTemplateSelect,
+  onClose,
 }: Props) {
   // Fall back to DO if direction somehow arrives null (deep-link or test)
   const resolvedDirection: Direction = direction ?? 'DO'
@@ -52,9 +54,20 @@ export function ChooseDirectionScreen({
         >
           <ChevronLeft size={20} aria-hidden="true" />
         </button>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+        <h1 className="flex-1 text-2xl font-semibold tracking-tight text-foreground">
           {heading(resolvedDirection)}
         </h1>
+        {onClose && (
+          <button
+            type="button"
+            data-testid="close-onboarding"
+            aria-label="Close"
+            onClick={onClose}
+            className="flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors"
+          >
+            <X size={20} aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <OnboardingProgress current={1} total={4} />

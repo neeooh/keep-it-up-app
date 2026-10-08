@@ -296,3 +296,34 @@ The comparison uses:
 ### Files changed
 
 `src/screens/DashboardScreen.tsx`, `src/screens/DashboardScreen.test.tsx`
+
+---
+
+## ADR-010: Close button on add-activity flow (not first-time onboarding)
+
+**Date:** 8 October 2026
+**Status:** Accepted
+
+### Context
+
+When a user taps the "+" button on the Today screen to add a new activity, they enter the onboarding flow. There was no way to cancel and return to the dashboard without completing the flow or refreshing the page.
+
+### Decision
+
+Add an X (close) button to all onboarding screens. The button only appears when the user already has routines (they are adding another one). During first-time onboarding (no routines), the close button is hidden because there is no dashboard to return to.
+
+### Implementation
+
+- `App.tsx` passes `onClose={() => navigate('dashboard')}` to onboarding screens when `routines.length > 0`. Passes `undefined` otherwise.
+- Each onboarding screen (`WelcomeScreen`, `ChooseDirectionScreen`, `ConfigureActivityScreen`, `SetFrequencyScreen`, `PlanReviewScreen`) accepts an optional `onClose` prop and renders an X button in the top-right corner of the header when it is provided.
+- The close button has a 44px touch target and uses the same styling as other icon buttons.
+
+### Consequences
+
+- Users can cancel the add-activity flow at any step and return to the dashboard.
+- First-time users see no close button — they must complete onboarding to reach the dashboard.
+- The onboarding draft state is not cleared on close. If the user re-enters the flow, they see a fresh draft (the draft is reset when `onStartRoutine` completes).
+
+### Files changed
+
+`src/App.tsx`, `src/screens/onboarding/WelcomeScreen.tsx`, `src/screens/onboarding/ChooseDirectionScreen.tsx`, `src/screens/onboarding/ConfigureActivityScreen.tsx`, `src/screens/onboarding/SetFrequencyScreen.tsx`, `src/screens/onboarding/PlanReviewScreen.tsx`

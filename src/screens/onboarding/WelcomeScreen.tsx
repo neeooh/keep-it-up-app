@@ -1,4 +1,4 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, X } from 'lucide-react'
 import type { Navigate } from '../../App'
 import type { Direction } from '../../domain/types'
 
@@ -6,9 +6,11 @@ interface Props {
   navigate: Navigate
   /** Called by App to wire direction selection into the draft. */
   onDirectionChoose?: (direction: Direction) => void
+  /** When set, shows an X button to return to the dashboard. */
+  onClose?: () => void
 }
 
-export function WelcomeScreen({ navigate, onDirectionChoose }: Props) {
+export function WelcomeScreen({ navigate, onDirectionChoose, onClose }: Props) {
   function choose(direction: Direction) {
     onDirectionChoose?.(direction)
     navigate('choose-direction')
@@ -19,6 +21,17 @@ export function WelcomeScreen({ navigate, onDirectionChoose }: Props) {
       data-testid="screen-welcome"
       className="flex flex-col items-center justify-center min-h-full px-6 py-12 text-center"
     >
+      {onClose && (
+        <button
+          type="button"
+          data-testid="close-onboarding"
+          aria-label="Close"
+          onClick={onClose}
+          className="absolute top-4 right-4 flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors"
+        >
+          <X size={20} aria-hidden="true" />
+        </button>
+      )}
       <p className="text-sm font-semibold uppercase tracking-wide text-brand">
         Keep It Up
       </p>

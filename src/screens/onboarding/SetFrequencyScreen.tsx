@@ -5,7 +5,7 @@
  * Spec reference: mvp_product_spec.md section 9.
  */
 
-import { ChevronLeft, Check } from 'lucide-react'
+import { ChevronLeft, Check, X } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { OnboardingProgress } from '../../components/OnboardingProgress'
 import type { Navigate } from '../../App'
@@ -17,6 +17,7 @@ interface Props {
   onFrequencyChange: (frequency: Frequency) => void
   /** When true, back goes to choose-direction instead of configure-activity. */
   skippedConfigure?: boolean
+  onClose?: () => void
 }
 
 interface FrequencyOption {
@@ -33,7 +34,7 @@ const FREQUENCY_OPTIONS: FrequencyOption[] = [
   { value: 'flexible', label: "I'll decide each time", sublabel: 'No fixed schedule' },
 ]
 
-export function SetFrequencyScreen({ navigate, frequency, onFrequencyChange, skippedConfigure }: Props) {
+export function SetFrequencyScreen({ navigate, frequency, onFrequencyChange, skippedConfigure, onClose }: Props) {
   return (
     <div data-testid="screen-set-frequency" className="flex flex-col min-h-full">
       {/* Header */}
@@ -46,9 +47,20 @@ export function SetFrequencyScreen({ navigate, frequency, onFrequencyChange, ski
         >
           <ChevronLeft size={20} aria-hidden="true" />
         </button>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+        <h1 className="flex-1 text-2xl font-semibold tracking-tight text-foreground">
           How often feels realistic?
         </h1>
+        {onClose && (
+          <button
+            type="button"
+            data-testid="close-onboarding"
+            aria-label="Close"
+            onClick={onClose}
+            className="flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors"
+          >
+            <X size={20} aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <OnboardingProgress current={3} total={4} />
