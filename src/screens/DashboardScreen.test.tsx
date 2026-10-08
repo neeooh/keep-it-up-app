@@ -162,7 +162,7 @@ describe('DashboardScreen — activity cards', () => {
 })
 
 describe('DashboardScreen — completed activity state', () => {
-  it('shows "Completed" on the same line as the tick icon', () => {
+  it('shows completed badge and Log again button in a row', () => {
     const nowIso = new Date().toISOString()
     const sessions = [
       makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
@@ -177,8 +177,12 @@ describe('DashboardScreen — completed activity state', () => {
         />
       </StoreWrapper>,
     )
-    expect(screen.getByText('Completed')).toBeInTheDocument()
-    expect(screen.getByText('Log another')).toBeInTheDocument()
+    expect(screen.getByTestId('completed-badge-act-bench')).toHaveTextContent('Completed')
+    const logBtn = screen.getByTestId(`log-session-button-${STRENGTH_ROUTINE.id}`)
+    expect(logBtn).toHaveTextContent('Log again')
+    // Both should be in the same row
+    expect(screen.getByTestId('completed-badge-act-bench').parentElement)
+      .toBe(logBtn.parentElement)
   })
 
   it('shows session measurements on the completed card', () => {
@@ -196,7 +200,6 @@ describe('DashboardScreen — completed activity state', () => {
         />
       </StoreWrapper>,
     )
-    // Strength session with 3 sets of 60kg x 8 = 1440kg volume
     expect(screen.getByText(/1440 kg volume/)).toBeInTheDocument()
   })
 
@@ -216,7 +219,6 @@ describe('DashboardScreen — completed activity state', () => {
         />
       </StoreWrapper>,
     )
-    // 50*8*3=1200 → 60*8*3=1440: +20%
     expect(screen.getByTestId('activity-delta-act-bench')).toBeInTheDocument()
     expect(screen.getByText(/\+20%/)).toBeInTheDocument()
   })
