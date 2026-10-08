@@ -70,7 +70,7 @@ describe('ActiveSessionScreen — strength activity', () => {
     expect(screen.getByTestId('set-row-0')).toBeInTheDocument()
   })
 
-  it('complete button is disabled when no sets are filled', () => {
+  it('complete button is enabled when targets pre-fill the form', () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
     render(
       <StoreWrapper>
@@ -80,7 +80,8 @@ describe('ActiveSessionScreen — strength activity', () => {
         />
       </StoreWrapper>,
     )
-    expect(screen.getByTestId('complete-session-button')).toBeDisabled()
+    // Targets pre-fill reps and weight, so the form is already valid
+    expect(screen.getByTestId('complete-session-button')).not.toBeDisabled()
   })
 
   it('pre-fills from last session', () => {
@@ -154,7 +155,7 @@ describe('ActiveSessionScreen — metric activity', () => {
     expect(screen.getByTestId('metric-duration')).toBeInTheDocument()
   })
 
-  it('complete button is disabled when no measurements filled', () => {
+  it('complete button is enabled when targets pre-fill the form', () => {
     seedStore({ routines: [RUNNING_ROUTINE], sessions: [] })
     render(
       <StoreWrapper>
@@ -164,7 +165,8 @@ describe('ActiveSessionScreen — metric activity', () => {
         />
       </StoreWrapper>,
     )
-    expect(screen.getByTestId('complete-session-button')).toBeDisabled()
+    // Targets pre-fill distance and duration, so the form is already valid
+    expect(screen.getByTestId('complete-session-button')).not.toBeDisabled()
   })
 
   it('saves a complete metric session', async () => {
@@ -180,7 +182,9 @@ describe('ActiveSessionScreen — metric activity', () => {
       </StoreWrapper>,
     )
 
-    await user.type(screen.getByTestId('metric-distance'), '5.2')
+    const distanceInput = screen.getByTestId('metric-distance')
+    await user.clear(distanceInput)
+    await user.type(distanceInput, '5.2')
 
     await user.click(screen.getByTestId('complete-session-button'))
     expect(navigate).toHaveBeenCalledWith('dashboard')
