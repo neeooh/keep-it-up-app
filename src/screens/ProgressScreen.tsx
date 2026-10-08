@@ -206,11 +206,17 @@ export function ProgressScreen({ navigate }: Props) {
   const avoidRoutines = routines.filter(isAvoidRoutine)
   const doRoutines = routines.filter((r) => !isAvoidRoutine(r))
 
-  // Consistency per routine over the selected range
-  const consistencyData = routines.map((r) => ({
-    routine: r,
-    consistency: calculateConsistency(sessions, r, dateRange),
-  }))
+  // Consistency per routine over the selected range.
+  // Clamp range start to routine createdAt so new routines are not
+  // penalized for days before they existed. Pass todayStr for pro-rating.
+  const consistencyData = routines.map((r) => {
+    const created = r.createdAt.slice(0, 10)
+    const effectiveStart = created > rangeStart ? created : rangeStart
+    return {
+      routine: r,
+      consistency: calculateConsistency(sessions, r, { start: effectiveStart, end: todayStr }, todayStr),
+    }
+  })
 
   const rangeSessions = sessionsInRange(sessions, dateRange)
 
