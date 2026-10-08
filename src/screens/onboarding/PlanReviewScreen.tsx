@@ -197,8 +197,8 @@ export function PlanReviewScreen({
             </div>
           </div>
 
-          {/* Measurements */}
-          {measurements.length > 0 && (
+          {/* Measurements (hidden when exercises are shown — they contain the same data) */}
+          {measurements.length > 0 && !(draft.exercises?.length) && (
             <div className="flex flex-col gap-1">
               {measurements.map((m) => (
                 <div
