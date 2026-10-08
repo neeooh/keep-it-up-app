@@ -327,3 +327,33 @@ Add an X (close) button to all onboarding screens. The button only appears when 
 ### Files changed
 
 `src/App.tsx`, `src/screens/onboarding/WelcomeScreen.tsx`, `src/screens/onboarding/ChooseDirectionScreen.tsx`, `src/screens/onboarding/ConfigureActivityScreen.tsx`, `src/screens/onboarding/SetFrequencyScreen.tsx`, `src/screens/onboarding/PlanReviewScreen.tsx`
+
+---
+
+## ADR-011: Activity icons via keyword matching
+
+**Date:** 8 October 2026
+**Status:** Accepted
+
+### Context
+
+Activity cards on the Today screen, History screen, and onboarding template cards had no visual icon. Every card looked the same, making it harder to scan and identify activities at a glance.
+
+### Decision
+
+Add a shared `ActivityIcon` component that maps activity names to Lucide icons via keyword matching. The icon appears to the left of the activity name on all cards.
+
+Icon mapping covers: strength/dumbbell, running/footprints, cycling/bike, swimming/waves, yoga/person, meditation/wind, reading/book, learning/graduation cap, practice/palette, journaling/pen, morning/sunrise, evening/moon, outside/tree, smoking/cigarette, food/utensils, social media/smartphone, alcohol/wine. Unknown activities fall back to a generic circle-dot icon.
+
+Icons use the `text-muted-foreground/60` colour — a muted grey from the brand system that supports visual hierarchy without competing with the activity name or action buttons.
+
+### Consequences
+
+- Activities are visually distinguishable at a glance.
+- The icon mapping is keyword-based, not template-ID-based, so it works for custom activities too (a user who names their activity "Morning jog" gets the footprints icon).
+- Icons appear on: Today activity cards, History session rows, ChooseDirection template cards, PlanReview plan card.
+- No new icon library — all icons come from Lucide React (already a dependency).
+
+### Files changed
+
+`src/components/ActivityIcon.tsx` (new), `src/screens/DashboardScreen.tsx`, `src/screens/HistoryScreen.tsx`, `src/screens/onboarding/ChooseDirectionScreen.tsx`, `src/screens/onboarding/PlanReviewScreen.tsx`

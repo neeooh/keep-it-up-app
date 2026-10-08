@@ -2,6 +2,7 @@ import { ChevronLeft, Sparkles, X } from 'lucide-react'
 import type { Navigate } from '../../App'
 import type { Direction } from '../../domain/types'
 import { OnboardingProgress } from '../../components/OnboardingProgress'
+import { ActivityIcon } from '../../components/ActivityIcon'
 import {
   type ActivityTemplate,
   customTemplate,
@@ -95,6 +96,9 @@ export function ChooseDirectionScreen({
                   className="shrink-0 text-muted-foreground"
                   aria-hidden="true"
                 />
+              )}
+              {!template.isCustom && (
+                <ActivityIcon name={template.label} size={24} />
               )}
               <div className="min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">

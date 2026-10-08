@@ -21,6 +21,7 @@ import { Progress } from '../components/ui/progress'
 import { PageHeader } from '../components/PageHeader'
 import { SectionHeader } from '../components/SectionHeader'
 import { EmptyState } from '../components/EmptyState'
+import { ActivityIcon } from '../components/ActivityIcon'
 import { useAppStore } from '../store/useAppStore'
 import { useNotification } from '../hooks/useNotification'
 import { sessionsForRoutine, calculateVolume } from '../domain/calculations'
@@ -454,6 +455,7 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
                   return (
                     <>
                       <div className="flex items-start justify-between gap-2">
+                        <ActivityIcon name={activity.name} size={32} className="mt-0.5" />
                         <div className="min-w-0 flex-1">
                           {/* Status line: tick + Completed */}
                           <div className="flex items-center gap-2">
@@ -512,6 +514,7 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
                 })() : (
                   <>
                     <div className="flex items-start justify-between gap-2">
+                      <ActivityIcon name={activity.name} size={32} className="mt-0.5" />
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-foreground">{activity.name}</p>
                         {estimatedDuration(activity) !== null && (
