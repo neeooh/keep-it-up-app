@@ -88,13 +88,40 @@ function prefillSets(
       reps: s.reps?.toString() ?? '',
     }))
   }
-  // Default: 3 empty sets
+  // No previous session — pre-fill from activity targets
   const targetSets = activity.measurements.find((m) => m.type === 'sets')?.target ?? 3
+  const targetReps = activity.measurements.find((m) => m.type === 'reps')?.target
+  const targetWeight = activity.measurements.find((m) => m.type === 'weight')?.target
   return Array.from({ length: targetSets }, () => ({
     id: crypto.randomUUID(),
-    weight: '',
-    reps: '',
+    weight: targetWeight ? targetWeight.toString() : '',
+    reps: targetReps ? targetReps.toString() : '',
   }))
+}
+
+/**
+ * Pre-fill scalar measurements from the last session result,
+ * or fall back to the activity's measurement targets.
+ */
+function prefillMeasurements(
+  activity: Activity,
+  lastResult: ActivityResult | undefined,
+): Record<string, string> {
+  const measurements: Record<string, string> = {}
+
+  for (const m of activity.measurements) {
+    // Skip strength-specific types (handled by prefillSets)
+    if (m.type === 'sets' || m.type === 'reps' || m.type === 'weight') continue
+
+    const lastValue = lastResult?.measurements[m.type]
+    if (lastValue !== undefined) {
+      measurements[m.type] = lastValue.toString()
+    } else if (m.target !== undefined) {
+      measurements[m.type] = m.target.toString()
+    }
+  }
+
+  return measurements
 }
 
 // ─── Validation ───────────────────────────────────────────────────────────────
@@ -404,7 +431,7 @@ export function ActiveSessionScreen({ navigate, routineId }: Props) {
       const lastResult = lastSessionResults.get(activity.id)
       return {
         activityId: activity.id,
-        measurements: {},
+        measurements: prefillMeasurements(activity, lastResult),
         sets: isStrengthActivity(activity)
           ? prefillSets(activity, lastResult)
           : [],
