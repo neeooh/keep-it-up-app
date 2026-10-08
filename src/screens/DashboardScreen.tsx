@@ -14,7 +14,7 @@
  * Spec reference: docs/uiux-audits/v1.1-ui-ux-audit.md sections 1-7.
  */
 
-import { Plus, Play, Check, Pencil, AlarmClock } from 'lucide-react'
+import { Plus, ClipboardCheck, Check, Pencil, Bell } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '../components/ui/button'
 import { Progress } from '../components/ui/progress'
@@ -319,7 +319,7 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
         {/* Snooze confirmation toast */}
         {confirmation && (
           <div
-            data-testid="snooze-confirmation"
+            data-testid="remind-confirmation"
             className="rounded-xl bg-success/10 px-4 py-3 text-sm font-medium text-success"
           >
             {confirmation}
@@ -388,29 +388,29 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
                       onClick={() => onStartSession(routine.id)}
                       className="flex-1"
                     >
-                      <Play size={16} className="mr-2" aria-hidden="true" />
-                      Start
+                      <ClipboardCheck size={16} className="mr-2" aria-hidden="true" />
+                      Log
                     </Button>
                     <div className="relative flex-1">
                       <Button
-                        data-testid={`snooze-button-${activity.id}`}
+                        data-testid={`remind-button-${activity.id}`}
                         variant="outline"
                         onClick={() => setOpenSnooze(openSnooze === activity.id ? null : activity.id)}
                         className="w-full"
                       >
-                        <AlarmClock size={16} className="mr-2" aria-hidden="true" />
-                        Snooze
+                        <Bell size={16} className="mr-2" aria-hidden="true" />
+                        Remind
                       </Button>
                       {openSnooze === activity.id && (
                         <div
-                          data-testid={`snooze-menu-${activity.id}`}
+                          data-testid={`remind-menu-${activity.id}`}
                           className="absolute right-0 top-full mt-1 z-10 w-44 rounded-lg border border-border bg-card p-1 shadow-lg ring-1 ring-foreground/5"
                         >
                           {SNOOZE_OPTIONS.map((opt) => (
                             <button
                               key={opt.label}
                               type="button"
-                              data-testid={`snooze-option-${opt.minutes}`}
+                              data-testid={`remind-option-${opt.minutes}`}
                               onClick={() => handleSnooze(activity.name, activity.id, opt.minutes)}
                               className="flex w-full items-center rounded-md px-3 py-2 text-sm text-foreground hover:bg-surface-muted transition-colors"
                             >
