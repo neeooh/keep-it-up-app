@@ -60,3 +60,59 @@ distinguish the current partial week from a past full week.
   `DashboardScreen` (passes `today` to consistency calls).
 - **Not changed:** `calculateWeeklySummary`, `WeeklyReviewScreen` — the Review
   Screen uses a separate code path and will be redesigned in a separate task.
+
+---
+
+## Bug 2: Range Start Not Clamped to Routine Creation Date
+
+**Date:** 2026-10-08
+**Status:** Fix implemented
+**Affected screen:** DashboardScreen (home screen momentum widget)
+
+### Problem
+
+The Dashboard always looks back 28 days (4 weeks) from today when it calculates
+consistency. A routine created today has its completion measured against a 28-day
+window, even though 27 of those days existed before the routine. The denominator
+is inflated, so the percentage drops to near zero.
+
+A user who creates a daily routine and completes their first session sees ~3%
+consistency instead of 100%.
+
+### Root cause
+
+`DashboardScreen` passes a fixed `fourWeeksAgo` as the range start for every
+routine. It does not account for the routine's `createdAt` timestamp.
+
+```ts
+// Before fix
+const consistencies = routines.map((r) =>
+  calculateConsistency(sessions, r, { start: fourWeeksAgo, end: todayStr }, todayStr),
+)
+```
+
+### Fix
+
+Clamp the range start per routine to `max(fourWeeksAgo, routine.createdAt)`.
+A routine that is 3 days old uses a 3-day window. A routine that is 6 weeks old
+uses the full 28-day window.
+
+```ts
+// After fix
+const consistencies = routines.map((r) => {
+  const created = r.createdAt.slice(0, 10)
+  const rangeStart = created > fourWeeksAgo ? created : fourWeeksAgo
+  return calculateConsistency(sessions, r, { start: rangeStart, end: todayStr }, todayStr)
+})
+```
+
+The same logic applies to the previous 4-week window used for the delta
+indicator. Routines that did not exist during the previous window return 0.
+
+### Scope
+
+- **Changed:** `DashboardScreen` — range start clamped per routine for both
+  current and previous consistency windows.
+- **Not changed:** `calculateConsistency` — no changes needed. The function
+  already handles any date range correctly. The caller now passes the right
+  range.

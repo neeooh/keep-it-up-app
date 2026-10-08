@@ -364,6 +364,38 @@ describe('calculateConsistency', () => {
     expect(withoutProrating).toBe(67)
     expect(result).toBeGreaterThan(withoutProrating)
   })
+
+  it('1-day range with 1 completed session for a daily routine returns 100%', () => {
+    // Simulates a routine created today with 1 session completed today.
+    const dailyRoutine = makeRoutine({
+      activities: [makeActivity({ frequency: 'daily' })],
+    })
+    const sessions: Session[] = [
+      makeSession('routine-1', '2026-10-07T10:00:00.000Z'),
+    ]
+    const result = calculateConsistency(
+      sessions,
+      dailyRoutine,
+      { start: '2026-10-07', end: '2026-10-07' },
+      '2026-10-07',
+    )
+    expect(result).toBe(100)
+  })
+
+  it('3-day range for a 3x_week routine with 1 session returns proportional score', () => {
+    // Routine created 3 days ago. 3x_week → pro-rated planned = (3/7)*3 ≈ 1.29.
+    // 1 completed → 1/1.29 ≈ 78%.
+    const sessions: Session[] = [
+      makeSession('routine-1', '2026-10-05T10:00:00.000Z'),
+    ]
+    const result = calculateConsistency(
+      sessions,
+      routine,
+      { start: '2026-10-05', end: '2026-10-07' },
+      '2026-10-07',
+    )
+    expect(result).toBe(78)
+  })
 })
 
 // ─── calculateCompletionRate ──────────────────────────────────────────────────

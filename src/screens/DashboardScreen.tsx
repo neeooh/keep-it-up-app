@@ -202,20 +202,28 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
   const todayStr = today()
   const hasSessions = sessions.length > 0
 
-  // Overall consistency (4 weeks), pro-rated for the current partial week
-  const consistencies = routines.map((r) =>
-    calculateConsistency(sessions, r, { start: fourWeeksAgo, end: todayStr }, todayStr),
-  )
+  // Overall consistency (4 weeks), pro-rated for the current partial week.
+  // Clamp range start per routine so new routines are not penalized for
+  // days before they existed.
+  const consistencies = routines.map((r) => {
+    const created = r.createdAt.slice(0, 10)
+    const rangeStart = created > fourWeeksAgo ? created : fourWeeksAgo
+    return calculateConsistency(sessions, r, { start: rangeStart, end: todayStr }, todayStr)
+  })
   const overallConsistency =
     consistencies.length > 0
       ? Math.round(consistencies.reduce((a, b) => a + b, 0) / consistencies.length)
       : 0
 
-  // Previous 4-week window for delta
+  // Previous 4-week window for delta (clamped to routine createdAt)
   const eightWeeksAgo = weeksAgo(8)
-  const prevConsistencies = routines.map((r) =>
-    calculateConsistency(sessions, r, { start: eightWeeksAgo, end: fourWeeksAgo }),
-  )
+  const prevConsistencies = routines.map((r) => {
+    const created = r.createdAt.slice(0, 10)
+    const rangeStart = created > eightWeeksAgo ? created : eightWeeksAgo
+    // Skip routines that did not exist during the previous window
+    if (rangeStart >= fourWeeksAgo) return 0
+    return calculateConsistency(sessions, r, { start: rangeStart, end: fourWeeksAgo })
+  })
   const prevOverall =
     prevConsistencies.length > 0
       ? Math.round(prevConsistencies.reduce((a, b) => a + b, 0) / prevConsistencies.length)

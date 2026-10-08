@@ -255,4 +255,30 @@ describe('DashboardScreen — momentum pro-rating', () => {
     // Without pro-rating, mid-week deflation would pull this lower.
     expect(value).toBeGreaterThanOrEqual(90)
   })
+
+  it('new routine created today with 1 session shows 100% consistency', () => {
+    const nowIso = new Date().toISOString()
+    const newRoutine: typeof STRENGTH_ROUTINE = {
+      ...STRENGTH_ROUTINE,
+      id: 'routine-new',
+      createdAt: nowIso,
+    }
+    const sessions = [
+      makeStrengthSession('routine-new', 'act-bench', nowIso, 60, 8),
+    ]
+    seedStore({ routines: [newRoutine], sessions })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+          onEditRoutine={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    const el = screen.getByTestId('overall-consistency')
+    const value = parseInt(el.textContent!.replace('%', ''), 10)
+    // A brand-new routine with its first session completed today = 100%.
+    expect(value).toBe(100)
+  })
 })
