@@ -306,10 +306,10 @@ export function ProgressScreen({ navigate }: Props) {
             data-testid={`range-${r}`}
             onClick={() => setRange(r)}
             aria-pressed={range === r}
-            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
+            className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
               range === r
-                ? 'bg-brand text-brand-foreground'
-                : 'text-muted-foreground hover:text-foreground'
+                ? 'bg-brand text-brand-foreground shadow-sm ring-1 ring-brand-dark/20'
+                : 'text-muted-foreground hover:text-foreground hover:bg-surface'
             }`}
           >
             {r === '7d' ? '7 days' : r === '30d' ? '30 days' : '90 days'}
@@ -331,9 +331,9 @@ export function ProgressScreen({ navigate }: Props) {
                     </span>
                     <span className="text-muted-foreground">{consistency}%</span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-surface-muted">
+                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-border">
                     <div
-                      className="h-full rounded-full bg-brand"
+                      className="h-full rounded-full bg-brand transition-all"
                       style={{ width: `${consistency}%` }}
                     />
                   </div>
@@ -407,7 +407,7 @@ export function ProgressScreen({ navigate }: Props) {
         {/* DO: Volume + duration totals */}
         {(rangeVolume > 0 || rangeDuration > 0) && (
           <div>
-            <SectionHeader title="Totals" />
+            <SectionHeader title={`Totals · ${rangeLabel}`} />
             <div className="grid grid-cols-2 gap-3">
               {rangeVolume > 0 && (
                 <StatCard
