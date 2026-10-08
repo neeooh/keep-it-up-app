@@ -31,6 +31,8 @@ interface Props {
   onActivityChange?: (name: string, measurements: MeasurementConfig[]) => void
   /** Called for strength workouts with the exercise list. */
   onExercisesChange?: (exercises: { name: string; sets: number; reps: number; weight: number }[]) => void
+  /** Pre-fill exercises from the draft (when navigating back from plan review). */
+  initialExercises?: { name: string; sets: number; reps: number; weight: number }[]
   onClose?: () => void
 }
 
@@ -195,7 +197,7 @@ function ExerciseRowField({ row, index, onChange, onRemove, canRemove }: Exercis
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export function ConfigureActivityScreen({ navigate, templateId, direction, onActivityChange, onExercisesChange, onClose }: Props) {
+export function ConfigureActivityScreen({ navigate, templateId, direction, onActivityChange, onExercisesChange, initialExercises, onClose }: Props) {
   const template = templateId ? findTemplate(templateId) : null
   const resolvedDirection = direction ?? template?.direction ?? 'DO'
 
@@ -213,10 +215,19 @@ export function ConfigureActivityScreen({ navigate, templateId, direction, onAct
     },
   )
 
-  // Strength exercise rows
-  const [exercises, setExercises] = useState<ExerciseRow[]>([
-    { id: crypto.randomUUID(), name: '', sets: '3', reps: '10', weight: '' },
-  ])
+  // Strength exercise rows — pre-fill from draft if navigating back
+  const [exercises, setExercises] = useState<ExerciseRow[]>(() => {
+    if (initialExercises && initialExercises.length > 0) {
+      return initialExercises.map((ex) => ({
+        id: crypto.randomUUID(),
+        name: ex.name,
+        sets: String(ex.sets),
+        reps: String(ex.reps),
+        weight: ex.weight > 0 ? String(ex.weight) : '',
+      }))
+    }
+    return [{ id: crypto.randomUUID(), name: '', sets: '3', reps: '10', weight: '' }]
+  })
 
   // All measurement types (for custom template)
   const allMeasurementTypes: MeasurementType[] = [
