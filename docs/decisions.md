@@ -164,3 +164,51 @@ Five changes:
 - `EditRoutineScreen` imports `RotateCcw` icon.
 - History and Progress screens activate their `navigate` prop (previously unused) and import `Button`.
 - `OptionalScheduleScreen` imports `CalendarPlus` icon.
+
+---
+
+## ADR-007: PWA with offline support for distribution
+
+**Date:** 8 October 2026
+**Status:** Accepted
+
+### Context
+
+The app is a client-side SPA with no backend. All data lives in localStorage. Four distribution options were evaluated:
+
+1. **PWA** — Add a service worker and web manifest. Host static files for free on Vercel, Netlify, or Cloudflare Pages. Users install from the browser.
+2. **TWA (Trusted Web Activity)** — Wrap the PWA in a thin Android shell and publish to the Google Play Store. Requires a deployed PWA first. $25 one-time Google Play fee.
+3. **Capacitor** — Wrap the web app in a native WebView for Android and iOS app stores. Requires Xcode ($99/year Apple Developer) and Android Studio.
+4. **React Native / Expo** — Full rewrite. All React DOM components, Tailwind CSS, and shadcn/ui would need to be replaced. Not a conversion — a new project.
+
+### Decision
+
+Option 1: PWA. A service worker precaches all static assets so the app works offline. The web manifest makes the app installable on Android and iOS home screens.
+
+**Why not React Native?** The app uses React DOM, Tailwind CSS, and shadcn/ui components. Converting to React Native would require rewriting every component because React DOM elements (`div`, `p`, `button`) do not exist in React Native. This is a full rewrite, not a migration.
+
+**Why not Capacitor?** It adds native build toolchains (Xcode, Android Studio) and app store submission complexity for no functional benefit. The app has no need for native APIs (camera, push notifications, file system). Capacitor can be added later if needed.
+
+**Why not TWA first?** A TWA requires a deployed PWA. The PWA is the prerequisite. A TWA wrapper can be added later in an afternoon if Play Store presence is needed.
+
+### Implementation
+
+- **Plugin:** `vite-plugin-pwa` (dev dependency).
+- **Registration:** `autoUpdate` — the service worker updates silently on page reload. No user prompt.
+- **Precaching:** Workbox precaches all static assets (`*.js`, `*.css`, `*.html`, `*.png`, `*.svg`, `*.woff2`). The entire app works offline after the first visit.
+- **Runtime caching:** Google Fonts are cached with a CacheFirst strategy (1 year TTL, max 10 entries).
+- **Manifest:** `standalone` display, portrait orientation, terracotta theme color (#D97745), warm off-white background (#FAF9F6).
+- **Icons:** Standard 192px and 512px PNGs. Maskable variants with safe-zone padding for adaptive icon shapes on Android. Apple-touch-icon at 180px for iOS.
+
+### Consequences
+
+- The app works offline after the first load.
+- Users can install the app from the browser on Android, iOS, and desktop.
+- No app store fees, no native toolchains, no code changes to the React app.
+- Static hosting is free on Vercel, Netlify, Cloudflare Pages, or GitHub Pages.
+- A TWA wrapper can be added later for Google Play Store presence ($25 one-time fee).
+- iOS push notifications are not available (iOS PWA limitation). This does not affect the MVP.
+
+### Files changed
+
+`vite.config.ts`, `index.html`, `public/pwa-192x192.png`, `public/pwa-512x512.png`, `public/maskable-icon.svg`, `public/maskable-192x192.png`, `public/maskable-512x512.png`, `public/apple-touch-icon.png`
