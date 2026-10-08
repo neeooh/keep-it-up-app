@@ -459,3 +459,35 @@ Replace the Sheet with inline expand/collapse. Tapping a session expands its det
 ### Files changed
 
 `src/screens/HistoryScreen.tsx`, `src/screens/HistoryScreen.test.tsx`
+
+---
+
+## ADR-015: History card summary line and expand actions
+
+**Date:** 8 October 2026
+**Status:** Accepted
+
+### Context
+
+History cards showed "1 session" as the secondary line, which was redundant (every card is one session). The accordion body duplicated measurement data already visible in the summary. There was no way to edit or delete a session.
+
+### Decision
+
+1. Remove "N sessions" count from the card subtitle.
+2. Show all logged measurements inline as the subtitle (e.g. "60 kg × 8 · 3 sets" or "5.2 km · 31 min" or "✓ Stayed on track").
+3. Replace the accordion body (which duplicated measurements) with metadata and actions:
+   - Logged date and time
+   - Edit button (navigates to re-log)
+   - Delete button with inline confirmation ("Delete this session?" → Confirm / Cancel)
+4. Add `deleteSession` to the app store.
+
+### Consequences
+
+- The card summary line gives useful information at a glance without expanding.
+- The accordion body no longer duplicates what the summary already shows.
+- Users can delete erroneous sessions with a two-step confirmation to prevent accidents.
+- The Edit button currently navigates to the dashboard (a proper edit-session screen can be added later).
+
+### Files changed
+
+`src/store/useAppStore.tsx`, `src/screens/HistoryScreen.tsx`, `src/screens/HistoryScreen.test.tsx`

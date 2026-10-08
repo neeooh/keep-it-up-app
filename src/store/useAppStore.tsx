@@ -100,6 +100,11 @@ export interface AppStore {
    * The caller is responsible for supplying a unique `id`.
    */
   addSession: (session: Session) => void
+
+  /**
+   * Remove a session by id.
+   */
+  deleteSession: (sessionId: string) => void
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -144,9 +149,16 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     }))
   }, [])
 
+  const deleteSession = useCallback((sessionId: string) => {
+    setState((prev) => ({
+      ...prev,
+      sessions: prev.sessions.filter((s) => s.id !== sessionId),
+    }))
+  }, [])
+
   const store = useMemo<AppStore>(
-    () => ({ state, addRoutine, updateRoutine, deleteRoutine, addSession }),
-    [state, addRoutine, updateRoutine, deleteRoutine, addSession],
+    () => ({ state, addRoutine, updateRoutine, deleteRoutine, addSession, deleteSession }),
+    [state, addRoutine, updateRoutine, deleteRoutine, addSession, deleteSession],
   )
 
   return (

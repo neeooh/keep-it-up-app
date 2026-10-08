@@ -88,20 +88,22 @@ describe('HistoryScreen — with sessions', () => {
     )
   })
 
-  it('expands inline detail when clicking a session', async () => {
+  it('expands to show logged date and actions when clicked', async () => {
     const { sessions } = setup()
     const user = userEvent.setup()
     await user.click(screen.getByTestId(`history-entry-${sessions[0]!.id}`))
     expect(screen.getByTestId(`history-detail-${sessions[0]!.id}`)).toBeInTheDocument()
+    expect(screen.getByText(/Logged/i)).toBeInTheDocument()
+    expect(screen.getByTestId(`edit-session-${sessions[0]!.id}`)).toBeInTheDocument()
+    expect(screen.getByTestId(`delete-session-${sessions[0]!.id}`)).toBeInTheDocument()
   })
 
-  it('shows activity results in the inline detail', async () => {
+  it('does not show per-activity detail in expanded view (measurements are in summary)', async () => {
     const { sessions } = setup()
     const user = userEvent.setup()
     await user.click(screen.getByTestId(`history-entry-${sessions[0]!.id}`))
-    expect(
-      screen.getByTestId(`detail-result-act-bench`),
-    ).toBeInTheDocument()
+    // Measurements are in the summary line, not duplicated in the expanded detail
+    expect(screen.queryByTestId('detail-result-act-bench')).not.toBeInTheDocument()
   })
 
   it('collapses detail when clicking the same session again', async () => {
@@ -111,5 +113,15 @@ describe('HistoryScreen — with sessions', () => {
     expect(screen.getByTestId(`history-detail-${sessions[0]!.id}`)).toBeInTheDocument()
     await user.click(screen.getByTestId(`history-entry-${sessions[0]!.id}`))
     expect(screen.queryByTestId(`history-detail-${sessions[0]!.id}`)).not.toBeInTheDocument()
+  })
+
+  it('shows delete confirmation when delete is clicked', async () => {
+    const { sessions } = setup()
+    const user = userEvent.setup()
+    await user.click(screen.getByTestId(`history-entry-${sessions[0]!.id}`))
+    await user.click(screen.getByTestId(`delete-session-${sessions[0]!.id}`))
+    expect(screen.getByText(/delete this session/i)).toBeInTheDocument()
+    expect(screen.getByTestId(`confirm-delete-${sessions[0]!.id}`)).toBeInTheDocument()
+    expect(screen.getByTestId(`cancel-delete-${sessions[0]!.id}`)).toBeInTheDocument()
   })
 })
