@@ -1,31 +1,29 @@
 /**
- * DashboardScreen — the main home screen.
+ * DashboardScreen — the Today screen.
  *
- * Shows today's date (or a first-session prompt), overall consistency as a
- * momentum stat, this-week summary, per-routine cards with a dominant
- * "Start session" CTA, progress deltas, and a missed-day nudge. Handles the
- * empty state when no routines exist.
+ * A focused daily action list that answers: "What do I need to do today,
+ * and how much have I completed?"
  *
- * Spec reference: mvp_product_spec.md section 13.
+ * Shows the current date, a daily completion summary (X of Y completed),
+ * a list of today's activities sorted by preferred time then duration,
+ * and per-activity Start / Log another actions.
+ *
+ * Does NOT show: Momentum, This Week, Progress deltas, or any historical
+ * analytics — those belong on Progress and Review.
+ *
+ * Spec reference: docs/uiux-audits/v1.1-ui-ux-audit.md sections 1-7.
  */
 
-import { Plus, Play, TrendingUp, TrendingDown, Minus, Pencil } from 'lucide-react'
+import { Plus, Play, Check, Pencil } from 'lucide-react'
 import { Button } from '../components/ui/button'
+import { Progress } from '../components/ui/progress'
 import { PageHeader } from '../components/PageHeader'
 import { SectionHeader } from '../components/SectionHeader'
-import { StatCard } from '../components/StatCard'
-import { StatusBadge } from '../components/StatusBadge'
 import { EmptyState } from '../components/EmptyState'
 import { useAppStore } from '../store/useAppStore'
-import {
-  calculateConsistency,
-  calculateCompletionRate,
-  calculateProgress,
-  sessionsForRoutine,
-  calculateVolume,
-} from '../domain/calculations'
+import { sessionsForRoutine } from '../domain/calculations'
 import type { Navigate } from '../App'
-import type { DayOfWeek, Routine, Session, MeasurementType } from '../domain/types'
+import type { Activity, DayOfWeek, Routine, Session } from '../domain/types'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -54,29 +52,7 @@ function isoDayOfWeek(dateStr: string): DayOfWeek {
   return (day === 0 ? 7 : day) as DayOfWeek
 }
 
-function startOfISOWeek(d: Date): string {
-  const day = d.getUTCDay()
-  const diff = day === 0 ? -6 : 1 - day
-  const monday = new Date(d)
-  monday.setUTCDate(d.getUTCDate() + diff)
-  return monday.toISOString().slice(0, 10)
-}
-
-function weeksAgo(weeks: number): string {
-  const d = new Date()
-  d.setUTCDate(d.getUTCDate() - weeks * 7)
-  return d.toISOString().slice(0, 10)
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-  })
-}
-
-/** Nicely formatted long date, e.g. "Wednesday, 7 October". */
+/** Nicely formatted long date, e.g. "Thursday, 8 October". */
 function formatToday(): string {
   return new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -85,71 +61,91 @@ function formatToday(): string {
   })
 }
 
-// ─── Metric helpers ───────────────────────────────────────────────────────────
+// ─── Preferred-time sort order ────────────────────────────────────────────────
 
-function metricUnit(type: MeasurementType): string {
-  switch (type) {
-    case 'weight': return 'kg'
-    case 'distance': return 'km'
-    case 'duration': return 'min'
-    case 'quantity': return ''
-    case 'sets': return 'sets'
-    case 'reps': return 'reps'
-  }
+const TIME_ORDER: Record<string, number> = {
+  Morning: 0,
+  Afternoon: 1,
+  Evening: 2,
+}
+const DEFAULT_TIME_ORDER = 3 // "Any time" sorts last
+
+function timeOrder(preferredTime?: string): number {
+  if (!preferredTime) return DEFAULT_TIME_ORDER
+  return TIME_ORDER[preferredTime] ?? DEFAULT_TIME_ORDER
 }
 
-/** Find the most interesting metric highlight from the last session. */
-function lastSessionHighlight(
+/** Get the estimated duration in minutes from an activity's measurements. */
+function estimatedDuration(activity: Activity): number | null {
+  const dur = activity.measurements.find((m) => m.type === 'duration')
+  return dur?.target ?? null
+}
+
+// ─── Today's activities ───────────────────────────────────────────────────────
+
+interface TodayActivity {
+  activity: Activity
+  routine: Routine
+  completedToday: boolean
+  /** Original index for stable tie-breaking. */
+  index: number
+}
+
+/**
+ * Build the list of activities scheduled for today, sorted by:
+ * 1. Preferred time (Morning, Afternoon, Evening, Any time)
+ * 2. Estimated duration ascending (shorter first)
+ * 3. Original creation order as tie-breaker
+ */
+function buildTodayActivities(
+  routines: Routine[],
   sessions: Session[],
-  routine: Routine,
-): { label: string; value: string } | null {
-  const routineSessions = sessionsForRoutine(sessions, routine.id)
-  if (routineSessions.length === 0) return null
+  todayStr: string,
+): TodayActivity[] {
+  const todayDow = isoDayOfWeek(todayStr)
+  let index = 0
 
-  const last = routineSessions[routineSessions.length - 1]!
+  const activities: TodayActivity[] = routines.flatMap((routine) =>
+    routine.activities
+      .filter((a) => {
+        if (!a.scheduledDays || a.scheduledDays.length === 0) return true
+        return a.scheduledDays.includes(todayDow)
+      })
+      .map((activity) => {
+        const completedToday = sessionsForRoutine(sessions, routine.id).some(
+          (s) => s.completedAt.slice(0, 10) === todayStr,
+        )
+        return { activity, routine, completedToday, index: index++ }
+      }),
+  )
 
-  // Try weight-based volume first
-  for (const activity of routine.activities) {
-    const hasWeight = activity.measurements.some((m) => m.type === 'weight')
-    if (hasWeight) {
-      const vol = calculateVolume(last, activity.id)
-      if (vol > 0) {
-        return { label: activity.name, value: `${vol} kg total` }
-      }
-    }
-  }
+  activities.sort((a, b) => {
+    const timeDiff = timeOrder(a.activity.preferredTime) - timeOrder(b.activity.preferredTime)
+    if (timeDiff !== 0) return timeDiff
 
-  // Try any scalar measurement
-  for (const result of last.results) {
-    const activity = routine.activities.find((a) => a.id === result.activityId)
-    for (const [type, value] of Object.entries(result.measurements)) {
-      if (value !== undefined) {
-        const unit = metricUnit(type as MeasurementType)
-        return {
-          label: activity?.name ?? 'Activity',
-          value: `${value}${unit ? ` ${unit}` : ''}`,
-        }
-      }
-    }
+    const durA = estimatedDuration(a.activity)
+    const durB = estimatedDuration(b.activity)
+    if (durA !== null && durB !== null && durA !== durB) return durA - durB
+    if (durA !== null && durB === null) return -1
+    if (durA === null && durB !== null) return 1
 
-    // AVOID activity
-    if (result.stayedOnTrack !== undefined) {
-      return {
-        label: activity?.name ?? 'Activity',
-        value: result.stayedOnTrack ? 'On track' : 'Slipped',
-      }
-    }
-  }
+    return a.index - b.index
+  })
 
-  return null
+  return activities
 }
 
 /**
  * True when any routine was scheduled for yesterday but no session was
- * completed yesterday. Routines without explicit scheduled days are treated
- * as scheduled every day.
+ * completed yesterday, AND today still has incomplete activities.
  */
-function hasMissedYesterday(routines: Routine[], sessions: Session[]): boolean {
+function shouldShowMissedYesterday(
+  routines: Routine[],
+  sessions: Session[],
+  allCompleteToday: boolean,
+): boolean {
+  if (allCompleteToday) return false
+
   const y = yesterday()
   const yDow = isoDayOfWeek(y)
   return routines.some((routine) => {
@@ -163,6 +159,16 @@ function hasMissedYesterday(routines: Routine[], sessions: Session[]): boolean {
     )
     return !didYesterday
   })
+}
+
+// ─── Format duration ──────────────────────────────────────────────────────────
+
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `~${minutes} min`
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (m === 0) return `~${h}h`
+  return `~${h}h ${m}m`
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
@@ -182,7 +188,6 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
             actionLabel="Create a routine"
             onAction={() => navigate('welcome')}
           />
-          {/* Hidden hook kept for the create-routine action testid. */}
           <button
             type="button"
             data-testid="create-routine-button"
@@ -196,67 +201,45 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
     )
   }
 
-  const now = new Date()
-  const weekStart = startOfISOWeek(now)
-  const fourWeeksAgo = weeksAgo(4)
   const todayStr = today()
+  const todayActivities = buildTodayActivities(routines, sessions, todayStr)
+
+  const totalActivities = todayActivities.length
+  const completedCount = todayActivities.filter((a) => a.completedToday).length
+  const allComplete = totalActivities > 0 && completedCount === totalActivities
   const hasSessions = sessions.length > 0
 
-  // Overall consistency (4 weeks), pro-rated for the current partial week.
-  // Clamp range start per routine so new routines are not penalized for
-  // days before they existed.
-  const consistencies = routines.map((r) => {
-    const created = r.createdAt.slice(0, 10)
-    const rangeStart = created > fourWeeksAgo ? created : fourWeeksAgo
-    return calculateConsistency(sessions, r, { start: rangeStart, end: todayStr }, todayStr)
-  })
-  const overallConsistency =
-    consistencies.length > 0
-      ? Math.round(consistencies.reduce((a, b) => a + b, 0) / consistencies.length)
-      : 0
+  const missedYesterday = shouldShowMissedYesterday(routines, sessions, allComplete)
 
-  // Previous 4-week window for delta (clamped to routine createdAt)
-  const eightWeeksAgo = weeksAgo(8)
-  const prevConsistencies = routines.map((r) => {
-    const created = r.createdAt.slice(0, 10)
-    const rangeStart = created > eightWeeksAgo ? created : eightWeeksAgo
-    // Skip routines that did not exist during the previous window
-    if (rangeStart >= fourWeeksAgo) return 0
-    return calculateConsistency(sessions, r, { start: rangeStart, end: fourWeeksAgo })
-  })
-  const prevOverall =
-    prevConsistencies.length > 0
-      ? Math.round(prevConsistencies.reduce((a, b) => a + b, 0) / prevConsistencies.length)
-      : 0
-  const consistencyDelta = overallConsistency - prevOverall
-  const hasPreviousData = sessions.some((s) => s.completedAt.slice(0, 10) < fourWeeksAgo)
-
-  // This week per routine
-  const weekEntries = routines.map((r) => ({
-    routine: r,
-    ...calculateCompletionRate(sessions, r, weekStart),
-  }))
-
-  // Per-routine details
-  const routineDetails = routines.map((r) => {
-    const highlight = lastSessionHighlight(sessions, r)
-    const rSessions = sessionsForRoutine(sessions, r.id)
-    const lastDate =
-      rSessions.length > 0
-        ? formatDate(rSessions[rSessions.length - 1]!.completedAt)
-        : null
-    const doneToday = rSessions.some(
-      (s) => s.completedAt.slice(0, 10) === todayStr,
+  if (totalActivities === 0) {
+    return (
+      <div data-testid="screen-dashboard" className="flex flex-col min-h-full">
+        <PageHeader
+          title={formatToday()}
+          rightAction={
+            <Button
+              variant="ghost"
+              size="icon"
+              data-testid="add-routine-button"
+              aria-label="Add routine"
+              onClick={() => navigate('welcome')}
+            >
+              <Plus size={20} aria-hidden="true" />
+            </Button>
+          }
+        />
+        <div data-testid="today-empty" className="flex flex-1 flex-col">
+          <EmptyState
+            icon={<Plus size={32} aria-hidden="true" />}
+            title="No activities planned for today"
+            description="Enjoy the day, or add an activity to your plan."
+            actionLabel="Add an activity"
+            onAction={() => navigate('welcome')}
+          />
+        </div>
+      </div>
     )
-    return { routine: r, highlight, lastSessionDate: lastDate, doneToday }
-  })
-
-  // Progress deltas
-  const progressEntries = routines.flatMap((r) =>
-    r.activities.flatMap((a) => calculateProgress(sessions, a)),
-  )
-
-  const missedYesterday = hasMissedYesterday(routines, sessions)
+  }
 
   return (
     <div data-testid="screen-dashboard" className="flex flex-col min-h-full">
@@ -276,163 +259,95 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
       />
 
       <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-6">
-        {/* Missed-day nudge */}
         {missedYesterday && (
           <div
             data-testid="missed-yesterday"
             className="rounded-xl bg-brand-light px-4 py-3 text-sm text-foreground"
           >
-            Missed yesterday? No problem — today's session is ready.
+            Missed yesterday? No problem — today is ready.
           </div>
         )}
 
-        {/* Routine cards */}
-        <div className="flex flex-col gap-3">
-          {routineDetails.map(({ routine, highlight, lastSessionDate, doneToday }) => (
-            <div
-              key={routine.id}
-              data-testid={`plan-card-${routine.id}`}
-              className="rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/5"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="font-semibold text-foreground">{routine.name}</p>
-                  {lastSessionDate ? (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Last session: {lastSessionDate}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      No sessions yet
-                    </p>
-                  )}
-                  {highlight && (
-                    <p
-                      data-testid={`session-highlight-${routine.id}`}
-                      className="text-sm text-muted-foreground mt-1"
-                    >
-                      {highlight.label} · {highlight.value}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {doneToday && (
-                    <StatusBadge variant="success" label="Done today" />
-                  )}
+        <div data-testid="daily-summary">
+          <p className="text-base font-medium text-foreground" data-testid="completion-text">
+            {completedCount} of {totalActivities} completed
+          </p>
+          <Progress
+            value={totalActivities > 0 ? (completedCount / totalActivities) * 100 : 0}
+            data-testid="completion-bar"
+            className="mt-2 h-2"
+          />
+        </div>
+
+        <div>
+          <SectionHeader title="Today's activities" />
+          <div className="flex flex-col gap-3">
+            {todayActivities.map(({ activity, routine, completedToday }) => (
+              <div
+                key={`${routine.id}-${activity.id}`}
+                data-testid={`activity-card-${activity.id}`}
+                className={`rounded-xl border p-4 ${
+                  completedToday
+                    ? 'border-success/30 bg-success-muted/30'
+                    : 'border-border bg-card ring-1 ring-foreground/5'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      {completedToday && (
+                        <div className="flex items-center justify-center size-5 rounded-full bg-success text-success-foreground shrink-0">
+                          <Check size={12} aria-hidden="true" />
+                        </div>
+                      )}
+                      <p className={`font-semibold ${completedToday ? 'text-foreground/70' : 'text-foreground'}`}>
+                        {activity.name}
+                      </p>
+                    </div>
+                    {completedToday ? (
+                      <p className="text-sm text-success mt-0.5 ml-7">Completed</p>
+                    ) : (
+                      estimatedDuration(activity) !== null && (
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          {formatDuration(estimatedDuration(activity)!)}
+                        </p>
+                      )
+                    )}
+                  </div>
                   <button
                     type="button"
                     data-testid={`edit-routine-button-${routine.id}`}
                     aria-label={`Edit ${routine.name}`}
                     onClick={() => onEditRoutine(routine.id)}
-                    className="-mr-2 flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors"
+                    className="flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors shrink-0 -mr-2 -mt-1"
                   >
                     <Pencil size={16} aria-hidden="true" />
                   </button>
                 </div>
-              </div>
 
-              <Button
-                data-testid={`log-session-button-${routine.id}`}
-                variant={doneToday ? 'outline' : 'default'}
-                onClick={() => onStartSession(routine.id)}
-                className="w-full mt-4"
-              >
-                <Play size={16} className="mr-2" aria-hidden="true" />
-                {doneToday ? 'Log another' : 'Start session'}
-              </Button>
-            </div>
-          ))}
-        </div>
-
-        {/* Momentum */}
-        <div>
-          <SectionHeader title="Momentum" />
-          {hasSessions ? (
-            <StatCard
-              label="Overall consistency"
-              value={`${overallConsistency}%`}
-              delta={hasPreviousData ? consistencyDelta : undefined}
-              deltaLabel="vs last month"
-            />
-          ) : (
-            <div className="rounded-xl bg-surface p-4 ring-1 ring-foreground/5">
-              <p className="text-sm text-muted-foreground">Overall consistency</p>
-              <p className="text-base font-medium text-foreground mt-1">
-                Your score starts after your first session.
-              </p>
-            </div>
-          )}
-          {/* Hidden hook kept for the overall-consistency testid. */}
-          <span data-testid="overall-consistency" className="sr-only">
-            {overallConsistency}%
-          </span>
-        </div>
-
-        {/* This week — plain text list, no card wrapper */}
-        <div>
-          <SectionHeader title="This week" />
-          <div className="flex flex-col gap-2">
-            {weekEntries.map(({ routine, completed, planned }) => (
-              <div
-                key={routine.id}
-                data-testid={`week-entry-${routine.id}`}
-                className="flex items-center justify-between text-sm"
-              >
-                <span className="text-foreground truncate mr-4">{routine.name}</span>
-                <span className="text-muted-foreground whitespace-nowrap">
-                  {completed} / {planned}
-                </span>
+                {completedToday ? (
+                  <Button
+                    data-testid={`log-session-button-${routine.id}`}
+                    variant="ghost"
+                    onClick={() => onStartSession(routine.id)}
+                    className="w-full mt-3 text-muted-foreground"
+                  >
+                    Log another
+                  </Button>
+                ) : (
+                  <Button
+                    data-testid={`log-session-button-${routine.id}`}
+                    onClick={() => onStartSession(routine.id)}
+                    className="w-full mt-3"
+                  >
+                    <Play size={16} className="mr-2" aria-hidden="true" />
+                    Start
+                  </Button>
+                )}
               </div>
             ))}
           </div>
         </div>
-
-        {/* Progress deltas — compact list */}
-        {progressEntries.length > 0 && (
-          <div>
-            <SectionHeader title="Progress" />
-            <div className="flex flex-col gap-3">
-              {progressEntries.map((entry) => {
-                const Icon =
-                  entry.deltaPercent > 0
-                    ? TrendingUp
-                    : entry.deltaPercent < 0
-                      ? TrendingDown
-                      : Minus
-                const colorClass =
-                  entry.deltaPercent > 0
-                    ? 'text-success'
-                    : entry.deltaPercent < 0
-                      ? 'text-destructive'
-                      : 'text-muted-foreground'
-                return (
-                  <div
-                    key={`${entry.activityId}-${entry.metric}`}
-                    data-testid="progress-entry"
-                    className="flex items-center justify-between"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {entry.activityName}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {entry.firstValue} → {entry.latestValue}{' '}
-                        {metricUnit(entry.metric)}
-                      </p>
-                    </div>
-                    <div className={`flex items-center gap-1 ${colorClass}`}>
-                      <Icon size={14} aria-hidden="true" />
-                      <span className="text-sm font-medium">
-                        {entry.deltaPercent > 0 ? '+' : ''}
-                        {entry.deltaPercent}%
-                      </span>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

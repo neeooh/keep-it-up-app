@@ -212,7 +212,7 @@ describe('BUG-001 regression — adding a second routine', () => {
     const state2 = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
     expect(state2.routines).toHaveLength(2)
 
-    // Both routines should appear in the "This week" section
+    // Both routines should appear as activity cards on Today
     expect(screen.getAllByText('Running').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Walking').length).toBeGreaterThanOrEqual(1)
   })
