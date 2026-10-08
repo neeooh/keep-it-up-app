@@ -29,6 +29,8 @@ interface Props {
   direction: Direction | null
   /** Called before navigating to the next screen so App can persist the values. */
   onActivityChange?: (name: string, measurements: MeasurementConfig[]) => void
+  /** Called for strength workouts with the exercise list. */
+  onExercisesChange?: (exercises: { name: string; sets: number; reps: number; weight: number }[]) => void
   onClose?: () => void
 }
 
@@ -193,7 +195,7 @@ function ExerciseRowField({ row, index, onChange, onRemove, canRemove }: Exercis
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export function ConfigureActivityScreen({ navigate, templateId, direction, onActivityChange, onClose }: Props) {
+export function ConfigureActivityScreen({ navigate, templateId, direction, onActivityChange, onExercisesChange, onClose }: Props) {
   const template = templateId ? findTemplate(templateId) : null
   const resolvedDirection = direction ?? template?.direction ?? 'DO'
 
@@ -239,6 +241,20 @@ export function ConfigureActivityScreen({ navigate, templateId, direction, onAct
         : m.target,
     }))
     onActivityChange?.(activityName, collectedMeasurements)
+
+    // For strength workouts, pass the exercise list to the draft
+    if (isStrength) {
+      const parsed = exercises
+        .filter((e) => e.name.trim() !== '')
+        .map((e) => ({
+          name: e.name.trim(),
+          sets: Number(e.sets) || 3,
+          reps: Number(e.reps) || 10,
+          weight: Number(e.weight) || 0,
+        }))
+      onExercisesChange?.(parsed)
+    }
+
     navigate('set-frequency')
   }
 

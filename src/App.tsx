@@ -51,6 +51,8 @@ export interface OnboardingDraft {
   activityName: string
   /** Measurement values as configured on the configure screen. */
   measurements: MeasurementConfig[]
+  /** For strength workouts: individual exercises with name, sets, reps, weight. */
+  exercises: { name: string; sets: number; reps: number; weight: number }[]
   frequency: Frequency
   /** Optional preferred days (ISO day-of-week). */
   scheduledDays: DayOfWeek[]
@@ -67,6 +69,7 @@ const EMPTY_DRAFT: OnboardingDraft = {
   templateId: null,
   activityName: '',
   measurements: [],
+  exercises: [],
   frequency: '3x_week',
   scheduledDays: [],
   preferredTime: '',
@@ -143,6 +146,7 @@ function renderScreen(
           onActivityChange={(name, measurements) =>
             setDraft({ activityName: name, measurements })
           }
+          onExercisesChange={(exercises) => setDraft({ exercises })}
           onClose={onClose}
         />
       )
@@ -294,6 +298,37 @@ function AppShell({ initialScreen }: AppProps) {
         ? draft.measurements
         : template?.defaultMeasurements ?? []
 
+    // For strength workouts with exercises, create one Activity per exercise.
+    // Otherwise create a single Activity.
+    const activities =
+      draft.exercises.length > 0
+        ? draft.exercises.map((ex) => ({
+            id: crypto.randomUUID(),
+            name: ex.name,
+            direction,
+            measurements: [
+              { type: 'sets' as const, target: ex.sets },
+              { type: 'reps' as const, target: ex.reps },
+              { type: 'weight' as const, unit: 'kg' as const },
+            ],
+            frequency: draft.frequency,
+            scheduledDays:
+              draft.scheduledDays.length > 0 ? draft.scheduledDays : undefined,
+            preferredTime: draft.preferredTime || undefined,
+          }))
+        : [
+            {
+              id: crypto.randomUUID(),
+              name: activityName,
+              direction,
+              measurements,
+              frequency: draft.frequency,
+              scheduledDays:
+                draft.scheduledDays.length > 0 ? draft.scheduledDays : undefined,
+              preferredTime: draft.preferredTime || undefined,
+            },
+          ]
+
     addRoutine({
       id: crypto.randomUUID(),
       name: activityName,
@@ -302,18 +337,7 @@ function AppShell({ initialScreen }: AppProps) {
       challengeStartDate: draft.challengeDurationDays
         ? new Date().toISOString().slice(0, 10)
         : undefined,
-      activities: [
-        {
-          id: crypto.randomUUID(),
-          name: activityName,
-          direction,
-          measurements,
-          frequency: draft.frequency,
-          scheduledDays:
-            draft.scheduledDays.length > 0 ? draft.scheduledDays : undefined,
-          preferredTime: draft.preferredTime || undefined,
-        },
-      ],
+      activities,
     })
 
     setDraftState(EMPTY_DRAFT)

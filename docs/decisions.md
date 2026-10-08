@@ -386,3 +386,42 @@ Remove the top "✓ Completed" status line. Replace the bottom area with a two-b
 ### Files changed
 
 `src/screens/DashboardScreen.tsx`, `src/screens/DashboardScreen.test.tsx`
+
+---
+
+## ADR-013: Strength workouts create one Activity per exercise
+
+**Date:** 8 October 2026
+**Status:** Accepted
+
+### Context
+
+The strength workout template lets the user configure multiple exercises (Bench Press, Squat, Deadlift). Each exercise has its own name, sets, reps, and target weight. However, the onboarding flow created a single Activity for the entire workout, discarding the individual exercise data. This caused three bugs:
+
+1. PlanReviewScreen showed only the routine name, not the individual exercises.
+2. Today screen showed one card for the whole workout instead of one card per exercise.
+3. ActiveSessionScreen showed one set of inputs instead of per-exercise inputs.
+
+### Decision
+
+Store the exercise list in the onboarding draft (`exercises` field) and create one Activity per exercise when the routine is saved. The existing architecture (Routine → multiple Activities) already supports this — the problem was that the code path always created exactly one Activity.
+
+### Implementation
+
+- `OnboardingDraft` gains an `exercises` array: `{ name, sets, reps, weight }[]`.
+- `ConfigureActivityScreen` calls `onExercisesChange` with the parsed exercise list when the user taps Continue on a strength template.
+- `App.tsx onStartRoutine` checks `draft.exercises.length > 0`. If so, creates one Activity per exercise with the correct measurements. Otherwise creates a single Activity (unchanged for non-strength).
+- `PlanReviewScreen` shows the exercise list with name, sets × reps, and weight when `draft.exercises` is populated.
+- No changes needed to DashboardScreen or ActiveSessionScreen — both already iterate `routine.activities` and render per-activity cards/forms.
+
+### Consequences
+
+- Strength workouts with 3 exercises produce a routine with 3 activities.
+- Each exercise appears as a separate card on the Today screen.
+- Each exercise gets its own StrengthInput on the session logging screen.
+- Each exercise tracks its own progress, volume, and personal best independently.
+- Non-strength workouts are not affected.
+
+### Files changed
+
+`src/App.tsx`, `src/screens/onboarding/ConfigureActivityScreen.tsx`, `src/screens/onboarding/PlanReviewScreen.tsx`, `src/screens/onboarding/task7.test.tsx`
