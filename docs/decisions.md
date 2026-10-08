@@ -212,3 +212,51 @@ Option 1: PWA. A service worker precaches all static assets so the app works off
 ### Files changed
 
 `vite.config.ts`, `index.html`, `public/pwa-192x192.png`, `public/pwa-512x512.png`, `public/maskable-icon.svg`, `public/maskable-192x192.png`, `public/maskable-512x512.png`, `public/apple-touch-icon.png`
+
+---
+
+## ADR-008: Local notification reminders via Snooze button
+
+**Date:** 8 October 2026
+**Status:** Accepted
+
+### Context
+
+Users open the Today screen and see activities they are not ready to do right now. There is no way to set a reminder. The user either does the activity immediately, forgets about it, or mentally tracks the reminder themselves.
+
+Three notification approaches were considered:
+
+1. **Local Notification API + setTimeout** — schedule a notification from the browser. No server, no push subscription. Works while the tab or installed PWA is alive.
+2. **Service Worker Push** — register a push subscription, send notifications from a server. Works even when the app is closed. Requires a backend.
+3. **No notifications** — rely on the user to remember.
+
+### Decision
+
+Option 1. Use the Notification API with `setTimeout` for local reminders.
+
+The app has no backend. Push notifications would require one. Local notifications cover the primary use case: the user has the app open, picks "remind me in 30 minutes", and gets a notification while their phone is nearby.
+
+### Implementation
+
+- **`useNotification` hook** (`src/hooks/useNotification.ts`): handles permission requests, schedules reminders via `setTimeout`, tracks active timers, shows confirmation messages.
+- **Snooze button** on each incomplete activity card on the Today screen. The Start and Snooze buttons share a 50/50 row.
+- **Snooze options:** 15 min, 30 min, 45 min, 1 hour, 2 hours, 4 hours, This evening (calculated as minutes until 18:00, minimum 15).
+- **Permission flow:** on first snooze attempt, the browser prompts for notification permission. If denied, the snooze menu shows a message. If unsupported, it says so.
+- **Confirmation:** a brief toast ("Reminder set for 3:30 PM") appears for 3 seconds after scheduling.
+
+### Limitations
+
+- If the user closes the browser or app entirely, the timer is lost. This is a known limitation of `setTimeout`-based scheduling.
+- iOS requires the PWA to be installed to the home screen and iOS 16.4+.
+- No persistence across page reloads. A scheduled reminder is lost if the user refreshes.
+
+### Consequences
+
+- Users can defer activities and get reminded without leaving the app.
+- No backend, no push subscription, no server cost.
+- The Snooze button only appears on incomplete activities. Completed activities show "Log another" instead.
+- Future improvement: use the service worker's `waitUntil` or the experimental `Scheduler` API for more reliable background delivery.
+
+### Files changed
+
+`src/hooks/useNotification.ts` (new), `src/screens/DashboardScreen.tsx`, `src/screens/DashboardScreen.test.tsx`

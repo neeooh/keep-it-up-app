@@ -14,13 +14,15 @@
  * Spec reference: docs/uiux-audits/v1.1-ui-ux-audit.md sections 1-7.
  */
 
-import { Plus, Play, Check, Pencil } from 'lucide-react'
+import { Plus, Play, Check, Pencil, AlarmClock } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '../components/ui/button'
 import { Progress } from '../components/ui/progress'
 import { PageHeader } from '../components/PageHeader'
 import { SectionHeader } from '../components/SectionHeader'
 import { EmptyState } from '../components/EmptyState'
 import { useAppStore } from '../store/useAppStore'
+import { useNotification } from '../hooks/useNotification'
 import { sessionsForRoutine } from '../domain/calculations'
 import type { Navigate } from '../App'
 import type { Activity, DayOfWeek, Routine, Session } from '../domain/types'
@@ -171,11 +173,46 @@ function formatDuration(minutes: number): string {
   return `~${h}h ${m}m`
 }
 
+// ─── Snooze options ───────────────────────────────────────────────────────────
+
+const SNOOZE_OPTIONS = [
+  { label: '15 min', minutes: 15 },
+  { label: '30 min', minutes: 30 },
+  { label: '45 min', minutes: 45 },
+  { label: '1 hour', minutes: 60 },
+  { label: '2 hours', minutes: 120 },
+  { label: '4 hours', minutes: 240 },
+  { label: 'This evening', minutes: -1 }, // special: calculated at runtime
+] as const
+
+/** Calculate minutes until 18:00 today, minimum 15 minutes. */
+function minutesUntilEvening(): number {
+  const now = new Date()
+  const evening = new Date(now)
+  evening.setHours(18, 0, 0, 0)
+  const diff = Math.round((evening.getTime() - now.getTime()) / 60_000)
+  return Math.max(15, diff)
+}
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Props) {
   const { state } = useAppStore()
   const { routines, sessions } = state
+  const { permission, requestPermission, scheduleReminder, confirmation } = useNotification()
+  const [openSnooze, setOpenSnooze] = useState<string | null>(null)
+
+  async function handleSnooze(activityName: string, activityId: string, minutes: number) {
+    let perm = permission
+    if (perm === 'default') {
+      perm = await requestPermission()
+    }
+    if (perm === 'granted') {
+      const delay = minutes === -1 ? minutesUntilEvening() : minutes
+      scheduleReminder(activityName, delay)
+    }
+    setOpenSnooze(null)
+  }
 
   if (routines.length === 0) {
     return (
@@ -279,6 +316,16 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
           />
         </div>
 
+        {/* Snooze confirmation toast */}
+        {confirmation && (
+          <div
+            data-testid="snooze-confirmation"
+            className="rounded-xl bg-success/10 px-4 py-3 text-sm font-medium text-success"
+          >
+            {confirmation}
+          </div>
+        )}
+
         <div>
           <SectionHeader title="Today's activities" />
           <div className="flex flex-col gap-3">
@@ -335,14 +382,55 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
                     Log another
                   </Button>
                 ) : (
-                  <Button
-                    data-testid={`log-session-button-${routine.id}`}
-                    onClick={() => onStartSession(routine.id)}
-                    className="w-full mt-3"
-                  >
-                    <Play size={16} className="mr-2" aria-hidden="true" />
-                    Start
-                  </Button>
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      data-testid={`log-session-button-${routine.id}`}
+                      onClick={() => onStartSession(routine.id)}
+                      className="flex-1"
+                    >
+                      <Play size={16} className="mr-2" aria-hidden="true" />
+                      Start
+                    </Button>
+                    <div className="relative flex-1">
+                      <Button
+                        data-testid={`snooze-button-${activity.id}`}
+                        variant="outline"
+                        onClick={() => setOpenSnooze(openSnooze === activity.id ? null : activity.id)}
+                        className="w-full"
+                      >
+                        <AlarmClock size={16} className="mr-2" aria-hidden="true" />
+                        Snooze
+                      </Button>
+                      {openSnooze === activity.id && (
+                        <div
+                          data-testid={`snooze-menu-${activity.id}`}
+                          className="absolute right-0 top-full mt-1 z-10 w-44 rounded-lg border border-border bg-card p-1 shadow-lg ring-1 ring-foreground/5"
+                        >
+                          {SNOOZE_OPTIONS.map((opt) => (
+                            <button
+                              key={opt.label}
+                              type="button"
+                              data-testid={`snooze-option-${opt.minutes}`}
+                              onClick={() => handleSnooze(activity.name, activity.id, opt.minutes)}
+                              className="flex w-full items-center rounded-md px-3 py-2 text-sm text-foreground hover:bg-surface-muted transition-colors"
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                          {permission === 'denied' && (
+                            <p className="px-3 py-2 text-xs text-destructive">
+                              Notifications are blocked. Enable them in your browser settings.
+                            </p>
+                          )}
+                          {permission === 'unsupported' && (
+                            <p className="px-3 py-2 text-xs text-muted-foreground">
+                              Notifications are not supported in this browser.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
             ))}
