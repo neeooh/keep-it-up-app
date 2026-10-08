@@ -162,7 +162,7 @@ describe('DashboardScreen — activity cards', () => {
 })
 
 describe('DashboardScreen — completed activity state', () => {
-  it('shows "Log another" as secondary for completed activities', () => {
+  it('shows "Completed" on the same line as the tick icon', () => {
     const nowIso = new Date().toISOString()
     const sessions = [
       makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
@@ -177,9 +177,66 @@ describe('DashboardScreen — completed activity state', () => {
         />
       </StoreWrapper>,
     )
-    const btn = screen.getByTestId(`log-session-button-${STRENGTH_ROUTINE.id}`)
-    expect(btn).toHaveTextContent('Log another')
     expect(screen.getByText('Completed')).toBeInTheDocument()
+    expect(screen.getByText('Log another')).toBeInTheDocument()
+  })
+
+  it('shows session measurements on the completed card', () => {
+    const nowIso = new Date().toISOString()
+    const sessions = [
+      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
+    ]
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+          onEditRoutine={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    // Strength session with 3 sets of 60kg x 8 = 1440kg volume
+    expect(screen.getByText(/1440 kg volume/)).toBeInTheDocument()
+  })
+
+  it('shows delta when a previous session exists', () => {
+    const nowIso = new Date().toISOString()
+    const sessions = [
+      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', daysAgo(2), 50, 8),
+      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
+    ]
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+          onEditRoutine={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    // 50*8*3=1200 → 60*8*3=1440: +20%
+    expect(screen.getByTestId('activity-delta-act-bench')).toBeInTheDocument()
+    expect(screen.getByText(/\+20%/)).toBeInTheDocument()
+  })
+
+  it('does not show delta when no previous session exists', () => {
+    const nowIso = new Date().toISOString()
+    const sessions = [
+      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
+    ]
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+          onEditRoutine={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.queryByTestId('activity-delta-act-bench')).not.toBeInTheDocument()
   })
 })
 
