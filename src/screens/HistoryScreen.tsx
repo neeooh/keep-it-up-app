@@ -9,7 +9,7 @@
  */
 
 import { useState } from 'react'
-import { Clock } from 'lucide-react'
+import { Clock, ChevronRight } from 'lucide-react'
 import { PageHeader } from '../components/PageHeader'
 import { EmptyState } from '../components/EmptyState'
 import { StatusBadge } from '../components/StatusBadge'
@@ -189,25 +189,22 @@ export function HistoryScreen({ navigate }: Props) {
                         setSelectedSession(session)
                       }
                     }}
-                    className="flex cursor-pointer items-center justify-between py-3 border-b border-border/50 last:border-0"
+                    className="flex cursor-pointer items-center justify-between py-3 border-b border-border/50 last:border-0 hover:bg-surface-muted rounded-lg -mx-2 px-2 transition-colors"
                   >
-                    <div className="min-w-0">
-                      <p className="font-medium text-foreground truncate">
-                        {routine?.name ?? 'Unknown routine'}
-                      </p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-foreground truncate">
+                          {routine?.name ?? 'Unknown routine'}
+                        </p>
+                        <StatusBadge variant={status.variant} label={status.label} />
+                      </div>
                       <p className="text-sm text-muted-foreground mt-0.5">
                         {session.results.length}{' '}
-                        {session.results.length === 1 ? 'activity' : 'activities'}
+                        {session.results.length === 1 ? 'session' : 'sessions'}
+                        {metric && <span className="ml-2">{metric}</span>}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3 ml-3 shrink-0">
-                      <StatusBadge variant={status.variant} label={status.label} />
-                      {metric && (
-                        <span className="text-sm text-muted-foreground whitespace-nowrap">
-                          {metric}
-                        </span>
-                      )}
-                    </div>
+                    <ChevronRight size={16} className="text-muted-foreground shrink-0 ml-2" aria-hidden="true" />
                   </div>
                 )
               })}
@@ -259,18 +256,19 @@ function SessionDetail({
       <SheetHeader>
         <SheetTitle>{formatDate(session.completedAt)}</SheetTitle>
       </SheetHeader>
-      <div className="mt-4 flex flex-col gap-4">
-        <p className="text-sm text-muted-foreground">{routineName}</p>
+      <div className="mt-4 flex flex-col gap-5">
+        <p className="text-base font-semibold text-foreground">{routineName}</p>
 
         {session.results.map((result) => {
           const activity = activities.find((a) => a.id === result.activityId)
+          const volume = calculateVolume(session, result.activityId)
           return (
             <div
               key={result.activityId}
               data-testid={`detail-result-${result.activityId}`}
-              className="rounded-xl border border-border p-3"
+              className="flex flex-col gap-2"
             >
-              <p className="text-sm font-medium text-foreground mb-2">
+              <p className="text-sm font-semibold text-foreground">
                 {activity?.name ?? 'Activity'}
               </p>
 
@@ -278,27 +276,32 @@ function SessionDetail({
               {result.sets && result.sets.length > 0 && (
                 <div className="flex flex-col gap-1">
                   {result.sets.map((set, i) => (
-                    <p key={i} className="text-xs text-muted-foreground">
-                      Set {i + 1}: {set.weight ?? '—'} kg × {set.reps ?? '—'}
-                    </p>
+                    <div key={i} className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>Set {i + 1}</span>
+                      <span>{set.weight ?? '—'} kg × {set.reps ?? '—'}</span>
+                    </div>
                   ))}
-                  <p className="text-xs text-foreground mt-1">
-                    Volume: {calculateVolume(session, result.activityId)} kg
-                  </p>
+                  {volume > 0 && (
+                    <div className="flex items-center justify-between text-sm font-medium text-foreground mt-1 pt-1 border-t border-border/50">
+                      <span>Volume</span>
+                      <span>{volume} kg</span>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Scalar measurements */}
               {(!result.sets || result.sets.length === 0) &&
                 Object.entries(result.measurements).map(([type, value]) => (
-                  <p key={type} className="text-xs text-muted-foreground">
-                    {type}: {value} {metricUnit(type as MeasurementType)}
-                  </p>
+                  <div key={type} className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span className="capitalize">{type}</span>
+                    <span>{value} {metricUnit(type as MeasurementType)}</span>
+                  </div>
                 ))}
 
               {/* AVOID */}
               {result.stayedOnTrack !== undefined && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   {result.stayedOnTrack ? '✓ Stayed on track' : '✗ Slipped'}
                 </p>
               )}
