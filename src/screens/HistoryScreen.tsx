@@ -1,15 +1,16 @@
 /**
  * HistoryScreen — session history list.
  *
- * Shows sessions in reverse chronological order, grouped by date with smart
- * "Today" / "Yesterday" / formatted headers. Tapping a session expands it
- * inline to show activity results. Tapping again collapses it.
+ * Shows sessions in reverse chronological order, grouped by date.
+ * Tapping a session expands it inline to show metadata (logged time),
+ * edit and delete actions. Tapping again collapses it.
  *
- * Spec reference: mvp_product_spec.md section 15.
+ * The summary line shows logged measurements directly (no "1 session" count).
  */
 
 import { useState } from 'react'
-import { Clock, ChevronRight, ChevronDown } from 'lucide-react'
+import { Clock, ChevronRight, ChevronDown, Pencil, Trash2 } from 'lucide-react'
+import { Button } from '../components/ui/button'
 import { PageHeader } from '../components/PageHeader'
 import { EmptyState } from '../components/EmptyState'
 import { StatusBadge } from '../components/StatusBadge'
@@ -30,13 +31,20 @@ interface Props {
 
 function formatDate(iso: string): string {
   const d = new Date(iso)
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
+}
+
+function formatDateTime(iso: string): string {
+  const d = new Date(iso)
   return d.toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
-/** YYYY-MM-DD in local time for day-level grouping/comparison. */
 function dayKey(iso: string): string {
   const d = new Date(iso)
   const y = d.getFullYear()
@@ -45,7 +53,6 @@ function dayKey(iso: string): string {
   return `${y}-${m}-${day}`
 }
 
-/** Smart header: "Today", "Yesterday", or a formatted date ("5 October"). */
 function groupLabel(iso: string): string {
   const key = dayKey(iso)
   const now = new Date()
@@ -70,36 +77,45 @@ function metricUnit(type: MeasurementType): string {
   }
 }
 
-/** Pick the most interesting metric from a session to show in the list. */
-function topMetric(session: Session): string | null {
+/**
+ * Build a compact summary of all measurements in a session.
+ * e.g. "60 kg × 8 · 3 sets" or "5.2 km · 31 min" or "✓ Stayed on track".
+ */
+function sessionSummary(session: Session): string {
+  const parts: string[] = []
+
   for (const result of session.results) {
+    // AVOID
+    if (result.stayedOnTrack !== undefined) {
+      parts.push(result.stayedOnTrack ? '✓ Stayed on track' : '✗ Slipped')
+      continue
+    }
+
+    // Strength sets
     if (result.sets && result.sets.length > 0) {
       const maxWeight = Math.max(
         ...result.sets.map((s) => s.weight ?? 0).filter((w) => w > 0),
       )
       const reps = result.sets.find((s) => s.weight === maxWeight)?.reps
       if (maxWeight > 0) {
-        return `${maxWeight} kg${reps ? ` × ${reps}` : ''}`
+        parts.push(`${maxWeight} kg${reps ? ` × ${reps}` : ''}`)
       }
+      parts.push(`${result.sets.length} sets`)
+      continue
     }
-  }
 
-  for (const result of session.results) {
+    // Scalar measurements
     for (const [type, value] of Object.entries(result.measurements)) {
       if (value !== undefined) {
         const unit = metricUnit(type as MeasurementType)
-        return `${value}${unit ? ` ${unit}` : ''}`
+        parts.push(`${value}${unit ? ` ${unit}` : ''}`)
       }
     }
   }
 
-  return null
+  return parts.join(' · ')
 }
 
-/**
- * Status badge for a session.
- * AVOID sessions reflect stayedOnTrack; everything else is "Done".
- */
 function sessionStatus(
   session: Session,
 ): { variant: 'success' | 'warning'; label: string } {
@@ -116,10 +132,11 @@ function sessionStatus(
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export function HistoryScreen({ navigate }: Props) {
-  const { state } = useAppStore()
+  const { state, deleteSession } = useAppStore()
   const { routines, sessions } = state
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   function toggleExpand(sessionId: string) {
     setExpandedIds((prev) => {
@@ -131,6 +148,18 @@ export function HistoryScreen({ navigate }: Props) {
       }
       return next
     })
+    // Clear any pending delete confirmation when toggling
+    setConfirmDeleteId(null)
+  }
+
+  function handleDelete(sessionId: string) {
+    deleteSession(sessionId)
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      next.delete(sessionId)
+      return next
+    })
+    setConfirmDeleteId(null)
   }
 
   if (sessions.length === 0) {
@@ -150,12 +179,10 @@ export function HistoryScreen({ navigate }: Props) {
     )
   }
 
-  // Reverse chronological
   const sorted = [...sessions].sort((a, b) =>
     b.completedAt.localeCompare(a.completedAt),
   )
 
-  // Group into contiguous date groups (already newest-first).
   const groups: { label: string; sessions: Session[] }[] = []
   for (const session of sorted) {
     const label = groupLabel(session.completedAt)
@@ -178,7 +205,7 @@ export function HistoryScreen({ navigate }: Props) {
             <div>
               {group.sessions.map((session) => {
                 const routine = routines.find((r) => r.id === session.routineId)
-                const metric = topMetric(session)
+                const summary = sessionSummary(session)
                 const status = sessionStatus(session)
                 const isExpanded = expandedIds.has(session.id)
 
@@ -206,11 +233,11 @@ export function HistoryScreen({ navigate }: Props) {
                           </p>
                           <StatusBadge variant={status.variant} label={status.label} />
                         </div>
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          {session.results.length}{' '}
-                          {session.results.length === 1 ? 'session' : 'sessions'}
-                          {metric && <span className="ml-2">{metric}</span>}
-                        </p>
+                        {summary && (
+                          <p className="text-sm text-muted-foreground mt-0.5 truncate">
+                            {summary}
+                          </p>
+                        )}
                       </div>
                       {isExpanded
                         ? <ChevronDown size={16} className="text-muted-foreground shrink-0 ml-2" aria-hidden="true" />
@@ -218,61 +245,67 @@ export function HistoryScreen({ navigate }: Props) {
                       }
                     </div>
 
-                    {/* Inline detail */}
+                    {/* Expanded detail: metadata + actions */}
                     {isExpanded && (
                       <div
                         data-testid={`history-detail-${session.id}`}
-                        className="pl-12 pr-2 pb-3 flex flex-col gap-4"
+                        className="pl-12 pr-2 pb-3 flex flex-col gap-3"
                       >
-                        {session.results.map((result) => {
-                          const activity = routine?.activities.find((a) => a.id === result.activityId)
-                          const volume = calculateVolume(session, result.activityId)
-                          return (
-                            <div
-                              key={result.activityId}
-                              data-testid={`detail-result-${result.activityId}`}
-                              className="flex flex-col gap-1"
-                            >
-                              <p className="text-sm font-semibold text-foreground">
-                                {activity?.name ?? 'Activity'}
-                              </p>
+                        <div className="text-sm text-muted-foreground">
+                          <p>Logged {formatDateTime(session.completedAt)}</p>
+                        </div>
 
-                              {/* Sets */}
-                              {result.sets && result.sets.length > 0 && (
-                                <div className="flex flex-col gap-0.5">
-                                  {result.sets.map((set, i) => (
-                                    <div key={i} className="flex items-center justify-between text-sm text-muted-foreground">
-                                      <span>Set {i + 1}</span>
-                                      <span>{set.weight ?? '—'} kg × {set.reps ?? '—'}</span>
-                                    </div>
-                                  ))}
-                                  {volume > 0 && (
-                                    <div className="flex items-center justify-between text-sm font-medium text-foreground mt-1 pt-1 border-t border-border/50">
-                                      <span>Volume</span>
-                                      <span>{volume} kg</span>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-
-                              {/* Scalar measurements */}
-                              {(!result.sets || result.sets.length === 0) &&
-                                Object.entries(result.measurements).map(([type, value]) => (
-                                  <div key={type} className="flex items-center justify-between text-sm text-muted-foreground">
-                                    <span className="capitalize">{type}</span>
-                                    <span>{value} {metricUnit(type as MeasurementType)}</span>
-                                  </div>
-                                ))}
-
-                              {/* AVOID */}
-                              {result.stayedOnTrack !== undefined && (
-                                <p className="text-sm text-muted-foreground">
-                                  {result.stayedOnTrack ? '✓ Stayed on track' : '✗ Slipped'}
-                                </p>
-                              )}
+                        {/* Actions */}
+                        {confirmDeleteId === session.id ? (
+                          <div className="flex flex-col gap-2">
+                            <p className="text-sm text-destructive font-medium">Delete this session?</p>
+                            <div className="flex gap-2">
+                              <Button
+                                data-testid={`confirm-delete-${session.id}`}
+                                variant="destructive"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); handleDelete(session.id) }}
+                              >
+                                <Trash2 size={14} className="mr-1" aria-hidden="true" />
+                                Delete
+                              </Button>
+                              <Button
+                                data-testid={`cancel-delete-${session.id}`}
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null) }}
+                              >
+                                Cancel
+                              </Button>
                             </div>
-                          )
-                        })}
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Button
+                              data-testid={`edit-session-${session.id}`}
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                // Navigate to active session screen to re-log
+                                navigate('dashboard')
+                              }}
+                            >
+                              <Pencil size={14} className="mr-1" aria-hidden="true" />
+                              Edit
+                            </Button>
+                            <Button
+                              data-testid={`delete-session-${session.id}`}
+                              variant="ghost"
+                              size="sm"
+                              className="text-muted-foreground hover:text-destructive"
+                              onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(session.id) }}
+                            >
+                              <Trash2 size={14} className="mr-1" aria-hidden="true" />
+                              Delete
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
