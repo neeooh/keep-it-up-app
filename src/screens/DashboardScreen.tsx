@@ -122,15 +122,21 @@ function buildTodayActivities(
   )
 
   activities.sort((a, b) => {
+    // 0. Incomplete activities always above completed ones
+    if (a.completedToday !== b.completedToday) return a.completedToday ? 1 : -1
+
+    // 1. Preferred time category
     const timeDiff = timeOrder(a.activity.preferredTime) - timeOrder(b.activity.preferredTime)
     if (timeDiff !== 0) return timeDiff
 
+    // 2. Estimated duration ascending (null = no duration, sort last)
     const durA = estimatedDuration(a.activity)
     const durB = estimatedDuration(b.activity)
     if (durA !== null && durB !== null && durA !== durB) return durA - durB
     if (durA !== null && durB === null) return -1
     if (durA === null && durB !== null) return 1
 
+    // 3. Stable original order
     return a.index - b.index
   })
 

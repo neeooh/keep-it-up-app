@@ -334,3 +334,27 @@ describe('DashboardScreen — remind button', () => {
     expect(logBtn.parentElement).toBe(remindBtn.closest('div')?.parentElement)
   })
 })
+
+describe('DashboardScreen — activity sorting', () => {
+  it('sorts completed activities below incomplete ones', () => {
+    const nowIso = new Date().toISOString()
+    // Strength routine has a session today (completed), Running does not
+    const sessions = [
+      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
+    ]
+    seedStore({ routines: [STRENGTH_ROUTINE, RUNNING_ROUTINE], sessions })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+          onEditRoutine={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    const cards = screen.getAllByTestId(/^activity-card-/)
+    // Running (incomplete) should appear before Bench Press (completed)
+    expect(cards[0]).toHaveAttribute('data-testid', 'activity-card-act-run')
+    expect(cards[1]).toHaveAttribute('data-testid', 'activity-card-act-bench')
+  })
+})
