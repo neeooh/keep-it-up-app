@@ -457,15 +457,8 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
                       <div className="flex items-start justify-between gap-2">
                         <ActivityIcon name={activity.name} size={32} className="mt-0.5" />
                         <div className="min-w-0 flex-1">
-                          {/* Status line: tick + Completed */}
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center justify-center size-5 rounded-full bg-success text-success-foreground shrink-0">
-                              <Check size={12} aria-hidden="true" />
-                            </div>
-                            <span className="text-sm font-medium text-success">Completed</span>
-                          </div>
                           {/* Activity name */}
-                          <p className="font-semibold text-foreground mt-1.5">{activity.name}</p>
+                          <p className="font-semibold text-foreground">{activity.name}</p>
                           {/* Measurements */}
                           {result && result.measurements.length > 0 && (
                             <p className="text-sm text-muted-foreground mt-0.5">
@@ -501,19 +494,29 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
                           <Pencil size={16} aria-hidden="true" />
                         </button>
                       </div>
-                      <Button
-                        data-testid={`log-session-button-${routine.id}`}
-                        variant="ghost"
-                        onClick={() => onStartSession(routine.id)}
-                        className="w-full mt-3 text-muted-foreground"
-                      >
-                        Log another
-                      </Button>
+                      <div className="flex gap-2 mt-3">
+                        <div
+                          data-testid={`completed-badge-${activity.id}`}
+                          className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-success/15 py-2.5 text-sm font-medium text-success"
+                          aria-label="Completed"
+                        >
+                          <Check size={16} aria-hidden="true" />
+                          Completed
+                        </div>
+                        <Button
+                          data-testid={`log-session-button-${routine.id}`}
+                          variant="outline"
+                          onClick={() => onStartSession(routine.id)}
+                          className="flex-1 text-muted-foreground"
+                        >
+                          Log again
+                        </Button>
+                      </div>
                     </>
                   )
                 })() : (
                   <>
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center justify-between gap-2">
                       <ActivityIcon name={activity.name} size={32} className="mt-0.5" />
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-foreground">{activity.name}</p>

@@ -357,3 +357,32 @@ Icons use the `text-muted-foreground/60` colour — a muted grey from the brand 
 ### Files changed
 
 `src/components/ActivityIcon.tsx` (new), `src/screens/DashboardScreen.tsx`, `src/screens/HistoryScreen.tsx`, `src/screens/onboarding/ChooseDirectionScreen.tsx`, `src/screens/onboarding/PlanReviewScreen.tsx`
+
+---
+
+## ADR-012: Completed card two-button row layout
+
+**Date:** 8 October 2026
+**Status:** Accepted
+
+### Context
+
+The completed activity card had "✓ Completed" as a status line at the top and a full-width "Log another" ghost button at the bottom. The layout was inconsistent with the incomplete card (which has a 50/50 Log + Remind row). The status line consumed vertical space without adding actionable value.
+
+### Decision
+
+Remove the top "✓ Completed" status line. Replace the bottom area with a two-button row matching the incomplete card layout:
+
+- **Left (50%):** Non-interactive green badge styled as a button. Shows "✓ Completed". Uses a `div` (not a `button`) with `bg-success/15 text-success` styling. This avoids the accessibility issue of a disabled button (screen readers announce "disabled" which implies it should work).
+- **Right (50%):** Outlined "Log again" button in muted grey. Calls `onStartSession`.
+
+### Consequences
+
+- Completed and incomplete cards have the same visual weight and button row height.
+- The "Completed" state is communicated at the action level (where the user looks for the next thing to do) rather than at the top of the card.
+- Activity name is now the primary content at the top of completed cards (same position as incomplete cards).
+- "Log another" renamed to "Log again" (shorter, same meaning).
+
+### Files changed
+
+`src/screens/DashboardScreen.tsx`, `src/screens/DashboardScreen.test.tsx`
