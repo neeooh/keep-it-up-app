@@ -425,3 +425,37 @@ Store the exercise list in the onboarding draft (`exercises` field) and create o
 ### Files changed
 
 `src/App.tsx`, `src/screens/onboarding/ConfigureActivityScreen.tsx`, `src/screens/onboarding/PlanReviewScreen.tsx`, `src/screens/onboarding/task7.test.tsx`
+
+---
+
+## ADR-014: History inline expand replaces side sheet
+
+**Date:** 8 October 2026
+**Status:** Accepted
+
+### Context
+
+The History screen used a side-sliding Sheet component to show session details. Tapping a session opened a panel from the right edge. This required the user to close the sheet to return to the list, and the sheet covered the session list.
+
+### Decision
+
+Replace the Sheet with inline expand/collapse. Tapping a session expands its detail directly below the row. Tapping again collapses it. Multiple sessions can be expanded at the same time.
+
+### Implementation
+
+- Remove Sheet, SheetContent, SheetHeader, SheetTitle imports.
+- Replace `selectedSession` (single session) with `expandedIds` (Set of session IDs).
+- ChevronRight toggles to ChevronDown when expanded.
+- Detail renders inline below the row with `pl-12` indent to align with the text content.
+- `aria-expanded` attribute set on each row for accessibility.
+
+### Consequences
+
+- The user stays in the list context while viewing details.
+- No overlay or modal to dismiss.
+- Multiple sessions can be compared side by side.
+- The Sheet component is no longer imported by HistoryScreen (may still be used elsewhere).
+
+### Files changed
+
+`src/screens/HistoryScreen.tsx`, `src/screens/HistoryScreen.test.tsx`

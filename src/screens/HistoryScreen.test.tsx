@@ -88,19 +88,28 @@ describe('HistoryScreen — with sessions', () => {
     )
   })
 
-  it('opens detail sheet when clicking a session', async () => {
+  it('expands inline detail when clicking a session', async () => {
     const { sessions } = setup()
     const user = userEvent.setup()
     await user.click(screen.getByTestId(`history-entry-${sessions[0]!.id}`))
-    expect(screen.getByTestId('session-detail-sheet')).toBeInTheDocument()
+    expect(screen.getByTestId(`history-detail-${sessions[0]!.id}`)).toBeInTheDocument()
   })
 
-  it('shows activity results in the detail sheet', async () => {
+  it('shows activity results in the inline detail', async () => {
     const { sessions } = setup()
     const user = userEvent.setup()
     await user.click(screen.getByTestId(`history-entry-${sessions[0]!.id}`))
     expect(
       screen.getByTestId(`detail-result-act-bench`),
     ).toBeInTheDocument()
+  })
+
+  it('collapses detail when clicking the same session again', async () => {
+    const { sessions } = setup()
+    const user = userEvent.setup()
+    await user.click(screen.getByTestId(`history-entry-${sessions[0]!.id}`))
+    expect(screen.getByTestId(`history-detail-${sessions[0]!.id}`)).toBeInTheDocument()
+    await user.click(screen.getByTestId(`history-entry-${sessions[0]!.id}`))
+    expect(screen.queryByTestId(`history-detail-${sessions[0]!.id}`)).not.toBeInTheDocument()
   })
 })
