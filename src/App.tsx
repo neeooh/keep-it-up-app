@@ -147,6 +147,7 @@ function renderScreen(
             setDraft({ activityName: name, measurements })
           }
           onExercisesChange={(exercises) => setDraft({ exercises })}
+          initialExercises={draft.exercises}
           onClose={onClose}
         />
       )
