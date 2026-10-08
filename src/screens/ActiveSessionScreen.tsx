@@ -165,6 +165,7 @@ function StrengthInput({
             data-testid={`set-weight-${index}`}
             type="number"
             inputMode="decimal"
+            min={0}
             placeholder="kg"
             aria-label={`Set ${index + 1} weight`}
             value={set.weight}
@@ -176,6 +177,7 @@ function StrengthInput({
             data-testid={`set-reps-${index}`}
             type="number"
             inputMode="numeric"
+            min={0}
             placeholder="reps"
             aria-label={`Set ${index + 1} reps`}
             value={set.reps}
@@ -239,6 +241,7 @@ function MetricInput({
                 data-testid={`metric-${m.type}`}
                 type="number"
                 inputMode="decimal"
+                min={0}
                 placeholder={m.target?.toString() ?? ''}
                 value={state.measurements[m.type] ?? ''}
                 onChange={(e) =>
@@ -463,8 +466,8 @@ export function ActiveSessionScreen({ navigate, routineId }: Props) {
           const sets: SetResult[] = s.sets
             .filter((set) => set.weight.trim() !== '' || set.reps.trim() !== '')
             .map((set) => ({
-              weight: set.weight ? Number(set.weight) : undefined,
-              reps: set.reps ? Number(set.reps) : undefined,
+              weight: set.weight ? Math.max(0, Number(set.weight)) : undefined,
+              reps: set.reps ? Math.max(0, Number(set.reps)) : undefined,
             }))
           return {
             activityId: activity.id,
@@ -477,7 +480,7 @@ export function ActiveSessionScreen({ navigate, routineId }: Props) {
         const measurements: Partial<Record<MeasurementType, number>> = {}
         for (const [key, val] of Object.entries(s.measurements)) {
           if (val && val.trim() !== '') {
-            measurements[key as MeasurementType] = Number(val)
+            measurements[key as MeasurementType] = Math.max(0, Number(val))
           }
         }
         return {
