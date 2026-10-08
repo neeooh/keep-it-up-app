@@ -491,3 +491,33 @@ History cards showed "1 session" as the secondary line, which was redundant (eve
 ### Files changed
 
 `src/store/useAppStore.tsx`, `src/screens/HistoryScreen.tsx`, `src/screens/HistoryScreen.test.tsx`
+
+---
+
+## ADR-016: Group strength exercises into one card on Today screen
+
+**Date:** 8 October 2026
+**Status:** Accepted
+
+### Context
+
+ADR-013 made each strength exercise a separate Activity within a Routine. This caused the Today screen to show 3 cards (Bench Press, Squat, Deadlift) instead of 1 card (Strength workout) for a single strength routine with 3 exercises.
+
+### Decision
+
+Group activities by routine on the Today screen. Each routine becomes one card regardless of how many activities it contains. For multi-activity routines (strength), the card title is the routine name and the exercises are listed as a comma-separated subtitle.
+
+### Implementation
+
+Replace `buildTodayActivities` (one entry per activity) with `buildTodayCards` (one entry per routine). The card uses the routine name as the title and lists exercise names as secondary text when the routine has multiple activities. Single-activity routines display the same as before.
+
+### Consequences
+
+- A strength workout with 3 exercises shows as 1 card with "Bench Press, Squat, Deadlift" underneath.
+- The completion count ("2 of 3 completed") now counts routines, not individual exercises.
+- The Remind button and Log button use routine.id (not activity.id) for testids.
+- Tapping Log opens the session screen which shows all exercises in the routine.
+
+### Files changed
+
+`src/screens/DashboardScreen.tsx`, `src/screens/DashboardScreen.test.tsx`

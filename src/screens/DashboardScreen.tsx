@@ -84,55 +84,62 @@ function estimatedDuration(activity: Activity): number | null {
   return dur?.target ?? null
 }
 
-// ─── Today's activities ───────────────────────────────────────────────────────
+// ─── Today's cards (grouped by routine) ───────────────────────────────────────
 
-interface TodayActivity {
-  activity: Activity
+interface TodayCard {
   routine: Routine
+  /** Activities scheduled for today within this routine. */
+  activities: Activity[]
   completedToday: boolean
   /** Original index for stable tie-breaking. */
   index: number
 }
 
 /**
- * Build the list of activities scheduled for today, sorted by:
+ * Build one card per routine scheduled for today, sorted by:
+ * 0. Incomplete routines above completed ones
  * 1. Preferred time (Morning, Afternoon, Evening, Any time)
  * 2. Estimated duration ascending (shorter first)
  * 3. Original creation order as tie-breaker
+ *
+ * A routine with multiple activities (e.g. strength exercises) becomes
+ * one card with sub-items — not multiple cards.
  */
-function buildTodayActivities(
+function buildTodayCards(
   routines: Routine[],
   sessions: Session[],
   todayStr: string,
-): TodayActivity[] {
+): TodayCard[] {
   const todayDow = isoDayOfWeek(todayStr)
-  let index = 0
 
-  const activities: TodayActivity[] = routines.flatMap((routine) =>
-    routine.activities
-      .filter((a) => {
+  const cards: TodayCard[] = routines
+    .map((routine, index) => {
+      const scheduledActivities = routine.activities.filter((a) => {
         if (!a.scheduledDays || a.scheduledDays.length === 0) return true
         return a.scheduledDays.includes(todayDow)
       })
-      .map((activity) => {
-        const completedToday = sessionsForRoutine(sessions, routine.id).some(
-          (s) => s.completedAt.slice(0, 10) === todayStr,
-        )
-        return { activity, routine, completedToday, index: index++ }
-      }),
-  )
 
-  activities.sort((a, b) => {
-    // 0. Incomplete activities always above completed ones
+      if (scheduledActivities.length === 0) return null
+
+      const completedToday = sessionsForRoutine(sessions, routine.id).some(
+        (s) => s.completedAt.slice(0, 10) === todayStr,
+      )
+
+      return { routine, activities: scheduledActivities, completedToday, index }
+    })
+    .filter((card): card is TodayCard => card !== null)
+
+  cards.sort((a, b) => {
+    // 0. Incomplete above completed
     if (a.completedToday !== b.completedToday) return a.completedToday ? 1 : -1
 
-    // 1. Preferred time category
-    const timeDiff = timeOrder(a.activity.preferredTime) - timeOrder(b.activity.preferredTime)
+    // 1. Preferred time (use the first activity's preferredTime)
+    const timeDiff = timeOrder(a.activities[0]?.preferredTime) - timeOrder(b.activities[0]?.preferredTime)
     if (timeDiff !== 0) return timeDiff
 
-    // 2. Estimated duration ascending (null = no duration, sort last)
-    const durA = estimatedDuration(a.activity)
-    const durB = estimatedDuration(b.activity)
+    // 2. Estimated duration ascending
+    const durA = a.activities[0] ? estimatedDuration(a.activities[0]) : null
+    const durB = b.activities[0] ? estimatedDuration(b.activities[0]) : null
     if (durA !== null && durB !== null && durA !== durB) return durA - durB
     if (durA !== null && durB === null) return -1
     if (durA === null && durB !== null) return 1
@@ -141,7 +148,7 @@ function buildTodayActivities(
     return a.index - b.index
   })
 
-  return activities
+  return cards
 }
 
 /**
@@ -350,16 +357,16 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
   }
 
   const todayStr = today()
-  const todayActivities = buildTodayActivities(routines, sessions, todayStr)
+  const todayCards = buildTodayCards(routines, sessions, todayStr)
 
-  const totalActivities = todayActivities.length
-  const completedCount = todayActivities.filter((a) => a.completedToday).length
-  const allComplete = totalActivities > 0 && completedCount === totalActivities
+  const totalCards = todayCards.length
+  const completedCount = todayCards.filter((c) => c.completedToday).length
+  const allComplete = totalCards > 0 && completedCount === totalCards
   const hasSessions = sessions.length > 0
 
   const missedYesterday = shouldShowMissedYesterday(routines, sessions, allComplete)
 
-  if (totalActivities === 0) {
+  if (totalCards === 0) {
     return (
       <div data-testid="screen-dashboard" className="flex flex-col min-h-full">
         <PageHeader
@@ -418,10 +425,10 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
 
         <div data-testid="daily-summary">
           <p className="text-base font-medium text-foreground" data-testid="completion-text">
-            {completedCount} of {totalActivities} completed
+            {completedCount} of {totalCards} completed
           </p>
           <Progress
-            value={totalActivities > 0 ? (completedCount / totalActivities) * 100 : 0}
+            value={totalCards > 0 ? (completedCount / totalCards) * 100 : 0}
             data-testid="completion-bar"
             className="mt-2 h-2"
           />
@@ -440,48 +447,102 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
         <div>
           <SectionHeader title="Today's activities" />
           <div className="flex flex-col gap-3">
-            {todayActivities.map(({ activity, routine, completedToday }) => (
-              <div
-                key={`${routine.id}-${activity.id}`}
-                data-testid={`activity-card-${activity.id}`}
-                className={`rounded-xl border p-4 ${
-                  completedToday
-                    ? 'border-success/30 bg-success-muted/30'
-                    : 'border-border bg-card ring-1 ring-foreground/5'
-                }`}
-              >
-                {completedToday ? (() => {
-                  const result = getCompletedResult(sessions, routine, activity, todayStr)
-                  return (
+            {todayCards.map(({ activities: cardActivities, routine, completedToday }) => {
+              const primaryActivity = cardActivities[0]!
+              const hasMultipleActivities = cardActivities.length > 1
+
+              return (
+                <div
+                  key={routine.id}
+                  data-testid={`activity-card-${primaryActivity.id}`}
+                  className={`rounded-xl border p-4 ${
+                    completedToday
+                      ? 'border-success/30 bg-success-muted/30'
+                      : 'border-border bg-card ring-1 ring-foreground/5'
+                  }`}
+                >
+                  {completedToday ? (() => {
+                    const result = getCompletedResult(sessions, routine, primaryActivity, todayStr)
+                    return (
+                      <>
+                        <div className="flex items-start justify-between gap-2">
+                          <ActivityIcon name={routine.name} size={32} className="mt-0.5" />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-foreground">{routine.name}</p>
+                            {hasMultipleActivities && (
+                              <p className="text-sm text-muted-foreground mt-0.5">
+                                {cardActivities.map((a) => a.name).join(', ')}
+                              </p>
+                            )}
+                            {result && result.measurements.length > 0 && (
+                              <p className="text-sm text-muted-foreground mt-0.5">
+                                {result.measurements.join(' · ')}
+                              </p>
+                            )}
+                            {result?.delta && (
+                              <div
+                                data-testid={`activity-delta-${primaryActivity.id}`}
+                                className={`flex items-center gap-1 mt-1.5 text-sm font-medium ${
+                                  result.delta.percent > 0 ? 'text-success' : 'text-destructive'
+                                }`}
+                              >
+                                {result.delta.percent > 0
+                                  ? <TrendingUp size={14} aria-hidden="true" />
+                                  : <TrendingDown size={14} aria-hidden="true" />
+                                }
+                                <span>
+                                  {result.delta.percent > 0 ? '+' : ''}{result.delta.percent}%{' '}
+                                  {result.delta.label} vs last session
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            data-testid={`edit-routine-button-${routine.id}`}
+                            aria-label={`Edit ${routine.name}`}
+                            onClick={() => onEditRoutine(routine.id)}
+                            className="flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors shrink-0 -mr-2 -mt-1"
+                          >
+                            <Pencil size={16} aria-hidden="true" />
+                          </button>
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <div
+                            data-testid={`completed-badge-${primaryActivity.id}`}
+                            className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-success/15 py-2.5 text-sm font-medium text-success"
+                            aria-label="Completed"
+                          >
+                            <Check size={16} aria-hidden="true" />
+                            Completed
+                          </div>
+                          <Button
+                            data-testid={`log-session-button-${routine.id}`}
+                            variant="outline"
+                            onClick={() => onStartSession(routine.id)}
+                            className="flex-1 text-muted-foreground"
+                          >
+                            Log again
+                          </Button>
+                        </div>
+                      </>
+                    )
+                  })() : (
                     <>
                       <div className="flex items-start justify-between gap-2">
-                        <ActivityIcon name={activity.name} size={32} className="mt-0.5" />
+                        <ActivityIcon name={routine.name} size={32} className="mt-0.5" />
                         <div className="min-w-0 flex-1">
-                          {/* Activity name */}
-                          <p className="font-semibold text-foreground">{activity.name}</p>
-                          {/* Measurements */}
-                          {result && result.measurements.length > 0 && (
+                          <p className="font-semibold text-foreground">{routine.name}</p>
+                          {hasMultipleActivities ? (
                             <p className="text-sm text-muted-foreground mt-0.5">
-                              {result.measurements.join(' · ')}
+                              {cardActivities.map((a) => a.name).join(', ')}
                             </p>
-                          )}
-                          {/* Delta vs previous session */}
-                          {result?.delta && (
-                            <div
-                              data-testid={`activity-delta-${activity.id}`}
-                              className={`flex items-center gap-1 mt-1.5 text-sm font-medium ${
-                                result.delta.percent > 0 ? 'text-success' : 'text-destructive'
-                              }`}
-                            >
-                              {result.delta.percent > 0
-                                ? <TrendingUp size={14} aria-hidden="true" />
-                                : <TrendingDown size={14} aria-hidden="true" />
-                              }
-                              <span>
-                                {result.delta.percent > 0 ? '+' : ''}{result.delta.percent}%{' '}
-                                {result.delta.label} vs last session
-                              </span>
-                            </div>
+                          ) : (
+                            estimatedDuration(primaryActivity) !== null && (
+                              <p className="text-sm text-muted-foreground mt-0.5">
+                                {formatDuration(estimatedDuration(primaryActivity)!)}
+                              </p>
+                            )
                           )}
                         </div>
                         <button
@@ -495,100 +556,59 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
                         </button>
                       </div>
                       <div className="flex gap-2 mt-3">
-                        <div
-                          data-testid={`completed-badge-${activity.id}`}
-                          className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-success/15 py-2.5 text-sm font-medium text-success"
-                          aria-label="Completed"
-                        >
-                          <Check size={16} aria-hidden="true" />
-                          Completed
-                        </div>
                         <Button
                           data-testid={`log-session-button-${routine.id}`}
-                          variant="outline"
                           onClick={() => onStartSession(routine.id)}
-                          className="flex-1 text-muted-foreground"
+                          className="flex-1"
                         >
-                          Log again
+                          <ClipboardCheck size={16} className="mr-2" aria-hidden="true" />
+                          Log
                         </Button>
+                        <div className="relative flex-1">
+                          <Button
+                            data-testid={`remind-button-${routine.id}`}
+                            variant="outline"
+                            onClick={() => setOpenSnooze(openSnooze === routine.id ? null : routine.id)}
+                            className="w-full"
+                          >
+                            <Bell size={16} className="mr-2" aria-hidden="true" />
+                            Remind
+                          </Button>
+                          {openSnooze === routine.id && (
+                            <div
+                              data-testid={`remind-menu-${routine.id}`}
+                              className="absolute right-0 top-full mt-1 z-10 w-44 rounded-lg border border-border bg-card p-1 shadow-lg ring-1 ring-foreground/5"
+                            >
+                              {SNOOZE_OPTIONS.map((opt) => (
+                                <button
+                                  key={opt.label}
+                                  type="button"
+                                  data-testid={`remind-option-${opt.minutes}`}
+                                  onClick={() => handleSnooze(routine.name, routine.id, opt.minutes)}
+                                  className="flex w-full items-center rounded-md px-3 py-2 text-sm text-foreground hover:bg-surface-muted transition-colors"
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                              {permission === 'denied' && (
+                                <p className="px-3 py-2 text-xs text-destructive">
+                                  Notifications are blocked. Enable them in your browser settings.
+                                </p>
+                              )}
+                              {permission === 'unsupported' && (
+                                <p className="px-3 py-2 text-xs text-muted-foreground">
+                                  Notifications are not supported in this browser.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </>
-                  )
-                })() : (
-                  <>
-                    <div className="flex items-center justify-between gap-2">
-                      <ActivityIcon name={activity.name} size={32} className="mt-0.5" />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-foreground">{activity.name}</p>
-                        {estimatedDuration(activity) !== null && (
-                          <p className="text-sm text-muted-foreground mt-0.5">
-                            {formatDuration(estimatedDuration(activity)!)}
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        data-testid={`edit-routine-button-${routine.id}`}
-                        aria-label={`Edit ${routine.name}`}
-                        onClick={() => onEditRoutine(routine.id)}
-                        className="flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors shrink-0 -mr-2 -mt-1"
-                      >
-                        <Pencil size={16} aria-hidden="true" />
-                      </button>
-                    </div>
-                    <div className="flex gap-2 mt-3">
-                      <Button
-                        data-testid={`log-session-button-${routine.id}`}
-                        onClick={() => onStartSession(routine.id)}
-                        className="flex-1"
-                      >
-                        <ClipboardCheck size={16} className="mr-2" aria-hidden="true" />
-                        Log
-                      </Button>
-                      <div className="relative flex-1">
-                        <Button
-                          data-testid={`remind-button-${activity.id}`}
-                          variant="outline"
-                          onClick={() => setOpenSnooze(openSnooze === activity.id ? null : activity.id)}
-                          className="w-full"
-                        >
-                          <Bell size={16} className="mr-2" aria-hidden="true" />
-                          Remind
-                        </Button>
-                        {openSnooze === activity.id && (
-                          <div
-                            data-testid={`remind-menu-${activity.id}`}
-                            className="absolute right-0 top-full mt-1 z-10 w-44 rounded-lg border border-border bg-card p-1 shadow-lg ring-1 ring-foreground/5"
-                          >
-                            {SNOOZE_OPTIONS.map((opt) => (
-                              <button
-                                key={opt.label}
-                                type="button"
-                                data-testid={`remind-option-${opt.minutes}`}
-                                onClick={() => handleSnooze(activity.name, activity.id, opt.minutes)}
-                                className="flex w-full items-center rounded-md px-3 py-2 text-sm text-foreground hover:bg-surface-muted transition-colors"
-                              >
-                                {opt.label}
-                              </button>
-                            ))}
-                            {permission === 'denied' && (
-                              <p className="px-3 py-2 text-xs text-destructive">
-                                Notifications are blocked. Enable them in your browser settings.
-                              </p>
-                            )}
-                            {permission === 'unsupported' && (
-                              <p className="px-3 py-2 text-xs text-muted-foreground">
-                                Notifications are not supported in this browser.
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
