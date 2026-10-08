@@ -19,7 +19,6 @@ import {
   STRENGTH_ROUTINE,
   RUNNING_ROUTINE,
   makeStrengthSession,
-  makeRunningSession,
   daysAgo,
   seedStore,
   clearStore,
