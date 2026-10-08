@@ -10,7 +10,7 @@
  */
 
 import { useState, useMemo } from 'react'
-import { Plus, Trash2, Check, X, Info } from 'lucide-react'
+import { Plus, Trash2, Check, X, Info, ClipboardCheck } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -568,7 +568,8 @@ export function ActiveSessionScreen({ navigate, routineId }: Props) {
           disabled={!allComplete}
           className="w-full bg-brand text-brand-foreground hover:bg-brand/90"
         >
-          Complete session
+          <ClipboardCheck size={16} className="mr-2" aria-hidden="true" />
+          Log session
         </Button>
       </div>
     </div>

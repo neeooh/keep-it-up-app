@@ -522,6 +522,7 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
                             onClick={() => onStartSession(routine.id)}
                             className="flex-1 text-muted-foreground"
                           >
+                            <ClipboardCheck size={16} className="mr-2" aria-hidden="true" />
                             Log again
                           </Button>
                         </div>
