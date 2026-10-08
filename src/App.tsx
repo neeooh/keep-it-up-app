@@ -88,6 +88,8 @@ interface ScreenProps {
   selectedRoutineId: string | null
   onStartSession: (routineId: string) => void
   onEditRoutine: (routineId: string) => void
+  /** When set, onboarding screens show a close (X) button that returns to dashboard. */
+  onClose?: () => void
 }
 
 function renderScreen(
@@ -100,6 +102,7 @@ function renderScreen(
     selectedRoutineId,
     onStartSession,
     onEditRoutine,
+    onClose,
   }: ScreenProps,
 ) {
   switch (screen) {
@@ -108,6 +111,7 @@ function renderScreen(
         <WelcomeScreen
           navigate={navigate}
           onDirectionChoose={(d) => setDraft({ direction: d })}
+          onClose={onClose}
         />
       )
     case 'choose-direction':
@@ -127,6 +131,7 @@ function renderScreen(
               skippedConfigure: skip,
             })
           }}
+          onClose={onClose}
         />
       )
     case 'configure-activity':
@@ -138,6 +143,7 @@ function renderScreen(
           onActivityChange={(name, measurements) =>
             setDraft({ activityName: name, measurements })
           }
+          onClose={onClose}
         />
       )
     case 'set-frequency':
@@ -147,6 +153,7 @@ function renderScreen(
           frequency={draft.frequency}
           onFrequencyChange={(f) => setDraft({ frequency: f })}
           skippedConfigure={draft.skippedConfigure}
+          onClose={onClose}
         />
       )
     case 'plan-review':
@@ -163,6 +170,7 @@ function renderScreen(
             setDraft({ scheduledDays: days, preferredTime: time })
           }
           onChallengeChange={(days) => setDraft({ challengeDurationDays: days })}
+          onClose={onClose}
         />
       )
     case 'dashboard':
@@ -351,6 +359,7 @@ function AppShell({ initialScreen }: AppProps) {
             selectedRoutineId,
             onStartSession,
             onEditRoutine,
+            onClose: appState.routines.length > 0 ? () => navigate('dashboard') : undefined,
           })}
         </main>
 

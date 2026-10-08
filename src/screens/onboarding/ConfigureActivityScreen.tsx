@@ -12,7 +12,7 @@
  */
 
 import { useState } from 'react'
-import { ChevronLeft, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, Plus, Trash2, X } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
@@ -29,6 +29,7 @@ interface Props {
   direction: Direction | null
   /** Called before navigating to the next screen so App can persist the values. */
   onActivityChange?: (name: string, measurements: MeasurementConfig[]) => void
+  onClose?: () => void
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -192,7 +193,7 @@ function ExerciseRowField({ row, index, onChange, onRemove, canRemove }: Exercis
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export function ConfigureActivityScreen({ navigate, templateId, direction, onActivityChange }: Props) {
+export function ConfigureActivityScreen({ navigate, templateId, direction, onActivityChange, onClose }: Props) {
   const template = templateId ? findTemplate(templateId) : null
   const resolvedDirection = direction ?? template?.direction ?? 'DO'
 
@@ -276,9 +277,20 @@ export function ConfigureActivityScreen({ navigate, templateId, direction, onAct
         >
           <ChevronLeft size={20} aria-hidden="true" />
         </button>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+        <h1 className="flex-1 text-2xl font-semibold tracking-tight text-foreground">
           {heading()}
         </h1>
+        {onClose && (
+          <button
+            type="button"
+            data-testid="close-onboarding"
+            aria-label="Close"
+            onClick={onClose}
+            className="flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors"
+          >
+            <X size={20} aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <OnboardingProgress current={2} total={4} />

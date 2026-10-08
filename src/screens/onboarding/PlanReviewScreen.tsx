@@ -11,7 +11,7 @@
  */
 
 import { useState } from 'react'
-import { ChevronLeft, ChevronDown, AlertTriangle, Check } from 'lucide-react'
+import { ChevronLeft, ChevronDown, AlertTriangle, Check, X } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { OnboardingProgress } from '../../components/OnboardingProgress'
 import { useAppStore } from '../../store/useAppStore'
@@ -35,6 +35,7 @@ interface Props {
   onScheduleChange?: (days: DayOfWeek[], time: string) => void
   /** Update the challenge duration on the draft. */
   onChallengeChange?: (days: ChallengeDuration | null) => void
+  onClose?: () => void
 }
 
 function frequencyLabel(f: Frequency): string {
@@ -89,6 +90,7 @@ export function PlanReviewScreen({
   challengeDurationDays: challengeDurationDaysProp,
   onScheduleChange,
   onChallengeChange,
+  onClose,
 }: Props) {
   const { state } = useAppStore()
   const template = draft.templateId ? findTemplate(draft.templateId) : null
@@ -141,9 +143,20 @@ export function PlanReviewScreen({
         >
           <ChevronLeft size={20} aria-hidden="true" />
         </button>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+        <h1 className="flex-1 text-2xl font-semibold tracking-tight text-foreground">
           Here's your plan
         </h1>
+        {onClose && (
+          <button
+            type="button"
+            data-testid="close-onboarding"
+            aria-label="Close"
+            onClick={onClose}
+            className="flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors"
+          >
+            <X size={20} aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <OnboardingProgress current={4} total={4} />
