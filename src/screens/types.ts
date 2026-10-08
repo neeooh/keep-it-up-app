@@ -45,9 +45,9 @@ export const MAIN_SCREENS: Screen[] = [
 /** Bottom nav tabs (subset of main screens with labels and icon names). */
 export const NAV_TABS = [
   { screen: 'dashboard' as Screen, label: 'Today' },
-  { screen: 'history' as Screen, label: 'History' },
   { screen: 'progress' as Screen, label: 'Progress' },
   { screen: 'weekly-review' as Screen, label: 'Review' },
+  { screen: 'history' as Screen, label: 'History' },
 ] as const
 
 export type NavTab = (typeof NAV_TABS)[number]
