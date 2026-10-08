@@ -14,7 +14,7 @@
  * Spec reference: docs/uiux-audits/v1.1-ui-ux-audit.md sections 1-7.
  */
 
-import { Plus, ClipboardCheck, Check, Pencil, Bell } from 'lucide-react'
+import { Plus, ClipboardCheck, Check, Pencil, Bell, TrendingUp, TrendingDown } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '../components/ui/button'
 import { Progress } from '../components/ui/progress'
@@ -23,9 +23,9 @@ import { SectionHeader } from '../components/SectionHeader'
 import { EmptyState } from '../components/EmptyState'
 import { useAppStore } from '../store/useAppStore'
 import { useNotification } from '../hooks/useNotification'
-import { sessionsForRoutine } from '../domain/calculations'
+import { sessionsForRoutine, calculateVolume } from '../domain/calculations'
 import type { Navigate } from '../App'
-import type { Activity, DayOfWeek, Routine, Session } from '../domain/types'
+import type { Activity, DayOfWeek, MeasurementType, Routine, Session } from '../domain/types'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -177,6 +177,110 @@ function formatDuration(minutes: number): string {
   const m = minutes % 60
   if (m === 0) return `~${h}h`
   return `~${h}h ${m}m`
+}
+
+// ─── Metric helpers ───────────────────────────────────────────────────────────
+
+function metricUnit(type: MeasurementType): string {
+  switch (type) {
+    case 'weight': return 'kg'
+    case 'distance': return 'km'
+    case 'duration': return 'min'
+    case 'quantity': return ''
+    case 'sets': return 'sets'
+    case 'reps': return 'reps'
+  }
+}
+
+// ─── Completed activity result helpers ────────────────────────────────────────
+
+interface CompletedResult {
+  /** Formatted measurement strings, e.g. ["5.2 km", "31 min"] */
+  measurements: string[]
+  /** Delta vs previous session, if one exists. Null otherwise. */
+  delta: { percent: number; label: string } | null
+}
+
+/**
+ * Extract the most recent session result for an activity on a given day
+ * and compare it with the most recent prior session for the same routine.
+ */
+function getCompletedResult(
+  sessions: Session[],
+  routine: Routine,
+  activity: Activity,
+  todayStr: string,
+): CompletedResult | null {
+  const routineSessions = sessionsForRoutine(sessions, routine.id)
+  // Find today's session
+  const todaySession = [...routineSessions]
+    .reverse()
+    .find((s) => s.completedAt.slice(0, 10) === todayStr)
+  if (!todaySession) return null
+
+  const todayResult = todaySession.results.find((r) => r.activityId === activity.id)
+  if (!todayResult) return null
+
+  // Build measurements display
+  const measurements: string[] = []
+
+  // Sets-based (strength)
+  if (todayResult.sets && todayResult.sets.length > 0) {
+    const vol = calculateVolume(todaySession, activity.id)
+    if (vol > 0) measurements.push(`${vol} kg volume`)
+    measurements.push(`${todayResult.sets.length} sets`)
+  }
+
+  // Scalar measurements
+  for (const [type, value] of Object.entries(todayResult.measurements)) {
+    if (value !== undefined) {
+      const unit = metricUnit(type as MeasurementType)
+      measurements.push(`${value}${unit ? ` ${unit}` : ''}`)
+    }
+  }
+
+  // AVOID activity
+  if (todayResult.stayedOnTrack !== undefined) {
+    measurements.push(todayResult.stayedOnTrack ? 'On track' : 'Slipped')
+  }
+
+  // Find previous session (before today) for comparison
+  const prevSession = [...routineSessions]
+    .reverse()
+    .find((s) => s.completedAt.slice(0, 10) !== todayStr)
+
+  let delta: CompletedResult['delta'] = null
+  if (prevSession) {
+    const prevResult = prevSession.results.find((r) => r.activityId === activity.id)
+    if (prevResult) {
+      // Compare volume for strength activities
+      if (
+        todayResult.sets && todayResult.sets.length > 0 &&
+        prevResult.sets && prevResult.sets.length > 0
+      ) {
+        const todayVol = calculateVolume(todaySession, activity.id)
+        const prevVol = calculateVolume(prevSession, activity.id)
+        if (prevVol > 0) {
+          const pct = Math.round(((todayVol - prevVol) / prevVol) * 100)
+          if (pct !== 0) delta = { percent: pct, label: 'volume' }
+        }
+      } else {
+        // Compare the first shared scalar metric
+        for (const [type, todayVal] of Object.entries(todayResult.measurements)) {
+          const prevVal = prevResult.measurements[type as MeasurementType]
+          if (todayVal !== undefined && prevVal !== undefined && prevVal > 0) {
+            const pct = Math.round(((todayVal - prevVal) / prevVal) * 100)
+            if (pct !== 0) {
+              delta = { percent: pct, label: type }
+              break
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return { measurements, delta }
 }
 
 // ─── Snooze options ───────────────────────────────────────────────────────────
@@ -345,98 +449,137 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
                     : 'border-border bg-card ring-1 ring-foreground/5'
                 }`}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      {completedToday && (
-                        <div className="flex items-center justify-center size-5 rounded-full bg-success text-success-foreground shrink-0">
-                          <Check size={12} aria-hidden="true" />
-                        </div>
-                      )}
-                      <p className={`font-semibold ${completedToday ? 'text-foreground/70' : 'text-foreground'}`}>
-                        {activity.name}
-                      </p>
-                    </div>
-                    {completedToday ? (
-                      <p className="text-sm text-success mt-0.5 ml-7">Completed</p>
-                    ) : (
-                      estimatedDuration(activity) !== null && (
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          {formatDuration(estimatedDuration(activity)!)}
-                        </p>
-                      )
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    data-testid={`edit-routine-button-${routine.id}`}
-                    aria-label={`Edit ${routine.name}`}
-                    onClick={() => onEditRoutine(routine.id)}
-                    className="flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors shrink-0 -mr-2 -mt-1"
-                  >
-                    <Pencil size={16} aria-hidden="true" />
-                  </button>
-                </div>
-
-                {completedToday ? (
-                  <Button
-                    data-testid={`log-session-button-${routine.id}`}
-                    variant="ghost"
-                    onClick={() => onStartSession(routine.id)}
-                    className="w-full mt-3 text-muted-foreground"
-                  >
-                    Log another
-                  </Button>
-                ) : (
-                  <div className="flex gap-2 mt-3">
-                    <Button
-                      data-testid={`log-session-button-${routine.id}`}
-                      onClick={() => onStartSession(routine.id)}
-                      className="flex-1"
-                    >
-                      <ClipboardCheck size={16} className="mr-2" aria-hidden="true" />
-                      Log
-                    </Button>
-                    <div className="relative flex-1">
-                      <Button
-                        data-testid={`remind-button-${activity.id}`}
-                        variant="outline"
-                        onClick={() => setOpenSnooze(openSnooze === activity.id ? null : activity.id)}
-                        className="w-full"
-                      >
-                        <Bell size={16} className="mr-2" aria-hidden="true" />
-                        Remind
-                      </Button>
-                      {openSnooze === activity.id && (
-                        <div
-                          data-testid={`remind-menu-${activity.id}`}
-                          className="absolute right-0 top-full mt-1 z-10 w-44 rounded-lg border border-border bg-card p-1 shadow-lg ring-1 ring-foreground/5"
-                        >
-                          {SNOOZE_OPTIONS.map((opt) => (
-                            <button
-                              key={opt.label}
-                              type="button"
-                              data-testid={`remind-option-${opt.minutes}`}
-                              onClick={() => handleSnooze(activity.name, activity.id, opt.minutes)}
-                              className="flex w-full items-center rounded-md px-3 py-2 text-sm text-foreground hover:bg-surface-muted transition-colors"
+                {completedToday ? (() => {
+                  const result = getCompletedResult(sessions, routine, activity, todayStr)
+                  return (
+                    <>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          {/* Status line: tick + Completed */}
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-center size-5 rounded-full bg-success text-success-foreground shrink-0">
+                              <Check size={12} aria-hidden="true" />
+                            </div>
+                            <span className="text-sm font-medium text-success">Completed</span>
+                          </div>
+                          {/* Activity name */}
+                          <p className="font-semibold text-foreground mt-1.5">{activity.name}</p>
+                          {/* Measurements */}
+                          {result && result.measurements.length > 0 && (
+                            <p className="text-sm text-muted-foreground mt-0.5">
+                              {result.measurements.join(' · ')}
+                            </p>
+                          )}
+                          {/* Delta vs previous session */}
+                          {result?.delta && (
+                            <div
+                              data-testid={`activity-delta-${activity.id}`}
+                              className={`flex items-center gap-1 mt-1.5 text-sm font-medium ${
+                                result.delta.percent > 0 ? 'text-success' : 'text-destructive'
+                              }`}
                             >
-                              {opt.label}
-                            </button>
-                          ))}
-                          {permission === 'denied' && (
-                            <p className="px-3 py-2 text-xs text-destructive">
-                              Notifications are blocked. Enable them in your browser settings.
-                            </p>
-                          )}
-                          {permission === 'unsupported' && (
-                            <p className="px-3 py-2 text-xs text-muted-foreground">
-                              Notifications are not supported in this browser.
-                            </p>
+                              {result.delta.percent > 0
+                                ? <TrendingUp size={14} aria-hidden="true" />
+                                : <TrendingDown size={14} aria-hidden="true" />
+                              }
+                              <span>
+                                {result.delta.percent > 0 ? '+' : ''}{result.delta.percent}%{' '}
+                                {result.delta.label} vs last session
+                              </span>
+                            </div>
                           )}
                         </div>
-                      )}
+                        <button
+                          type="button"
+                          data-testid={`edit-routine-button-${routine.id}`}
+                          aria-label={`Edit ${routine.name}`}
+                          onClick={() => onEditRoutine(routine.id)}
+                          className="flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors shrink-0 -mr-2 -mt-1"
+                        >
+                          <Pencil size={16} aria-hidden="true" />
+                        </button>
+                      </div>
+                      <Button
+                        data-testid={`log-session-button-${routine.id}`}
+                        variant="ghost"
+                        onClick={() => onStartSession(routine.id)}
+                        className="w-full mt-3 text-muted-foreground"
+                      >
+                        Log another
+                      </Button>
+                    </>
+                  )
+                })() : (
+                  <>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-foreground">{activity.name}</p>
+                        {estimatedDuration(activity) !== null && (
+                          <p className="text-sm text-muted-foreground mt-0.5">
+                            {formatDuration(estimatedDuration(activity)!)}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        data-testid={`edit-routine-button-${routine.id}`}
+                        aria-label={`Edit ${routine.name}`}
+                        onClick={() => onEditRoutine(routine.id)}
+                        className="flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors shrink-0 -mr-2 -mt-1"
+                      >
+                        <Pencil size={16} aria-hidden="true" />
+                      </button>
                     </div>
-                  </div>
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        data-testid={`log-session-button-${routine.id}`}
+                        onClick={() => onStartSession(routine.id)}
+                        className="flex-1"
+                      >
+                        <ClipboardCheck size={16} className="mr-2" aria-hidden="true" />
+                        Log
+                      </Button>
+                      <div className="relative flex-1">
+                        <Button
+                          data-testid={`remind-button-${activity.id}`}
+                          variant="outline"
+                          onClick={() => setOpenSnooze(openSnooze === activity.id ? null : activity.id)}
+                          className="w-full"
+                        >
+                          <Bell size={16} className="mr-2" aria-hidden="true" />
+                          Remind
+                        </Button>
+                        {openSnooze === activity.id && (
+                          <div
+                            data-testid={`remind-menu-${activity.id}`}
+                            className="absolute right-0 top-full mt-1 z-10 w-44 rounded-lg border border-border bg-card p-1 shadow-lg ring-1 ring-foreground/5"
+                          >
+                            {SNOOZE_OPTIONS.map((opt) => (
+                              <button
+                                key={opt.label}
+                                type="button"
+                                data-testid={`remind-option-${opt.minutes}`}
+                                onClick={() => handleSnooze(activity.name, activity.id, opt.minutes)}
+                                className="flex w-full items-center rounded-md px-3 py-2 text-sm text-foreground hover:bg-surface-muted transition-colors"
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                            {permission === 'denied' && (
+                              <p className="px-3 py-2 text-xs text-destructive">
+                                Notifications are blocked. Enable them in your browser settings.
+                              </p>
+                            )}
+                            {permission === 'unsupported' && (
+                              <p className="px-3 py-2 text-xs text-muted-foreground">
+                                Notifications are not supported in this browser.
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             ))}

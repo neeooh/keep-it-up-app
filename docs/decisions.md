@@ -260,3 +260,39 @@ The app has no backend. Push notifications would require one. Local notification
 ### Files changed
 
 `src/hooks/useNotification.ts` (new), `src/screens/DashboardScreen.tsx`, `src/screens/DashboardScreen.test.tsx`
+
+---
+
+## ADR-009: Completed activity card redesign with session results and trend
+
+**Date:** 8 October 2026
+**Status:** Accepted
+
+### Context
+
+The completed activity card on the Today screen showed only "Completed" as a label with no detail about what the user accomplished. There was no feedback loop — the user could not see their results or compare with previous sessions without navigating to History or Progress.
+
+### Decision
+
+Redesign the completed card to show:
+
+1. **Status line:** tick icon + "Completed" on the same row (top of card).
+2. **Activity name:** below the status line.
+3. **Measurements:** session results displayed as a compact string (e.g. "1440 kg volume · 3 sets" or "5.2 km · 31 min").
+4. **Delta indicator:** percentage change vs the most recent previous session for the same routine. Shows a green up-arrow or red down-arrow with the label (e.g. "+20% volume vs last session"). Hidden when no previous session exists.
+
+The comparison uses:
+- Total volume (weight × reps per set) for strength activities.
+- The first shared scalar metric for other activity types.
+
+### Consequences
+
+- The user sees immediate feedback after logging a session.
+- The delta provides motivation (improvement) or awareness (decline) without navigating away.
+- No delta is shown for first-time sessions — no confusing "0%" or empty state.
+- The `getCompletedResult` helper in DashboardScreen extracts today's results and computes the delta. It uses `calculateVolume` from the domain layer.
+- The completed card is visually richer but remains compact.
+
+### Files changed
+
+`src/screens/DashboardScreen.tsx`, `src/screens/DashboardScreen.test.tsx`
