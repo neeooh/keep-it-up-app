@@ -335,7 +335,7 @@ describe('DashboardScreen — remind button', () => {
         />
       </StoreWrapper>,
     )
-    expect(screen.getByTestId('remind-button-act-bench')).toBeInTheDocument()
+    expect(screen.getByTestId(`remind-button-${STRENGTH_ROUTINE.id}`)).toBeInTheDocument()
     expect(screen.getByText('Remind')).toBeInTheDocument()
   })
 
@@ -351,8 +351,8 @@ describe('DashboardScreen — remind button', () => {
         />
       </StoreWrapper>,
     )
-    await user.click(screen.getByTestId('remind-button-act-bench'))
-    expect(screen.getByTestId('remind-menu-act-bench')).toBeInTheDocument()
+    await user.click(screen.getByTestId(`remind-button-${STRENGTH_ROUTINE.id}`))
+    expect(screen.getByTestId(`remind-menu-${STRENGTH_ROUTINE.id}`)).toBeInTheDocument()
     expect(screen.getByText('15 min')).toBeInTheDocument()
     expect(screen.getByText('1 hour')).toBeInTheDocument()
     expect(screen.getByText('This evening')).toBeInTheDocument()
@@ -373,7 +373,7 @@ describe('DashboardScreen — remind button', () => {
         />
       </StoreWrapper>,
     )
-    expect(screen.queryByTestId('remind-button-act-bench')).not.toBeInTheDocument()
+    expect(screen.queryByTestId(`remind-button-${STRENGTH_ROUTINE.id}`)).not.toBeInTheDocument()
   })
 
   it('Log and Remind buttons share the row (both visible)', () => {
@@ -388,8 +388,7 @@ describe('DashboardScreen — remind button', () => {
       </StoreWrapper>,
     )
     const logBtn = screen.getByTestId(`log-session-button-${STRENGTH_ROUTINE.id}`)
-    const remindBtn = screen.getByTestId('remind-button-act-bench')
-    // Both should be in the same parent row
+    const remindBtn = screen.getByTestId(`remind-button-${STRENGTH_ROUTINE.id}`)
     expect(logBtn.parentElement).toBe(remindBtn.closest('div')?.parentElement)
   })
 })
