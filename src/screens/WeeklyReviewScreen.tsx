@@ -45,6 +45,17 @@ function startOfISOWeek(d: Date): string {
   return monday.toISOString().slice(0, 10)
 }
 
+/** Format a date range as "5 Oct – 11 Oct". */
+function formatWeekRange(weekStart: string): string {
+  const [y, m, d] = weekStart.split('-').map(Number)
+  const monday = new Date(Date.UTC(y!, m! - 1, d!))
+  const sunday = new Date(monday)
+  sunday.setUTCDate(monday.getUTCDate() + 6)
+  const fmt = (dt: Date) =>
+    dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  return `${fmt(monday)} – ${fmt(sunday)}`
+}
+
 function daysSinceFirstSession(sessions: Session[]): number {
   const oldest = sessions[0]
   if (!oldest) return 0
@@ -136,7 +147,7 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
 
   return (
     <div data-testid="screen-weekly-review" className="flex flex-col min-h-full">
-      <PageHeader title="Your week" />
+      <PageHeader title="Your week" description={formatWeekRange(weekStart)} />
 
       {sessions.length === 0 ? (
         <EmptyState
@@ -199,13 +210,14 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
           </section>
         )}
 
-        {/* c. Where you struggled — only below 80% */}
+        {/* c. This week — constructive missed-session framing */}
         {consistency < 80 && planned > 0 && (
           <section>
-            <SectionHeader title="Where you struggled" />
+            <SectionHeader title="This week" />
             <div className="flex flex-col gap-1.5">
               <p data-testid="review-struggled" className="text-sm text-foreground">
-                You missed {missed} planned session{missed !== 1 ? 's' : ''} this week.
+                {completed} of {planned} planned sessions completed.
+                {missed > 0 && ` ${missed} missed.`}
               </p>
               {hasClearWeakest && weakest && (
                 <p className="text-sm text-foreground">
@@ -249,15 +261,15 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
           </section>
         )}
 
-        {/* d. Momentum */}
+        {/* d. Momentum — labelled period for context */}
         {summary.recentPlanned > 0 && (
           <section>
-            <SectionHeader title="Momentum" />
+            <SectionHeader title="Momentum (last 6 weeks)" />
             <p
               data-testid="review-momentum"
               className="text-sm text-foreground"
             >
-              {summary.recentCompleted} of your last {summary.recentPlanned}{' '}
+              {summary.recentCompleted} of {summary.recentPlanned}{' '}
               planned sessions completed.
             </p>
           </section>
