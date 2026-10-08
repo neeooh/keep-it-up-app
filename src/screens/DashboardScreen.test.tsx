@@ -133,10 +133,10 @@ describe('DashboardScreen — activity cards', () => {
     expect(screen.getByTestId('activity-card-act-bench')).toBeInTheDocument()
   })
 
-  it('shows "Start" button for incomplete activities', () => {
+  it('shows "Log" button for incomplete activities', () => {
     setup()
     const btn = screen.getByTestId(`log-session-button-${STRENGTH_ROUTINE.id}`)
-    expect(btn).toHaveTextContent('Start')
+    expect(btn).toHaveTextContent('Log')
   })
 
   it('calls onStartSession with the correct routine ID', async () => {
@@ -264,8 +264,8 @@ describe('DashboardScreen — no analytics sections', () => {
   })
 })
 
-describe('DashboardScreen — snooze button', () => {
-  it('shows snooze button next to Start for incomplete activities', () => {
+describe('DashboardScreen — remind button', () => {
+  it('shows remind button next to Log for incomplete activities', () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
     render(
       <StoreWrapper>
@@ -276,11 +276,11 @@ describe('DashboardScreen — snooze button', () => {
         />
       </StoreWrapper>,
     )
-    expect(screen.getByTestId('snooze-button-act-bench')).toBeInTheDocument()
-    expect(screen.getByText('Snooze')).toBeInTheDocument()
+    expect(screen.getByTestId('remind-button-act-bench')).toBeInTheDocument()
+    expect(screen.getByText('Remind')).toBeInTheDocument()
   })
 
-  it('opens snooze menu on click', async () => {
+  it('opens remind menu on click', async () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
     const user = userEvent.setup()
     render(
@@ -292,14 +292,14 @@ describe('DashboardScreen — snooze button', () => {
         />
       </StoreWrapper>,
     )
-    await user.click(screen.getByTestId('snooze-button-act-bench'))
-    expect(screen.getByTestId('snooze-menu-act-bench')).toBeInTheDocument()
+    await user.click(screen.getByTestId('remind-button-act-bench'))
+    expect(screen.getByTestId('remind-menu-act-bench')).toBeInTheDocument()
     expect(screen.getByText('15 min')).toBeInTheDocument()
     expect(screen.getByText('1 hour')).toBeInTheDocument()
     expect(screen.getByText('This evening')).toBeInTheDocument()
   })
 
-  it('does not show snooze button for completed activities', () => {
+  it('does not show remind button for completed activities', () => {
     const nowIso = new Date().toISOString()
     const sessions = [
       makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
@@ -314,10 +314,10 @@ describe('DashboardScreen — snooze button', () => {
         />
       </StoreWrapper>,
     )
-    expect(screen.queryByTestId('snooze-button-act-bench')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('remind-button-act-bench')).not.toBeInTheDocument()
   })
 
-  it('Start and Snooze buttons share the row (both visible)', () => {
+  it('Log and Remind buttons share the row (both visible)', () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
     render(
       <StoreWrapper>
@@ -328,9 +328,9 @@ describe('DashboardScreen — snooze button', () => {
         />
       </StoreWrapper>,
     )
-    const startBtn = screen.getByTestId(`log-session-button-${STRENGTH_ROUTINE.id}`)
-    const snoozeBtn = screen.getByTestId('snooze-button-act-bench')
+    const logBtn = screen.getByTestId(`log-session-button-${STRENGTH_ROUTINE.id}`)
+    const remindBtn = screen.getByTestId('remind-button-act-bench')
     // Both should be in the same parent row
-    expect(startBtn.parentElement).toBe(snoozeBtn.closest('div')?.parentElement)
+    expect(logBtn.parentElement).toBe(remindBtn.closest('div')?.parentElement)
   })
 })
