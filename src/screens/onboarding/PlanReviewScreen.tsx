@@ -14,6 +14,7 @@ import { useState } from 'react'
 import { ChevronLeft, ChevronDown, AlertTriangle, Check, X } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { OnboardingProgress } from '../../components/OnboardingProgress'
+import { ActivityIcon } from '../../components/ActivityIcon'
 import { useAppStore } from '../../store/useAppStore'
 import type { Navigate, OnboardingDraft } from '../../App'
 import { findTemplate } from '../../domain/templates'
@@ -178,19 +179,22 @@ export function PlanReviewScreen({
 
         <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4">
           {/* Activity name + frequency */}
-          <div>
-            <p
-              data-testid="plan-activity-name"
-              className="text-lg font-semibold text-foreground"
-            >
-              {activityName}
-            </p>
-            <p
-              data-testid="plan-frequency"
-              className="text-sm text-muted-foreground mt-0.5"
-            >
-              {frequencyLabel(draft.frequency)}
-            </p>
+          <div className="flex items-start gap-3">
+            <ActivityIcon name={activityName} size={32} className="mt-0.5" />
+            <div>
+              <p
+                data-testid="plan-activity-name"
+                className="text-lg font-semibold text-foreground"
+              >
+                {activityName}
+              </p>
+              <p
+                data-testid="plan-frequency"
+                className="text-sm text-muted-foreground mt-0.5"
+              >
+                {frequencyLabel(draft.frequency)}
+              </p>
+            </div>
           </div>
 
           {/* Measurements */}

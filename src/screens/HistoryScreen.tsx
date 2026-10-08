@@ -14,6 +14,7 @@ import { PageHeader } from '../components/PageHeader'
 import { EmptyState } from '../components/EmptyState'
 import { StatusBadge } from '../components/StatusBadge'
 import { SectionHeader } from '../components/SectionHeader'
+import { ActivityIcon } from '../components/ActivityIcon'
 import {
   Sheet,
   SheetContent,
@@ -191,6 +192,7 @@ export function HistoryScreen({ navigate }: Props) {
                     }}
                     className="flex cursor-pointer items-center justify-between py-3 border-b border-border/50 last:border-0 hover:bg-surface-muted rounded-lg -mx-2 px-2 transition-colors"
                   >
+                    <ActivityIcon name={routine?.name ?? ''} size={28} className="mr-3" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-foreground truncate">
