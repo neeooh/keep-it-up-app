@@ -1,11 +1,16 @@
 /**
  * WeeklyReviewScreen — reflective weekly review.
  *
+ * Reviews the most recently completed week (Monday–Sunday), not the
+ * ongoing week.  This means the data is final — no misleading numbers
+ * from future days that have not happened yet.
+ *
+ * When no completed week with sessions exists, shows a countdown to the
+ * next Monday when the first review will be ready.
+ *
  * Shows a completion summary, a positive insight, an optional struggle
  * note, a momentum stat, and two forward-looking actions (keep / adjust).
  * Schedule and frequency changes happen through the Edit Routine screen.
- *
- * Spec reference: mvp_product_spec.md section 17.
  */
 
 import { CalendarCheck } from 'lucide-react'
@@ -20,6 +25,7 @@ import { useAppStore } from '../store/useAppStore'
 import {
   calculateWeeklySummary,
   calculateProgress,
+  sessionsInRange,
 } from '../domain/calculations'
 import type { Navigate } from '../App'
 import type {
@@ -37,11 +43,23 @@ interface Props {
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
-function startOfISOWeek(d: Date): string {
-  const day = d.getUTCDay()
+/** Return the Monday of the previous ISO week. */
+function previousWeekStart(): string {
+  const now = new Date()
+  const day = now.getUTCDay()
   const diff = day === 0 ? -6 : 1 - day
-  const monday = new Date(d)
-  monday.setUTCDate(d.getUTCDate() + diff)
+  const thisMonday = new Date(now)
+  thisMonday.setUTCDate(now.getUTCDate() + diff)
+  // Go back 7 days to get last week's Monday
+  thisMonday.setUTCDate(thisMonday.getUTCDate() - 7)
+  return thisMonday.toISOString().slice(0, 10)
+}
+
+/** Return the Sunday (YYYY-MM-DD) of a week given its Monday. */
+function weekSunday(weekStart: string): string {
+  const [y, m, d] = weekStart.split('-').map(Number)
+  const monday = new Date(Date.UTC(y!, m! - 1, d!))
+  monday.setUTCDate(monday.getUTCDate() + 6)
   return monday.toISOString().slice(0, 10)
 }
 
@@ -54,6 +72,40 @@ function formatWeekRange(weekStart: string): string {
   const fmt = (dt: Date) =>
     dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
   return `${fmt(monday)} – ${fmt(sunday)}`
+}
+
+/** Format a date as "Monday, 13 October". */
+function formatLongDate(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  const dt = new Date(Date.UTC(y!, m! - 1, d!))
+  return dt.toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+}
+
+/**
+ * Return a human-readable countdown from now to next Monday.
+ * e.g. "in 5 days", "in 1 day", "tomorrow".
+ */
+function countdownToNextMonday(): string {
+  const now = new Date()
+  const day = now.getUTCDay() // 0=Sun, 1=Mon, ...
+  const daysUntil = day === 0 ? 1 : (8 - day)
+  if (daysUntil === 1) return 'tomorrow'
+  if (daysUntil === 0) return 'today'
+  return `in ${daysUntil} days`
+}
+
+/** Return next Monday as YYYY-MM-DD. */
+function nextMonday(): string {
+  const now = new Date()
+  const day = now.getUTCDay()
+  const daysUntil = day === 0 ? 1 : (8 - day)
+  const next = new Date(now)
+  next.setUTCDate(now.getUTCDate() + daysUntil)
+  return next.toISOString().slice(0, 10)
 }
 
 function daysSinceFirstSession(sessions: Session[]): number {
@@ -94,7 +146,35 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
   const { state } = useAppStore()
   const { routines, sessions } = state
 
-  const weekStart = startOfISOWeek(new Date())
+  // Review the most recently completed week (last Monday–Sunday).
+  const weekStart = previousWeekStart()
+  const weekEnd = weekSunday(weekStart)
+
+  // Check if any sessions exist in the reviewed week.
+  const reviewedSessions = sessionsInRange(sessions, { start: weekStart, end: weekEnd })
+  const hasReviewData = reviewedSessions.length > 0
+
+  // ── Empty / countdown state ─────────────────────────────────────────────
+  if (sessions.length === 0 || !hasReviewData) {
+    const countdown = countdownToNextMonday()
+    const nextMon = nextMonday()
+    return (
+      <div data-testid="screen-weekly-review" className="flex flex-col min-h-full">
+        <PageHeader title="Your week" />
+        <EmptyState
+          icon={<CalendarCheck size={32} aria-hidden="true" />}
+          title="Your weekly review"
+          description={
+            sessions.length === 0
+              ? `Complete your first week of sessions. Your first review will be ready ${countdown}, on ${formatLongDate(nextMon)}.`
+              : `No sessions were logged last week. Your next review will be ready ${countdown}, on ${formatLongDate(nextMon)}.`
+          }
+        />
+        <span data-testid="review-countdown" className="sr-only">{countdown}</span>
+      </div>
+    )
+  }
+
   const summary: WeeklySummary = calculateWeeklySummary(
     sessions,
     routines,
@@ -112,12 +192,12 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
   )
   const positiveProgress = progressEntries.filter((e) => e.deltaPercent > 0)
 
-  // A routine that hit 100% this week.
+  // A routine that hit 100% last week.
   const perfectRoutine = summary.entries.find(
     (e) => e.planned > 0 && e.completed >= e.planned,
   )
 
-  // The weakest routine (for the struggle note) when it is clearly behind.
+  // The weakest routine (for the constructive note) when clearly behind.
   const sortedByRate = [...summary.entries]
     .filter((e) => e.planned > 0)
     .sort((a, b) => a.consistencyRate - b.consistencyRate)
@@ -149,13 +229,6 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
     <div data-testid="screen-weekly-review" className="flex flex-col min-h-full">
       <PageHeader title="Your week" description={formatWeekRange(weekStart)} />
 
-      {sessions.length === 0 ? (
-        <EmptyState
-          icon={<CalendarCheck size={32} aria-hidden="true" />}
-          title="Your weekly review"
-          description="Complete your first week of sessions and your review will appear here."
-        />
-      ) : (
       <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-6">
         {/* a. Completion summary */}
         <section>
@@ -165,7 +238,6 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
             data-testid="review-consistency-bar"
             className="mt-3 h-2"
           />
-          {/* hidden accessible value kept for existing assertions */}
           <span data-testid="review-consistency" className="sr-only">
             {consistency}%
           </span>
@@ -210,10 +282,10 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
           </section>
         )}
 
-        {/* c. This week — constructive missed-session framing */}
+        {/* c. Last week — constructive missed-session framing */}
         {consistency < 80 && planned > 0 && (
           <section>
-            <SectionHeader title="This week" />
+            <SectionHeader title="Last week" />
             <div className="flex flex-col gap-1.5">
               <p data-testid="review-struggled" className="text-sm text-foreground">
                 {completed} of {planned} planned sessions completed.
@@ -228,7 +300,7 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
           </section>
         )}
 
-        {/* Progress detail (kept as a scannable list) */}
+        {/* Progress detail */}
         {progressEntries.length > 0 && (
           <section>
             <SectionHeader title="Progress" />
@@ -275,10 +347,10 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
           </section>
         )}
 
-        {/* e. Next week */}
+        {/* e. This week */}
         {primaryRoutine && (
           <section>
-            <SectionHeader title="Next week" />
+            <SectionHeader title="This week" />
             {consistency < 50 && activeDays > 7 && (
               <p
                 data-testid="reduce-suggestion"
@@ -308,7 +380,6 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
           </section>
         )}
       </div>
-      )}
     </div>
   )
 }
