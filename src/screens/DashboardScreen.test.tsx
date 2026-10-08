@@ -263,3 +263,74 @@ describe('DashboardScreen — no analytics sections', () => {
     expect(screen.queryByTestId('overall-consistency')).not.toBeInTheDocument()
   })
 })
+
+describe('DashboardScreen — snooze button', () => {
+  it('shows snooze button next to Start for incomplete activities', () => {
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+          onEditRoutine={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.getByTestId('snooze-button-act-bench')).toBeInTheDocument()
+    expect(screen.getByText('Snooze')).toBeInTheDocument()
+  })
+
+  it('opens snooze menu on click', async () => {
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    const user = userEvent.setup()
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+          onEditRoutine={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    await user.click(screen.getByTestId('snooze-button-act-bench'))
+    expect(screen.getByTestId('snooze-menu-act-bench')).toBeInTheDocument()
+    expect(screen.getByText('15 min')).toBeInTheDocument()
+    expect(screen.getByText('1 hour')).toBeInTheDocument()
+    expect(screen.getByText('This evening')).toBeInTheDocument()
+  })
+
+  it('does not show snooze button for completed activities', () => {
+    const nowIso = new Date().toISOString()
+    const sessions = [
+      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
+    ]
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+          onEditRoutine={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.queryByTestId('snooze-button-act-bench')).not.toBeInTheDocument()
+  })
+
+  it('Start and Snooze buttons share the row (both visible)', () => {
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+          onEditRoutine={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    const startBtn = screen.getByTestId(`log-session-button-${STRENGTH_ROUTINE.id}`)
+    const snoozeBtn = screen.getByTestId('snooze-button-act-bench')
+    // Both should be in the same parent row
+    expect(startBtn.parentElement).toBe(snoozeBtn.closest('div')?.parentElement)
+  })
+})
