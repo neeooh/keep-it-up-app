@@ -214,7 +214,7 @@ function BottomNav({ current, onNavigate }: BottomNavProps) {
       aria-label="Main navigation"
       className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-md sm:max-w-lg border-t border-border bg-background"
     >
-      <div className="flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)]">
+      <div className="flex items-center justify-around px-2 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
         {NAV_TABS.map(({ screen, label }) => {
           const Icon = NAV_ICONS[screen as keyof typeof NAV_ICONS]
           const isActive = current === screen
@@ -226,13 +226,13 @@ function BottomNav({ current, onNavigate }: BottomNavProps) {
               aria-current={isActive ? 'page' : undefined}
               onClick={() => onNavigate(screen)}
               className={[
-                'flex flex-1 flex-col items-center gap-1 py-3.5 text-xs font-medium transition-colors',
+                'flex flex-1 flex-col items-center gap-1 min-h-[48px] justify-center py-2 text-xs font-medium transition-colors',
                 isActive
                   ? 'text-brand'
                   : 'text-muted-foreground hover:text-brand',
               ].join(' ')}
             >
-              <Icon size={24} strokeWidth={isActive ? 2 : 1.5} aria-hidden="true" />
+              <Icon size={22} strokeWidth={isActive ? 2 : 1.5} aria-hidden="true" />
               <span>{label}</span>
             </button>
           )

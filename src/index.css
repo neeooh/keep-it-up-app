@@ -29,8 +29,8 @@
 
   /* Warm light grey muted backgrounds */
   --muted: oklch(0.96 0.004 90);
-  /* Muted text (#737773) boosted to ~0.45 lightness for WCAG AA */
-  --muted-foreground: oklch(0.45 0.008 150);
+  /* Muted text (#5C605C) — darkened from 0.45 to 0.42 for better WCAG contrast */
+  --muted-foreground: oklch(0.42 0.008 150);
 
   /* Accent = warm golden orange (#E9A857) */
   --accent: oklch(0.78 0.13 75);
