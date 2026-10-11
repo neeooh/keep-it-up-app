@@ -476,8 +476,8 @@ function CircularProgress({
   total: number
   allDone: boolean
 }) {
-  const size = 96
-  const strokeWidth = 7
+  const size = 80
+  const strokeWidth = 6
   const radius = (size - strokeWidth) / 2
   const center = size / 2
   const circumference = 2 * Math.PI * radius
@@ -485,46 +485,38 @@ function CircularProgress({
   const offset = circumference * (1 - progress)
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} className="-rotate-90">
-          {/* Background track */}
-          <circle
-            cx={center}
-            cy={center}
-            r={radius}
-            fill="none"
-            stroke="var(--border)"
-            strokeWidth={strokeWidth}
-          />
-          {/* Progress arc */}
-          <circle
-            cx={center}
-            cy={center}
-            r={radius}
-            fill="none"
-            stroke={allDone ? 'var(--success)' : 'var(--brand)'}
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            className="transition-all duration-500"
-          />
-        </svg>
-        {/* Center text */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          {allDone ? (
-            <Check size={28} className="text-success" aria-hidden="true" />
-          ) : (
-            <span className="text-lg font-bold text-foreground">
-              {completed}/{total}
-            </span>
-          )}
-        </div>
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke="var(--border)"
+          strokeWidth={strokeWidth}
+        />
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke={allDone ? 'var(--success)' : 'var(--brand)'}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-all duration-500"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        {allDone ? (
+          <Check size={24} className="text-success" aria-hidden="true" />
+        ) : (
+          <span className="text-base font-bold text-foreground">
+            {completed}/{total}
+          </span>
+        )}
       </div>
-      <p data-testid="completion-text" className="text-sm font-medium text-foreground">
-        {allDone ? 'All done for today' : `${completed} of ${total} completed`}
-      </p>
     </div>
   )
 }
@@ -617,8 +609,7 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
   return (
     <div data-testid="screen-dashboard" className="flex flex-col min-h-full">
       <PageHeader
-        title={hasSessions ? greeting() : 'Ready for your first session?'}
-        description={hasSessions ? formatToday() : undefined}
+        title={formatToday()}
         rightAction={
           <Button
             variant="ghost"
@@ -673,24 +664,32 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
           </div>
         )}
 
-        <div data-testid="daily-summary" className="flex justify-center">
+        {/* Hero summary: ring + text side by side */}
+        <div data-testid="daily-summary" className="flex items-center gap-4">
           <CircularProgress
             completed={completedCount}
             total={totalCards}
             allDone={allComplete}
           />
+          <div className="flex flex-col gap-0.5">
+            <p className="text-lg font-semibold text-foreground">
+              {hasSessions ? greeting() : 'Ready for your first session?'}
+            </p>
+            <p data-testid="completion-text" className="text-sm text-muted-foreground">
+              {allComplete ? 'All done for today' : `${completedCount} of ${totalCards} completed`}
+            </p>
+            {sessions.length > 0 && (
+              <p data-testid="streak-counter" className="text-sm text-muted-foreground">
+                {(() => {
+                  const streak = dayStreak(sessions)
+                  if (streak >= 2) return `🔥 ${streak}-day streak`
+                  const active = daysActive(sessions)
+                  return `Active for ${active} ${active === 1 ? 'day' : 'days'}`
+                })()}
+              </p>
+            )}
+          </div>
         </div>
-
-        {sessions.length > 0 && (
-          <p data-testid="streak-counter" className="text-center text-sm text-muted-foreground">
-            {(() => {
-              const streak = dayStreak(sessions)
-              if (streak >= 2) return `🔥 ${streak}-day streak`
-              const active = daysActive(sessions)
-              return `Active for ${active} ${active === 1 ? 'day' : 'days'}`
-            })()}
-          </p>
-        )}
 
         {/* Snooze confirmation toast */}
         {confirmation && (
