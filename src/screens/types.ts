@@ -49,7 +49,6 @@ export const NAV_TABS = [
   { screen: 'dashboard' as Screen, label: 'Today' },
   { screen: 'plan' as Screen, label: 'Plan' },
   { screen: 'progress' as Screen, label: 'Progress' },
-  { screen: 'weekly-review' as Screen, label: 'Review' },
   { screen: 'history' as Screen, label: 'History' },
 ] as const
 

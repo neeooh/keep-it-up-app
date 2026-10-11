@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { LayoutGrid, Clock, TrendingUp, CalendarCheck, ClipboardList } from 'lucide-react'
+import { LayoutGrid, Clock, TrendingUp, ClipboardList } from 'lucide-react'
 
 import type { Screen } from './screens/types'
 import { ONBOARDING_SCREENS, NAV_TABS } from './screens/types'
@@ -36,7 +36,6 @@ const NAV_ICONS = {
   plan: ClipboardList,
   history: Clock,
   progress: TrendingUp,
-  'weekly-review': CalendarCheck,
 } as const
 
 // ── Onboarding draft ──────────────────────────────────────────────────────────
@@ -208,7 +207,7 @@ function renderScreen(
     case 'history':
       return <HistoryScreen navigate={navigate} />
     case 'progress':
-      return <ProgressScreen navigate={navigate} />
+      return <ProgressScreen navigate={navigate} onEditRoutine={onEditRoutine} />
     case 'weekly-review':
       return (
         <WeeklyReviewScreen

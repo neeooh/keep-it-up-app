@@ -109,15 +109,6 @@ describe('App — nav tab click navigation', () => {
     expect(screen.getByTestId('screen-progress')).toBeInTheDocument()
   })
 
-  it('navigates to Review when the Review tab is clicked', async () => {
-    const user = userEvent.setup()
-    renderAt('dashboard')
-
-    await user.click(screen.getByRole('button', { name: 'Review' }))
-
-    expect(screen.getByTestId('screen-weekly-review')).toBeInTheDocument()
-  })
-
   it('navigates to Today when the Today tab is clicked', async () => {
     const user = userEvent.setup()
     renderAt('history')
