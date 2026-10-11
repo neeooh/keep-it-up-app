@@ -77,7 +77,6 @@ describe('DashboardScreen — daily completion summary', () => {
     )
     expect(screen.getByTestId('completion-text')).toHaveTextContent(/0 of \d+ completed/)
     expect(screen.getByTestId('daily-summary')).toBeInTheDocument()
-    expect(screen.getByTestId('completion-bar')).toBeInTheDocument()
   })
 
   it('shows correct count when a session was completed today', () => {
@@ -85,7 +84,7 @@ describe('DashboardScreen — daily completion summary', () => {
     const sessions = [
       makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ routines: [STRENGTH_ROUTINE, RUNNING_ROUTINE], sessions })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -117,11 +116,10 @@ describe('DashboardScreen — activity cards', () => {
     return { navigate, onStartSession }
   }
 
-  it('renders a page header with today\'s date when sessions exist', () => {
+  it('renders a page header with a greeting when sessions exist', () => {
     setup()
-    const weekday = new Date().toLocaleDateString('en-GB', { weekday: 'long' })
     expect(
-      screen.getByRole('heading', { name: new RegExp(weekday, 'i') }),
+      screen.getByRole('heading', { name: /good (morning|afternoon|evening)/i }),
     ).toBeInTheDocument()
   })
 
@@ -846,5 +844,55 @@ describe('DashboardScreen — time-of-day grouping', () => {
     expect(screen.getByTestId('activity-card-act-yoga')).toBeInTheDocument()
     expect(screen.getByTestId('activity-card-act-walk')).toBeInTheDocument()
     expect(screen.getByTestId('activity-card-act-water')).toBeInTheDocument()
+  })
+})
+
+describe('DashboardScreen — streak counter', () => {
+  it('shows "Active for X days" when sessions exist but streak < 2', () => {
+    const sessions = [
+      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', daysAgo(5), 60, 8),
+    ]
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.getByTestId('streak-counter')).toHaveTextContent(/Active for \d+ days?/)
+  })
+
+  it('is hidden when no sessions exist', () => {
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.queryByTestId('streak-counter')).not.toBeInTheDocument()
+  })
+})
+
+describe('DashboardScreen — completion message', () => {
+  it('shows "All done for today" when all activities are completed', () => {
+    const nowIso = new Date().toISOString()
+    const sessions = [
+      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
+    ]
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.getByTestId('completion-text')).toHaveTextContent('All done for today')
   })
 })

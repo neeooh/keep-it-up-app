@@ -17,7 +17,6 @@
 import { Plus, MoreHorizontal, Check, TrendingUp, TrendingDown } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '../components/ui/button'
-import { Progress } from '../components/ui/progress'
 import { PageHeader } from '../components/PageHeader'
 import { SectionHeader } from '../components/SectionHeader'
 import { EmptyState } from '../components/EmptyState'
@@ -410,6 +409,126 @@ function groupByTime(cards: TodayCard[]): TimeGroup[] {
   return nonEmpty
 }
 
+// ─── Greeting ─────────────────────────────────────────────────────────────────
+
+function greeting(): string {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+// ─── Streak / days-active helpers ─────────────────────────────────────────────
+
+/**
+ * Count consecutive calendar days (ending today or yesterday) that have
+ * at least one session. Returns 0 if no recent sessions.
+ */
+function dayStreak(sessions: Session[]): number {
+  if (sessions.length === 0) return 0
+
+  const dates = new Set<string>()
+  for (const s of sessions) {
+    dates.add(s.completedAt.slice(0, 10))
+  }
+
+  const d = new Date()
+  let streak = 0
+
+  const todayStr = d.toISOString().slice(0, 10)
+  if (!dates.has(todayStr)) {
+    d.setDate(d.getDate() - 1)
+    if (!dates.has(d.toISOString().slice(0, 10))) return 0
+  }
+
+  for (let i = 0; i < 365; i++) {
+    const dateStr = d.toISOString().slice(0, 10)
+    if (dates.has(dateStr)) {
+      streak++
+      d.setDate(d.getDate() - 1)
+    } else {
+      break
+    }
+  }
+
+  return streak
+}
+
+/**
+ * Count days since the first session was logged.
+ */
+function daysActive(sessions: Session[]): number {
+  if (sessions.length === 0) return 0
+  const sorted = [...sessions].sort((a, b) => a.completedAt.localeCompare(b.completedAt))
+  const first = new Date(sorted[0]!.completedAt)
+  const now = new Date()
+  return Math.max(1, Math.floor((now.getTime() - first.getTime()) / 86_400_000) + 1)
+}
+
+// ─── Circular progress ring ───────────────────────────────────────────────────
+
+function CircularProgress({
+  completed,
+  total,
+  allDone,
+}: {
+  completed: number
+  total: number
+  allDone: boolean
+}) {
+  const size = 96
+  const strokeWidth = 7
+  const radius = (size - strokeWidth) / 2
+  const center = size / 2
+  const circumference = 2 * Math.PI * radius
+  const progress = total > 0 ? completed / total : 0
+  const offset = circumference * (1 - progress)
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="-rotate-90">
+          {/* Background track */}
+          <circle
+            cx={center}
+            cy={center}
+            r={radius}
+            fill="none"
+            stroke="var(--border)"
+            strokeWidth={strokeWidth}
+          />
+          {/* Progress arc */}
+          <circle
+            cx={center}
+            cy={center}
+            r={radius}
+            fill="none"
+            stroke={allDone ? 'var(--success)' : 'var(--brand)'}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            className="transition-all duration-500"
+          />
+        </svg>
+        {/* Center text */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          {allDone ? (
+            <Check size={28} className="text-success" aria-hidden="true" />
+          ) : (
+            <span className="text-lg font-bold text-foreground">
+              {completed}/{total}
+            </span>
+          )}
+        </div>
+      </div>
+      <p data-testid="completion-text" className="text-sm font-medium text-foreground">
+        {allDone ? 'All done for today' : `${completed} of ${total} completed`}
+      </p>
+    </div>
+  )
+}
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export function DashboardScreen({ navigate, onStartSession }: Props) {
@@ -498,7 +617,8 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
   return (
     <div data-testid="screen-dashboard" className="flex flex-col min-h-full">
       <PageHeader
-        title={hasSessions ? formatToday() : 'Ready for your first session?'}
+        title={hasSessions ? greeting() : 'Ready for your first session?'}
+        description={hasSessions ? formatToday() : undefined}
         rightAction={
           <Button
             variant="ghost"
@@ -553,16 +673,24 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
           </div>
         )}
 
-        <div data-testid="daily-summary">
-          <p className="text-base font-medium text-foreground" data-testid="completion-text">
-            {completedCount} of {totalCards} completed
-          </p>
-          <Progress
-            value={totalCards > 0 ? (completedCount / totalCards) * 100 : 0}
-            data-testid="completion-bar"
-            className="mt-2 h-2"
+        <div data-testid="daily-summary" className="flex justify-center">
+          <CircularProgress
+            completed={completedCount}
+            total={totalCards}
+            allDone={allComplete}
           />
         </div>
+
+        {sessions.length > 0 && (
+          <p data-testid="streak-counter" className="text-center text-sm text-muted-foreground">
+            {(() => {
+              const streak = dayStreak(sessions)
+              if (streak >= 2) return `🔥 ${streak}-day streak`
+              const active = daysActive(sessions)
+              return `Active for ${active} ${active === 1 ? 'day' : 'days'}`
+            })()}
+          </p>
+        )}
 
         {/* Snooze confirmation toast */}
         {confirmation && (
