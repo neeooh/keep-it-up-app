@@ -129,7 +129,6 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
       name: name.trim() || routine.name,
       activities: routine.activities.map((a) => ({
         ...a,
-        name: name.trim() || a.name,
         frequency,
         scheduledDays: scheduledDays.length > 0 ? scheduledDays : undefined,
         preferredTime: preferredTime || undefined,
