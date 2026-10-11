@@ -696,3 +696,161 @@ describe('DashboardScreen — missed-yesterday actionable buttons', () => {
     expect(onStartSession).toHaveBeenCalledWith(AVOID_ROUTINE.id, expectedYesterday)
   })
 })
+
+describe('DashboardScreen — time-of-day grouping', () => {
+  it('shows time-group headers when activities span multiple time slots', () => {
+    const morningRoutine: Routine = {
+      id: 'routine-morning',
+      name: 'Morning Meditation',
+      createdAt: daysAgo(10),
+      activities: [
+        {
+          id: 'act-meditate',
+          name: 'Meditate',
+          direction: 'DO',
+          measurements: [{ type: 'duration', unit: 'min', target: 15 }],
+          frequency: 'daily',
+          preferredTime: 'Morning',
+        },
+      ],
+    }
+    const eveningRoutine: Routine = {
+      id: 'routine-evening',
+      name: 'Evening Reading',
+      createdAt: daysAgo(10),
+      activities: [
+        {
+          id: 'act-read',
+          name: 'Read',
+          direction: 'DO',
+          measurements: [{ type: 'duration', unit: 'min', target: 30 }],
+          frequency: 'daily',
+          preferredTime: 'Evening',
+        },
+      ],
+    }
+    seedStore({ routines: [morningRoutine, eveningRoutine], sessions: [] })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.getByTestId('time-group-morning')).toHaveTextContent('Morning')
+    expect(screen.getByTestId('time-group-evening')).toHaveTextContent('Evening')
+  })
+
+  it('shows no time-group header when all activities share the same preferred time', () => {
+    const morningA: Routine = {
+      id: 'routine-morning-a',
+      name: 'Stretch',
+      createdAt: daysAgo(10),
+      activities: [
+        {
+          id: 'act-stretch',
+          name: 'Stretch',
+          direction: 'DO',
+          measurements: [],
+          frequency: 'daily',
+          preferredTime: 'Morning',
+        },
+      ],
+    }
+    const morningB: Routine = {
+      id: 'routine-morning-b',
+      name: 'Journal',
+      createdAt: daysAgo(10),
+      activities: [
+        {
+          id: 'act-journal',
+          name: 'Journal',
+          direction: 'DO',
+          measurements: [],
+          frequency: 'daily',
+          preferredTime: 'Morning',
+        },
+      ],
+    }
+    seedStore({ routines: [morningA, morningB], sessions: [] })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    // Both cards render, but no group header
+    expect(screen.getByTestId('activity-card-act-stretch')).toBeInTheDocument()
+    expect(screen.getByTestId('activity-card-act-journal')).toBeInTheDocument()
+    expect(screen.queryByTestId('time-group-morning')).not.toBeInTheDocument()
+  })
+
+  it('groups mixed activities into correct time slots', () => {
+    const morningRoutine: Routine = {
+      id: 'routine-grp-morning',
+      name: 'Yoga',
+      createdAt: daysAgo(10),
+      activities: [
+        {
+          id: 'act-yoga',
+          name: 'Yoga',
+          direction: 'DO',
+          measurements: [],
+          frequency: 'daily',
+          preferredTime: 'Morning',
+        },
+      ],
+    }
+    const afternoonRoutine: Routine = {
+      id: 'routine-grp-afternoon',
+      name: 'Walk',
+      createdAt: daysAgo(10),
+      activities: [
+        {
+          id: 'act-walk',
+          name: 'Walk',
+          direction: 'DO',
+          measurements: [],
+          frequency: 'daily',
+          preferredTime: 'Afternoon',
+        },
+      ],
+    }
+    const noTimeRoutine: Routine = {
+      id: 'routine-grp-anytime',
+      name: 'Drink Water',
+      createdAt: daysAgo(10),
+      activities: [
+        {
+          id: 'act-water',
+          name: 'Drink Water',
+          direction: 'DO',
+          measurements: [],
+          frequency: 'daily',
+        },
+      ],
+    }
+    seedStore({
+      routines: [morningRoutine, afternoonRoutine, noTimeRoutine],
+      sessions: [],
+    })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.getByTestId('time-group-morning')).toBeInTheDocument()
+    expect(screen.getByTestId('time-group-afternoon')).toBeInTheDocument()
+    expect(screen.getByTestId('time-group-anytime')).toBeInTheDocument()
+    // Verify the cards themselves still render
+    expect(screen.getByTestId('activity-card-act-yoga')).toBeInTheDocument()
+    expect(screen.getByTestId('activity-card-act-walk')).toBeInTheDocument()
+    expect(screen.getByTestId('activity-card-act-water')).toBeInTheDocument()
+  })
+})
