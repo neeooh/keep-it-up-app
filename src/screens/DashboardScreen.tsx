@@ -366,6 +366,50 @@ function minutesUntilEvening(): number {
   return Math.max(15, diff)
 }
 
+// ─── Time-of-day grouping ─────────────────────────────────────────────────────
+
+interface TimeGroup {
+  label: string
+  cards: TodayCard[]
+}
+
+/**
+ * Group today's cards by preferred time. Returns groups in display order:
+ * Morning, Afternoon, Evening, Anytime.
+ *
+ * If ALL cards have the same preferred time (or all have none), return
+ * a single group with no label — preserving the current flat-list look.
+ */
+function groupByTime(cards: TodayCard[]): TimeGroup[] {
+  const groups: Record<string, TodayCard[]> = {
+    Morning: [],
+    Afternoon: [],
+    Evening: [],
+    Anytime: [],
+  }
+
+  for (const card of cards) {
+    const time = card.activities[0]?.preferredTime
+    if (time && time in groups) {
+      groups[time]!.push(card)
+    } else {
+      groups['Anytime']!.push(card)
+    }
+  }
+
+  const nonEmpty = Object.entries(groups)
+    .filter(([_, cards]) => cards.length > 0)
+    .map(([label, cards]) => ({ label, cards }))
+
+  // If only one group exists, return it without a label
+  // (preserves flat-list look when all activities share the same time or none)
+  if (nonEmpty.length <= 1) {
+    return nonEmpty.map(g => ({ ...g, label: '' }))
+  }
+
+  return nonEmpty
+}
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export function DashboardScreen({ navigate, onStartSession }: Props) {
@@ -532,159 +576,171 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
 
         <div>
           <SectionHeader title="Today's activities" />
-          <div className="flex flex-col gap-3">
-            {todayCards.map(({ activities: cardActivities, routine, completedToday }) => {
-              const primaryActivity = cardActivities[0]!
-              const hasMultipleActivities = cardActivities.length > 1
-
-              return (
-                <div
-                  key={routine.id}
-                  data-testid={`activity-card-${primaryActivity.id}`}
-                  className={`rounded-xl border p-4 ${
-                    completedToday
-                      ? 'border-success/30 bg-success-muted/30'
-                      : 'border-border bg-card ring-1 ring-foreground/5'
-                  }`}
+          {groupByTime(todayCards).map((group) => (
+            <div key={group.label || 'all'} className="mb-4 last:mb-0">
+              {group.label && (
+                <p
+                  data-testid={`time-group-${group.label.toLowerCase()}`}
+                  className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-3 first:mt-0"
                 >
-                  {completedToday ? (() => {
-                    const result = getCompletedResult(sessions, routine, primaryActivity, todayStr)
-                    return (
-                      <>
-                        <div className="flex items-start justify-between gap-2">
-                          <ActivityIcon name={routine.name} size={32} className="mt-0.5" />
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-foreground">{routine.name}</p>
-                            {hasMultipleActivities && (
-                              <p className="text-sm text-muted-foreground mt-0.5">
-                                {cardActivities.map((a) => a.name).join(', ')}
-                              </p>
-                            )}
-                            {result && result.measurements.length > 0 && (
-                              <p className="text-sm text-muted-foreground mt-0.5">
-                                {result.measurements.join(' · ')}
-                              </p>
-                            )}
-                            {result?.delta && (
-                              <div
-                                data-testid={`activity-delta-${primaryActivity.id}`}
-                                className={`flex items-center gap-1 mt-1.5 text-sm font-medium ${
-                                  result.delta.percent > 0 ? 'text-success' : 'text-destructive'
-                                }`}
-                              >
-                                {result.delta.percent > 0
-                                  ? <TrendingUp size={14} aria-hidden="true" />
-                                  : <TrendingDown size={14} aria-hidden="true" />
-                                }
-                                <span>
-                                  {result.delta.percent > 0 ? '+' : ''}{result.delta.percent}%{' '}
-                                  {result.delta.label} vs last session
-                                </span>
+                  {group.label}
+                </p>
+              )}
+              <div className="flex flex-col gap-3">
+                {group.cards.map(({ activities: cardActivities, routine, completedToday }) => {
+                  const primaryActivity = cardActivities[0]!
+                  const hasMultipleActivities = cardActivities.length > 1
+
+                  return (
+                    <div
+                      key={routine.id}
+                      data-testid={`activity-card-${primaryActivity.id}`}
+                      className={`rounded-xl border p-4 ${
+                        completedToday
+                          ? 'border-success/30 bg-success-muted/30'
+                          : 'border-border bg-card ring-1 ring-foreground/5'
+                      }`}
+                    >
+                      {completedToday ? (() => {
+                        const result = getCompletedResult(sessions, routine, primaryActivity, todayStr)
+                        return (
+                          <>
+                            <div className="flex items-start justify-between gap-2">
+                              <ActivityIcon name={routine.name} size={32} className="mt-0.5" />
+                              <div className="min-w-0 flex-1">
+                                <p className="font-semibold text-foreground">{routine.name}</p>
+                                {hasMultipleActivities && (
+                                  <p className="text-sm text-muted-foreground mt-0.5">
+                                    {cardActivities.map((a) => a.name).join(', ')}
+                                  </p>
+                                )}
+                                {result && result.measurements.length > 0 && (
+                                  <p className="text-sm text-muted-foreground mt-0.5">
+                                    {result.measurements.join(' · ')}
+                                  </p>
+                                )}
+                                {result?.delta && (
+                                  <div
+                                    data-testid={`activity-delta-${primaryActivity.id}`}
+                                    className={`flex items-center gap-1 mt-1.5 text-sm font-medium ${
+                                      result.delta.percent > 0 ? 'text-success' : 'text-destructive'
+                                    }`}
+                                  >
+                                    {result.delta.percent > 0
+                                      ? <TrendingUp size={14} aria-hidden="true" />
+                                      : <TrendingDown size={14} aria-hidden="true" />
+                                    }
+                                    <span>
+                                      {result.delta.percent > 0 ? '+' : ''}{result.delta.percent}%{' '}
+                                      {result.delta.label} vs last session
+                                    </span>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex gap-2 mt-3">
-                          <div
-                            data-testid={`completed-badge-${primaryActivity.id}`}
-                            className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-success/15 py-2.5 text-sm font-medium text-success"
-                            aria-label="Completed"
-                          >
-                            <Check size={16} aria-hidden="true" />
-                            Completed
-                          </div>
-                          <Button
-                            data-testid={`log-session-button-${routine.id}`}
-                            variant="outline"
-                            onClick={() => onStartSession(routine.id)}
-                            className="flex-1 text-muted-foreground"
-                          >
-                            <ClipboardCheck size={16} className="mr-2" aria-hidden="true" />
-                            Log again
-                          </Button>
-                        </div>
-                      </>
-                    )
-                  })() : (
-                    <>
-                      <div className="flex items-start justify-between gap-2">
-                        <ActivityIcon name={routine.name} size={32} className="mt-0.5" />
-                        <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-foreground">{routine.name}</p>
-                          {hasMultipleActivities ? (
-                            <p className="text-sm text-muted-foreground mt-0.5">
-                              {cardActivities.map((a) => a.name).join(', ')}
-                            </p>
-                          ) : (
-                            (() => {
-                              // AVOID activities: no subtitle needed
-                              if (primaryActivity.direction === 'AVOID') return null
-                              const target = primaryTarget(primaryActivity)
-                              if (!target) return null
-                              return (
+                            </div>
+                            <div className="flex gap-2 mt-3">
+                              <div
+                                data-testid={`completed-badge-${primaryActivity.id}`}
+                                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-success/15 py-2.5 text-sm font-medium text-success"
+                                aria-label="Completed"
+                              >
+                                <Check size={16} aria-hidden="true" />
+                                Completed
+                              </div>
+                              <Button
+                                data-testid={`log-session-button-${routine.id}`}
+                                variant="outline"
+                                onClick={() => onStartSession(routine.id)}
+                                className="flex-1 text-muted-foreground"
+                              >
+                                <ClipboardCheck size={16} className="mr-2" aria-hidden="true" />
+                                Log again
+                              </Button>
+                            </div>
+                          </>
+                        )
+                      })() : (
+                        <>
+                          <div className="flex items-start justify-between gap-2">
+                            <ActivityIcon name={routine.name} size={32} className="mt-0.5" />
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-foreground">{routine.name}</p>
+                              {hasMultipleActivities ? (
                                 <p className="text-sm text-muted-foreground mt-0.5">
-                                  {target}
+                                  {cardActivities.map((a) => a.name).join(', ')}
                                 </p>
-                              )
-                            })()
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex gap-2 mt-3">
-                        <Button
-                          data-testid={`log-session-button-${routine.id}`}
-                          onClick={() => onStartSession(routine.id)}
-                          className="flex-1"
-                        >
-                          <ClipboardCheck size={16} className="mr-2" aria-hidden="true" />
-                          Log
-                        </Button>
-                        <div className="relative flex-1">
-                          <Button
-                            data-testid={`remind-button-${routine.id}`}
-                            variant="outline"
-                            onClick={() => setOpenSnooze(openSnooze === routine.id ? null : routine.id)}
-                            className="w-full"
-                          >
-                            <Bell size={16} className="mr-2" aria-hidden="true" />
-                            Remind
-                          </Button>
-                          {openSnooze === routine.id && (
-                            <div
-                              data-testid={`remind-menu-${routine.id}`}
-                              className="absolute right-0 top-full mt-1 z-10 w-44 rounded-lg border border-border bg-card p-1 shadow-lg ring-1 ring-foreground/5"
-                            >
-                              {SNOOZE_OPTIONS.map((opt) => (
-                                <button
-                                  key={opt.label}
-                                  type="button"
-                                  data-testid={`remind-option-${opt.minutes}`}
-                                  onClick={() => handleSnooze(routine.name, routine.id, opt.minutes)}
-                                  className="flex w-full items-center rounded-md px-3 py-2 text-sm text-foreground hover:bg-surface-muted transition-colors"
-                                >
-                                  {opt.label}
-                                </button>
-                              ))}
-                              {permission === 'denied' && (
-                                <p className="px-3 py-2 text-xs text-destructive">
-                                  Notifications are blocked. Enable them in your browser settings.
-                                </p>
-                              )}
-                              {permission === 'unsupported' && (
-                                <p className="px-3 py-2 text-xs text-muted-foreground">
-                                  Notifications are not supported in this browser.
-                                </p>
+                              ) : (
+                                (() => {
+                                  // AVOID activities: no subtitle needed
+                                  if (primaryActivity.direction === 'AVOID') return null
+                                  const target = primaryTarget(primaryActivity)
+                                  if (!target) return null
+                                  return (
+                                    <p className="text-sm text-muted-foreground mt-0.5">
+                                      {target}
+                                    </p>
+                                  )
+                                })()
                               )}
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+                          </div>
+                          <div className="flex gap-2 mt-3">
+                            <Button
+                              data-testid={`log-session-button-${routine.id}`}
+                              onClick={() => onStartSession(routine.id)}
+                              className="flex-1"
+                            >
+                              <ClipboardCheck size={16} className="mr-2" aria-hidden="true" />
+                              Log
+                            </Button>
+                            <div className="relative flex-1">
+                              <Button
+                                data-testid={`remind-button-${routine.id}`}
+                                variant="outline"
+                                onClick={() => setOpenSnooze(openSnooze === routine.id ? null : routine.id)}
+                                className="w-full"
+                              >
+                                <Bell size={16} className="mr-2" aria-hidden="true" />
+                                Remind
+                              </Button>
+                              {openSnooze === routine.id && (
+                                <div
+                                  data-testid={`remind-menu-${routine.id}`}
+                                  className="absolute right-0 top-full mt-1 z-10 w-44 rounded-lg border border-border bg-card p-1 shadow-lg ring-1 ring-foreground/5"
+                                >
+                                  {SNOOZE_OPTIONS.map((opt) => (
+                                    <button
+                                      key={opt.label}
+                                      type="button"
+                                      data-testid={`remind-option-${opt.minutes}`}
+                                      onClick={() => handleSnooze(routine.name, routine.id, opt.minutes)}
+                                      className="flex w-full items-center rounded-md px-3 py-2 text-sm text-foreground hover:bg-surface-muted transition-colors"
+                                    >
+                                      {opt.label}
+                                    </button>
+                                  ))}
+                                  {permission === 'denied' && (
+                                    <p className="px-3 py-2 text-xs text-destructive">
+                                      Notifications are blocked. Enable them in your browser settings.
+                                    </p>
+                                  )}
+                                  {permission === 'unsupported' && (
+                                    <p className="px-3 py-2 text-xs text-muted-foreground">
+                                      Notifications are not supported in this browser.
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </div>
 
         {tomorrowNames.length > 0 && (
