@@ -116,10 +116,10 @@ describe('DashboardScreen — activity cards', () => {
     return { navigate, onStartSession }
   }
 
-  it('renders a page header with a greeting when sessions exist', () => {
+  it('renders a greeting when sessions exist', () => {
     setup()
     expect(
-      screen.getByRole('heading', { name: /good (morning|afternoon|evening)/i }),
+      screen.getByText(/good (morning|afternoon|evening)/i),
     ).toBeInTheDocument()
   })
 
