@@ -14,7 +14,7 @@
  * Spec reference: docs/uiux-audits/v1.1-ui-ux-audit.md sections 1-7.
  */
 
-import { Plus, ClipboardCheck, Check, Pencil, Bell, TrendingUp, TrendingDown } from 'lucide-react'
+import { Plus, ClipboardCheck, Check, Bell, TrendingUp, TrendingDown } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '../components/ui/button'
 import { Progress } from '../components/ui/progress'
@@ -33,7 +33,6 @@ import type { Activity, DayOfWeek, MeasurementType, Routine, Session } from '../
 interface Props {
   navigate: Navigate
   onStartSession: (routineId: string) => void
-  onEditRoutine: (routineId: string) => void
 }
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
@@ -321,7 +320,7 @@ function minutesUntilEvening(): number {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
-export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Props) {
+export function DashboardScreen({ navigate, onStartSession }: Props) {
   const { state } = useAppStore()
   const { routines, sessions } = state
   const { permission, requestPermission, scheduleReminder, confirmation } = useNotification()
@@ -504,15 +503,6 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
                               </div>
                             )}
                           </div>
-                          <button
-                            type="button"
-                            data-testid={`edit-routine-button-${routine.id}`}
-                            aria-label={`Edit ${routine.name}`}
-                            onClick={() => onEditRoutine(routine.id)}
-                            className="flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors shrink-0 -mr-2 -mt-1"
-                          >
-                            <Pencil size={16} aria-hidden="true" />
-                          </button>
                         </div>
                         <div className="flex gap-2 mt-3">
                           <div
@@ -553,15 +543,6 @@ export function DashboardScreen({ navigate, onStartSession, onEditRoutine }: Pro
                             )
                           )}
                         </div>
-                        <button
-                          type="button"
-                          data-testid={`edit-routine-button-${routine.id}`}
-                          aria-label={`Edit ${routine.name}`}
-                          onClick={() => onEditRoutine(routine.id)}
-                          className="flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors shrink-0 -mr-2 -mt-1"
-                        >
-                          <Pencil size={16} aria-hidden="true" />
-                        </button>
                       </div>
                       <div className="flex gap-2 mt-3">
                         <Button
