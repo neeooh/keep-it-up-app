@@ -91,10 +91,11 @@ interface ScreenProps {
   setDraft: (patch: Partial<OnboardingDraft>) => void
   onStartRoutine: () => void
   selectedRoutineId: string | null
-  onStartSession: (routineId: string) => void
+  onStartSession: (routineId: string, date?: string) => void
   onEditRoutine: (routineId: string) => void
   /** When set, onboarding screens show a close (X) button that returns to dashboard. */
   onClose?: () => void
+  sessionDate?: string
 }
 
 function renderScreen(
@@ -108,6 +109,7 @@ function renderScreen(
     onStartSession,
     onEditRoutine,
     onClose,
+    sessionDate,
   }: ScreenProps,
 ) {
   switch (screen) {
@@ -200,6 +202,7 @@ function renderScreen(
         <ActiveSessionScreen
           navigate={navigate}
           routineId={selectedRoutineId}
+          sessionDate={sessionDate}
         />
       )
     case 'history':
@@ -289,6 +292,7 @@ function AppShell({ initialScreen }: AppProps) {
   const [screen, setScreen] = useState<Screen>(resolvedInitial)
   const [draft, setDraftState] = useState<OnboardingDraft>(EMPTY_DRAFT)
   const [selectedRoutineId, setSelectedRoutineId] = useState<string | null>(null)
+  const [sessionDate, setSessionDate] = useState<string | undefined>(undefined)
 
   const navigate = useCallback((next: Screen) => {
     setScreen(next)
@@ -355,8 +359,9 @@ function AppShell({ initialScreen }: AppProps) {
   }, [draft, addRoutine, navigate])
 
   const onStartSession = useCallback(
-    (routineId: string) => {
+    (routineId: string, date?: string) => {
       setSelectedRoutineId(routineId)
+      setSessionDate(date)
       navigate('active-session')
     },
     [navigate],
@@ -394,6 +399,7 @@ function AppShell({ initialScreen }: AppProps) {
             onStartSession,
             onEditRoutine,
             onClose: appState.routines.length > 0 ? () => navigate('dashboard') : undefined,
+            sessionDate,
           })}
         </main>
 

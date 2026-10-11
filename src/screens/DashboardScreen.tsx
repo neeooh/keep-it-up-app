@@ -32,7 +32,7 @@ import type { Activity, DayOfWeek, MeasurementType, Routine, Session } from '../
 
 interface Props {
   navigate: Navigate
-  onStartSession: (routineId: string) => void
+  onStartSession: (routineId: string, date?: string) => void
 }
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
@@ -474,7 +474,38 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
             data-testid="missed-yesterday"
             className="rounded-xl bg-brand-light px-4 py-3 text-sm text-foreground"
           >
-            Missed yesterday? No problem — today is ready.
+            <p>Missed yesterday? You can still log it.</p>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {routines
+                .filter((routine) => {
+                  const y = yesterday()
+                  const yDow = isoDayOfWeek(y)
+                  if (routine.createdAt.slice(0, 10) >= y) return false
+                  return routine.activities.some((a) => {
+                    if (a.frequency === 'daily') return true
+                    if (a.scheduledDays && a.scheduledDays.length > 0) return a.scheduledDays.includes(yDow)
+                    return false
+                  })
+                })
+                .filter((routine) => {
+                  const y = yesterday()
+                  return !sessionsForRoutine(sessions, routine.id).some(
+                    (s) => s.completedAt.slice(0, 10) === y
+                  )
+                })
+                .map((routine) => (
+                  <Button
+                    key={routine.id}
+                    variant="outline"
+                    size="sm"
+                    data-testid={`log-yesterday-${routine.id}`}
+                    onClick={() => onStartSession(routine.id, yesterday())}
+                    className="text-xs"
+                  >
+                    Log {routine.name}
+                  </Button>
+                ))}
+            </div>
           </div>
         )}
 

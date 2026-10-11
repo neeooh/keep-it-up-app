@@ -262,3 +262,78 @@ describe('ActiveSessionScreen — AVOID activity', () => {
     expect(state.sessions[0].results[0].stayedOnTrack).toBe(false)
   })
 })
+
+describe('ActiveSessionScreen — date selector', () => {
+  it('renders date selector with Today as default', () => {
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    render(
+      <StoreWrapper>
+        <ActiveSessionScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />
+      </StoreWrapper>,
+    )
+    expect(screen.getByTestId('date-selector')).toBeInTheDocument()
+    const select = screen.getByTestId('session-date-select') as HTMLSelectElement
+    expect(select.value).toBe(new Date().toISOString().slice(0, 10))
+    // The first option should be "Today"
+    expect(select.options[0]!.text).toBe('Today')
+  })
+
+  it('changes selected value when a different date is chosen', async () => {
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    const user = userEvent.setup()
+    render(
+      <StoreWrapper>
+        <ActiveSessionScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />
+      </StoreWrapper>,
+    )
+    const select = screen.getByTestId('session-date-select') as HTMLSelectElement
+    // Select "Yesterday"
+    const yesterdayDate = new Date()
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+    const yesterdayValue = yesterdayDate.toISOString().slice(0, 10)
+    await user.selectOptions(select, yesterdayValue)
+    expect(select.value).toBe(yesterdayValue)
+  })
+
+  it('saves completedAt with past date when a past day is selected', async () => {
+    seedStore({ routines: [AVOID_ROUTINE], sessions: [] })
+    const navigate = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <StoreWrapper>
+        <ActiveSessionScreen navigate={navigate} routineId={AVOID_ROUTINE.id} />
+      </StoreWrapper>,
+    )
+    // Select yesterday
+    const select = screen.getByTestId('session-date-select') as HTMLSelectElement
+    const yesterdayDate = new Date()
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+    const yesterdayValue = yesterdayDate.toISOString().slice(0, 10)
+    await user.selectOptions(select, yesterdayValue)
+
+    // Complete the AVOID activity
+    await user.click(screen.getByTestId('avoid-yes'))
+    await user.click(screen.getByTestId('complete-session-button'))
+
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
+    expect(state.sessions[0].completedAt).toBe(`${yesterdayValue}T12:00:00.000Z`)
+  })
+
+  it('pre-selects the date from the sessionDate prop', () => {
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    const yesterdayDate = new Date()
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+    const yesterdayValue = yesterdayDate.toISOString().slice(0, 10)
+    render(
+      <StoreWrapper>
+        <ActiveSessionScreen
+          navigate={vi.fn()}
+          routineId={STRENGTH_ROUTINE.id}
+          sessionDate={yesterdayValue}
+        />
+      </StoreWrapper>,
+    )
+    const select = screen.getByTestId('session-date-select') as HTMLSelectElement
+    expect(select.value).toBe(yesterdayValue)
+  })
+})
