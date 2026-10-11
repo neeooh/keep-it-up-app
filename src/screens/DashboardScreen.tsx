@@ -476,8 +476,8 @@ function CircularProgress({
   total: number
   allDone: boolean
 }) {
-  const size = 80
-  const strokeWidth = 6
+  const size = 96
+  const strokeWidth = 7
   const radius = (size - strokeWidth) / 2
   const center = size / 2
   const circumference = 2 * Math.PI * radius
@@ -510,9 +510,9 @@ function CircularProgress({
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
         {allDone ? (
-          <Check size={24} className="text-success" aria-hidden="true" />
+          <Check size={28} className="text-success" aria-hidden="true" />
         ) : (
-          <span className="text-base font-bold text-foreground">
+          <span className="text-lg font-bold text-foreground">
             {completed}/{total}
           </span>
         )}
@@ -671,15 +671,15 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
             total={totalCards}
             allDone={allComplete}
           />
-          <div className="flex flex-col gap-0.5">
-            <p className="text-lg font-semibold text-foreground">
+          <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+            <p className="text-xl font-semibold text-foreground">
               {hasSessions ? greeting() : 'Ready for your first session?'}
             </p>
-            <p data-testid="completion-text" className="text-sm text-muted-foreground">
+            <p data-testid="completion-text" className="text-base text-muted-foreground">
               {allComplete ? 'All done for today' : `${completedCount} of ${totalCards} completed`}
             </p>
             {sessions.length > 0 && (
-              <p data-testid="streak-counter" className="text-sm text-muted-foreground">
+              <p data-testid="streak-counter" className="text-base text-muted-foreground">
                 {(() => {
                   const streak = dayStreak(sessions)
                   if (streak >= 2) return `🔥 ${streak}-day streak`
