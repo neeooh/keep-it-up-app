@@ -1,8 +1,9 @@
 /**
- * ProgressScreen — trends and progress.
+ * ProgressScreen — trends, progress, and weekly review.
  *
  * Shows a time-range selector, consistency, performance deltas, volume/duration
- * totals, and inline SVG trend charts. Progress is goal-aware:
+ * totals, inline SVG trend charts, and a weekly review card with past reviews.
+ * Progress is goal-aware:
  * - AVOID activities show successful days, completion rate, and longest streak.
  * - DO activities show current performance metrics and trends.
  *
@@ -10,27 +11,30 @@
  */
 
 import { useState } from 'react'
-import { BarChart3, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { BarChart3, TrendingUp, TrendingDown, Minus, CalendarCheck } from 'lucide-react'
 import { PageHeader } from '../components/PageHeader'
 import { EmptyState } from '../components/EmptyState'
 import { StatCard } from '../components/StatCard'
 import { SectionHeader } from '../components/SectionHeader'
+import { Button } from '../components/ui/button'
 import { useAppStore } from '../store/useAppStore'
 import {
   calculateConsistency,
   calculateProgress,
   calculateTrend,
   calculateVolume,
+  calculateWeeklySummary,
   sessionsForRoutine,
   sessionsInRange,
 } from '../domain/calculations'
 import type { Navigate } from '../App'
-import type { MeasurementType, Routine, Session, TrendPoint } from '../domain/types'
+import type { MeasurementType, Routine, Session, TrendPoint, WeeklySummary } from '../domain/types'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
   navigate: Navigate
+  onEditRoutine: (routineId: string) => void
 }
 
 type Range = '7d' | '30d' | '90d'
@@ -88,6 +92,137 @@ function longestStreak(sessions: Session[], routineId: string): number {
     }
   }
   return best
+}
+
+// ─── Weekly review date helpers ───────────────────────────────────────────────
+
+/** Return the Monday of the previous ISO week. */
+function previousWeekStart(): string {
+  const now = new Date()
+  const day = now.getUTCDay()
+  const diff = day === 0 ? -6 : 1 - day
+  const thisMonday = new Date(now)
+  thisMonday.setUTCDate(now.getUTCDate() + diff)
+  thisMonday.setUTCDate(thisMonday.getUTCDate() - 7)
+  return thisMonday.toISOString().slice(0, 10)
+}
+
+/** Return the Sunday (YYYY-MM-DD) of a week given its Monday. */
+function weekSunday(weekStart: string): string {
+  const [y, m, d] = weekStart.split('-').map(Number)
+  const monday = new Date(Date.UTC(y!, m! - 1, d!))
+  monday.setUTCDate(monday.getUTCDate() + 6)
+  return monday.toISOString().slice(0, 10)
+}
+
+/** Format as "5 Oct – 11 Oct". */
+function formatWeekRange(weekStart: string): string {
+  const [y, m, d] = weekStart.split('-').map(Number)
+  const monday = new Date(Date.UTC(y!, m! - 1, d!))
+  const sunday = new Date(monday)
+  sunday.setUTCDate(monday.getUTCDate() + 6)
+  const fmt = (dt: Date) => dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  return `${fmt(monday)} \u2013 ${fmt(sunday)}`
+}
+
+/** Days with at least one session in the current week (Mon-now). */
+function daysWithSessionsThisWeek(sessions: Session[]): number {
+  const now = new Date()
+  const day = now.getUTCDay()
+  const diff = day === 0 ? -6 : 1 - day
+  const thisMonday = new Date(now)
+  thisMonday.setUTCDate(now.getUTCDate() + diff)
+  const mondayStr = thisMonday.toISOString().slice(0, 10)
+  const todayStr = now.toISOString().slice(0, 10)
+
+  const days = new Set<string>()
+  for (const s of sessions) {
+    const d = s.completedAt.slice(0, 10)
+    if (d >= mondayStr && d <= todayStr) days.add(d)
+  }
+  return days.size
+}
+
+/** Days until next Monday. */
+function daysUntilMonday(): number {
+  const now = new Date()
+  const day = now.getUTCDay()
+  return day === 0 ? 1 : (8 - day)
+}
+
+/** Get past weeks (up to N) that have session data, newest first. */
+function pastReviewWeeks(sessions: Session[], maxWeeks: number): { weekStart: string; weekEnd: string }[] {
+  const weeks: { weekStart: string; weekEnd: string }[] = []
+  const now = new Date()
+  const day = now.getUTCDay()
+  const diff = day === 0 ? -6 : 1 - day
+  const thisMonday = new Date(now)
+  thisMonday.setUTCDate(now.getUTCDate() + diff)
+
+  for (let i = 1; i <= maxWeeks; i++) {
+    const monday = new Date(thisMonday)
+    monday.setUTCDate(thisMonday.getUTCDate() - i * 7)
+    const mondayStr = monday.toISOString().slice(0, 10)
+    const sundayStr = weekSunday(mondayStr)
+
+    const hasSessions = sessions.some((s) => {
+      const d = s.completedAt.slice(0, 10)
+      return d >= mondayStr && d <= sundayStr
+    })
+
+    if (hasSessions) {
+      weeks.push({ weekStart: mondayStr, weekEnd: sundayStr })
+    }
+  }
+  return weeks
+}
+
+// ─── Segmented circle SVG ─────────────────────────────────────────────────────
+
+function SegmentedCircle({ filled, total }: { filled: number; total: number }) {
+  const size = 64
+  const strokeWidth = 6
+  const radius = (size - strokeWidth) / 2
+  const center = size / 2
+  const gap = 4 // degrees gap between segments
+  const segmentAngle = (360 - gap * total) / total
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      className="shrink-0"
+      aria-hidden="true"
+    >
+      {Array.from({ length: total }, (_, i) => {
+        const startAngle = i * (segmentAngle + gap) - 90
+        const endAngle = startAngle + segmentAngle
+        const isFilled = i < filled
+
+        const startRad = (startAngle * Math.PI) / 180
+        const endRad = (endAngle * Math.PI) / 180
+
+        const x1 = center + radius * Math.cos(startRad)
+        const y1 = center + radius * Math.sin(startRad)
+        const x2 = center + radius * Math.cos(endRad)
+        const y2 = center + radius * Math.sin(endRad)
+
+        const largeArc = segmentAngle > 180 ? 1 : 0
+
+        return (
+          <path
+            key={i}
+            d={`M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`}
+            fill="none"
+            stroke={isFilled ? 'var(--brand)' : 'var(--border)'}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+          />
+        )
+      })}
+    </svg>
+  )
 }
 
 // ─── Inline SVG trend chart ───────────────────────────────────────────────────
@@ -169,23 +304,70 @@ function TrendChart({
   )
 }
 
+// ─── Review countdown card (shared between empty and full state) ──────────────
+
+function ReviewCountdownCard({
+  daysLogged,
+  daysLeft,
+}: {
+  daysLogged: number
+  daysLeft: number
+}) {
+  return (
+    <div data-testid="review-card-countdown" className="rounded-xl bg-surface p-4 ring-1 ring-foreground/5">
+      <div className="flex items-center gap-4">
+        <SegmentedCircle filled={daysLogged} total={7} />
+        <div>
+          <p className="text-sm font-medium text-foreground">
+            {daysLogged} of 7 days
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {daysLeft <= 1
+              ? 'Your first review is almost ready'
+              : `Review ready in ${daysLeft} days`
+            }
+          </p>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground mt-3">
+        Your weekly review builds as you log sessions through the week.
+      </p>
+    </div>
+  )
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export function ProgressScreen({ navigate }: Props) {
+export function ProgressScreen({ navigate, onEditRoutine }: Props) {
   const { state } = useAppStore()
   const { routines, sessions } = state
 
   const [range, setRange] = useState<Range>('30d')
 
-  // Check if we have enough data
+  // Check if we have enough data for progress charts
   const totalSessions = sessions.length
   const hasEnoughData = totalSessions >= 2
 
+  // Weekly Review data (computed regardless of hasEnoughData)
+  const lastWeekStart = previousWeekStart()
+  const lastWeekEnd = weekSunday(lastWeekStart)
+  const reviewSessions = sessionsInRange(sessions, { start: lastWeekStart, end: lastWeekEnd })
+  const hasReviewData = reviewSessions.length > 0
+  const daysLogged = daysWithSessionsThisWeek(sessions)
+  const daysLeft = daysUntilMonday()
+  const pastWeeks = pastReviewWeeks(sessions, 12)
+
+  let reviewSummary: WeeklySummary | null = null
+  if (hasReviewData) {
+    reviewSummary = calculateWeeklySummary(sessions, routines, lastWeekStart)
+  }
+
+  // ── Empty / not-enough-data state ─────────────────────────────────────────
   if (routines.length === 0 || !hasEnoughData) {
     return (
       <div data-testid="screen-progress" className="flex flex-col min-h-full">
         <PageHeader title="Progress" />
-        <div data-testid="progress-not-enough-data" className="flex flex-1 flex-col">
+        <div data-testid="progress-not-enough-data" className="flex flex-col px-5 pb-6">
           <EmptyState
             icon={<BarChart3 size={32} aria-hidden="true" />}
             title="Your progress charts will appear here"
@@ -193,6 +375,11 @@ export function ProgressScreen({ navigate }: Props) {
             actionLabel="Log a session"
             onAction={() => navigate('dashboard')}
           />
+          {/* Review countdown even in empty state */}
+          <div className="mt-6">
+            <SectionHeader title="Weekly review" />
+            <ReviewCountdownCard daysLogged={daysLogged} daysLeft={daysLeft} />
+          </div>
         </div>
       </div>
     )
@@ -442,6 +629,61 @@ export function ProgressScreen({ navigate }: Props) {
                   <TrendChart points={points} unit={metricUnit(metric)} />
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Weekly Review section */}
+        <div>
+          <SectionHeader title="Weekly review" />
+          {hasReviewData && reviewSummary ? (
+            <div data-testid="review-card-ready" className="rounded-xl bg-surface p-4 ring-1 ring-foreground/5">
+              <div className="flex items-center gap-3 mb-3">
+                <CalendarCheck size={20} className="text-brand shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">{formatWeekRange(lastWeekStart)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {reviewSummary.entries.reduce((s, e) => s + e.completed, 0)} of{' '}
+                    {reviewSummary.entries.reduce((s, e) => s + e.planned, 0)} sessions completed
+                  </p>
+                </div>
+                <span className="ml-auto text-lg font-semibold text-brand">
+                  {reviewSummary.overallConsistency}%
+                </span>
+              </div>
+              <Button
+                data-testid="review-week-button"
+                onClick={() => navigate('weekly-review')}
+                className="w-full"
+              >
+                Review your week
+              </Button>
+            </div>
+          ) : (
+            <ReviewCountdownCard daysLogged={daysLogged} daysLeft={daysLeft} />
+          )}
+        </div>
+
+        {/* Past reviews */}
+        {pastWeeks.length > 0 && (
+          <div>
+            <SectionHeader title="Past reviews" />
+            <div className="flex flex-col gap-2">
+              {pastWeeks.map(({ weekStart: ws }) => {
+                const summary = calculateWeeklySummary(sessions, routines, ws)
+                return (
+                  <button
+                    key={ws}
+                    type="button"
+                    data-testid={`past-review-${ws}`}
+                    onClick={() => navigate('weekly-review')}
+                    className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-left ring-1 ring-foreground/5 hover:bg-surface-muted transition-colors w-full"
+                  >
+                    <span className="text-sm text-foreground">{formatWeekRange(ws)}</span>
+                    <span className="text-sm font-medium text-brand">{summary.overallConsistency}%</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
         )}
