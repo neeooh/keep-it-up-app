@@ -559,3 +559,95 @@ describe('DashboardScreen — tomorrow preview', () => {
     expect(screen.queryByTestId('tomorrow-preview')).not.toBeInTheDocument()
   })
 })
+
+describe('DashboardScreen — primary target subtitle', () => {
+  it('shows distance target for a DO activity with distance measurement', () => {
+    seedStore({ routines: [RUNNING_ROUTINE], sessions: [] })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    // RUNNING_ROUTINE has distance target 5 km (highest priority)
+    expect(screen.getByText('5 km target')).toBeInTheDocument()
+  })
+
+  it('shows duration target for a DO activity with duration-only measurement', () => {
+    const durationOnlyRoutine: Routine = {
+      id: 'routine-meditation',
+      name: 'Meditation',
+      createdAt: daysAgo(10),
+      activities: [
+        {
+          id: 'act-meditate',
+          name: 'Meditate',
+          direction: 'DO',
+          measurements: [{ type: 'duration', unit: 'min', target: 20 }],
+          frequency: 'daily',
+        },
+      ],
+    }
+    seedStore({ routines: [durationOnlyRoutine], sessions: [] })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.getByText('20 min target')).toBeInTheDocument()
+  })
+
+  it('shows no subtitle for an AVOID activity', () => {
+    seedStore({ routines: [AVOID_ROUTINE], sessions: [] })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    const card = screen.getByTestId('activity-card-act-no-fast-food')
+    expect(card.querySelector('.text-muted-foreground')).toBeNull()
+    expect(screen.queryByText(/target/)).not.toBeInTheDocument()
+  })
+
+  it('shows exercise names for a multi-activity routine', () => {
+    const multiRoutine: Routine = {
+      id: 'routine-multi',
+      name: 'Full Body',
+      createdAt: daysAgo(10),
+      activities: [
+        {
+          id: 'act-squat',
+          name: 'Squat',
+          direction: 'DO',
+          measurements: [{ type: 'sets', target: 3 }, { type: 'reps', target: 10 }],
+          frequency: '3x_week',
+        },
+        {
+          id: 'act-deadlift',
+          name: 'Deadlift',
+          direction: 'DO',
+          measurements: [{ type: 'sets', target: 3 }, { type: 'reps', target: 8 }],
+          frequency: '3x_week',
+        },
+      ],
+    }
+    seedStore({ routines: [multiRoutine], sessions: [] })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.getByText('Squat, Deadlift')).toBeInTheDocument()
+  })
+})

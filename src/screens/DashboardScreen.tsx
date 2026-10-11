@@ -231,6 +231,29 @@ function metricUnit(type: MeasurementType): string {
   }
 }
 
+/**
+ * Get the primary target string for an activity.
+ * Priority: distance > quantity > duration > weight.
+ * Returns null if no target is set.
+ */
+function primaryTarget(activity: Activity): string | null {
+  const priority: MeasurementType[] = ['distance', 'quantity', 'duration', 'weight']
+
+  for (const type of priority) {
+    const m = activity.measurements.find((m) => m.type === type)
+    if (m?.target !== undefined) {
+      const unit = m.unit ?? metricUnit(type)
+      switch (type) {
+        case 'distance': return `${m.target} ${unit} target`
+        case 'quantity': return `${m.target}${unit ? ` ${unit}` : ''} target`
+        case 'duration': return `${m.target} ${unit} target`
+        case 'weight': return `${m.target} ${unit} target`
+      }
+    }
+  }
+  return null
+}
+
 // ─── Completed activity result helpers ────────────────────────────────────────
 
 interface CompletedResult {
@@ -562,11 +585,17 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
                               {cardActivities.map((a) => a.name).join(', ')}
                             </p>
                           ) : (
-                            estimatedDuration(primaryActivity) !== null && (
-                              <p className="text-sm text-muted-foreground mt-0.5">
-                                {formatDuration(estimatedDuration(primaryActivity)!)}
-                              </p>
-                            )
+                            (() => {
+                              // AVOID activities: no subtitle needed
+                              if (primaryActivity.direction === 'AVOID') return null
+                              const target = primaryTarget(primaryActivity)
+                              if (!target) return null
+                              return (
+                                <p className="text-sm text-muted-foreground mt-0.5">
+                                  {target}
+                                </p>
+                              )
+                            })()
                           )}
                         </div>
                       </div>
