@@ -2,16 +2,15 @@
  * EditRoutineScreen — edit an existing routine.
  *
  * Pre-populates all fields from the current routine and groups them into
- * clear sections: Routine, Schedule, Time, Challenge, and a visually
- * separated Danger zone. Supports save, delete (with confirmation), and
- * cancel.
+ * clear sections: Routine, Schedule, Time, and Challenge. Supports save,
+ * delete (with confirmation), and cancel.
  *
  * Spec reference: mvp_product_spec.md — reachable from weekly review
  * and dashboard.
  */
 
 import { useState } from 'react'
-import { Check, Trash2, RotateCcw } from 'lucide-react'
+import { Check, RotateCcw } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -298,23 +297,17 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
           </section>
         )}
 
-        {/* e. Danger zone */}
-        <section className="mt-8">
-          <SectionHeader title="Danger zone" />
-          <Button
+        {/* e. Delete — low-prominence text link */}
+        <div className="mt-12 flex justify-center">
+          <button
+            type="button"
             data-testid="delete-routine-button"
-            variant="destructive"
             onClick={() => setShowDeleteDialog(true)}
-            className="w-full"
+            className="text-sm text-destructive hover:text-destructive/80 transition-colors py-2 px-4"
           >
-            <Trash2 size={16} className="mr-2" aria-hidden="true" />
-            Delete routine
-          </Button>
-          <p className="text-sm text-muted-foreground mt-2">
-            This removes the routine and its future schedule. Past history
-            remains.
-          </p>
-        </section>
+            Delete this routine
+          </button>
+        </div>
       </div>
 
       {/* Actions */}
