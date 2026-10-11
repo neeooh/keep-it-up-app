@@ -40,7 +40,6 @@ describe('DashboardScreen — empty state', () => {
         <DashboardScreen
           navigate={vi.fn()}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
@@ -57,7 +56,6 @@ describe('DashboardScreen — empty state', () => {
         <DashboardScreen
           navigate={navigate}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
@@ -74,7 +72,6 @@ describe('DashboardScreen — daily completion summary', () => {
         <DashboardScreen
           navigate={vi.fn()}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
@@ -94,7 +91,6 @@ describe('DashboardScreen — daily completion summary', () => {
         <DashboardScreen
           navigate={vi.fn()}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
@@ -110,17 +106,15 @@ describe('DashboardScreen — activity cards', () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions })
     const navigate = vi.fn()
     const onStartSession = vi.fn()
-    const onEditRoutine = vi.fn()
     render(
       <StoreWrapper>
         <DashboardScreen
           navigate={navigate}
           onStartSession={onStartSession}
-          onEditRoutine={onEditRoutine}
         />
       </StoreWrapper>,
     )
-    return { navigate, onStartSession, onEditRoutine }
+    return { navigate, onStartSession }
   }
 
   it('renders a page header with today\'s date when sessions exist', () => {
@@ -148,20 +142,6 @@ describe('DashboardScreen — activity cards', () => {
     await user.click(screen.getByTestId(`log-session-button-${STRENGTH_ROUTINE.id}`))
     expect(onStartSession).toHaveBeenCalledWith(STRENGTH_ROUTINE.id)
   })
-
-  it('shows edit button for each routine', () => {
-    setup()
-    expect(
-      screen.getByTestId(`edit-routine-button-${STRENGTH_ROUTINE.id}`),
-    ).toBeInTheDocument()
-  })
-
-  it('calls onEditRoutine with the correct ID when edit is clicked', async () => {
-    const user = userEvent.setup()
-    const { onEditRoutine } = setup()
-    await user.click(screen.getByTestId(`edit-routine-button-${STRENGTH_ROUTINE.id}`))
-    expect(onEditRoutine).toHaveBeenCalledWith(STRENGTH_ROUTINE.id)
-  })
 })
 
 describe('DashboardScreen — completed activity state', () => {
@@ -176,7 +156,6 @@ describe('DashboardScreen — completed activity state', () => {
         <DashboardScreen
           navigate={vi.fn()}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
@@ -199,7 +178,6 @@ describe('DashboardScreen — completed activity state', () => {
         <DashboardScreen
           navigate={vi.fn()}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
@@ -218,7 +196,6 @@ describe('DashboardScreen — completed activity state', () => {
         <DashboardScreen
           navigate={vi.fn()}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
@@ -237,7 +214,6 @@ describe('DashboardScreen — completed activity state', () => {
         <DashboardScreen
           navigate={vi.fn()}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
@@ -250,17 +226,15 @@ describe('DashboardScreen — multiple routines', () => {
     seedStore({ routines: [STRENGTH_ROUTINE, RUNNING_ROUTINE], sessions: [] })
     const navigate = vi.fn()
     const onStartSession = vi.fn()
-    const onEditRoutine = vi.fn()
     render(
       <StoreWrapper>
         <DashboardScreen
           navigate={navigate}
           onStartSession={onStartSession}
-          onEditRoutine={onEditRoutine}
         />
       </StoreWrapper>,
     )
-    return { navigate, onStartSession, onEditRoutine }
+    return { navigate, onStartSession }
   }
 
   it('renders an activity card for each routine\'s activities', () => {
@@ -279,28 +253,11 @@ describe('DashboardScreen — multiple routines', () => {
     ).toBeInTheDocument()
   })
 
-  it('renders an edit button for each routine', () => {
-    setupMulti()
-    expect(
-      screen.getByTestId(`edit-routine-button-${STRENGTH_ROUTINE.id}`),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByTestId(`edit-routine-button-${RUNNING_ROUTINE.id}`),
-    ).toBeInTheDocument()
-  })
-
   it('calls onStartSession with the correct ID for each routine', async () => {
     const user = userEvent.setup()
     const { onStartSession } = setupMulti()
     await user.click(screen.getByTestId(`log-session-button-${RUNNING_ROUTINE.id}`))
     expect(onStartSession).toHaveBeenCalledWith(RUNNING_ROUTINE.id)
-  })
-
-  it('calls onEditRoutine with the correct ID when edit is clicked', async () => {
-    const user = userEvent.setup()
-    const { onEditRoutine } = setupMulti()
-    await user.click(screen.getByTestId(`edit-routine-button-${STRENGTH_ROUTINE.id}`))
-    expect(onEditRoutine).toHaveBeenCalledWith(STRENGTH_ROUTINE.id)
   })
 })
 
@@ -316,7 +273,6 @@ describe('DashboardScreen — no analytics sections', () => {
         <DashboardScreen
           navigate={vi.fn()}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
@@ -334,7 +290,6 @@ describe('DashboardScreen — remind button', () => {
         <DashboardScreen
           navigate={vi.fn()}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
@@ -350,7 +305,6 @@ describe('DashboardScreen — remind button', () => {
         <DashboardScreen
           navigate={vi.fn()}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
@@ -372,7 +326,6 @@ describe('DashboardScreen — remind button', () => {
         <DashboardScreen
           navigate={vi.fn()}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
@@ -386,7 +339,6 @@ describe('DashboardScreen — remind button', () => {
         <DashboardScreen
           navigate={vi.fn()}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
@@ -409,7 +361,6 @@ describe('DashboardScreen — activity sorting', () => {
         <DashboardScreen
           navigate={vi.fn()}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
@@ -428,7 +379,6 @@ describe('DashboardScreen — missed-yesterday banner', () => {
         <DashboardScreen
           navigate={vi.fn()}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
@@ -450,7 +400,6 @@ describe('DashboardScreen — missed-yesterday banner', () => {
         <DashboardScreen
           navigate={vi.fn()}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
@@ -469,7 +418,6 @@ describe('DashboardScreen — missed-yesterday banner', () => {
         <DashboardScreen
           navigate={vi.fn()}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
@@ -487,7 +435,6 @@ describe('DashboardScreen — missed-yesterday banner', () => {
         <DashboardScreen
           navigate={vi.fn()}
           onStartSession={vi.fn()}
-          onEditRoutine={vi.fn()}
         />
       </StoreWrapper>,
     )
