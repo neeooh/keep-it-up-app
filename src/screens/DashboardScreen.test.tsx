@@ -26,7 +26,7 @@ import {
   clearStore,
   StoreWrapper,
 } from './__tests__/fixtures'
-import type { Routine } from '../domain/types'
+import type { Routine, DayOfWeek } from '../domain/types'
 
 afterEach(() => {
   clearStore()
@@ -439,5 +439,123 @@ describe('DashboardScreen — missed-yesterday banner', () => {
       </StoreWrapper>,
     )
     expect(screen.getByTestId('missed-yesterday')).toBeInTheDocument()
+  })
+})
+
+describe('DashboardScreen — tomorrow preview', () => {
+  // Set system time to Wednesday 2025-10-08 12:00 UTC.
+  // Tomorrow is Thursday → ISO dow 4.
+  const WEDNESDAY = new Date(Date.UTC(2025, 9, 8, 12, 0, 0))
+  const THURSDAY_DOW: DayOfWeek = 4
+
+  afterEach(() => {
+    vi.useRealTimers()
+    clearStore()
+  })
+
+  function setupFakeTime() {
+    vi.useFakeTimers()
+    vi.setSystemTime(WEDNESDAY)
+  }
+
+  it('shows tomorrow preview for a routine with daily frequency', () => {
+    setupFakeTime()
+    // AVOID_ROUTINE has frequency 'daily' — scheduled today AND tomorrow
+    seedStore({ routines: [AVOID_ROUTINE], sessions: [] })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.getByTestId('tomorrow-preview')).toBeInTheDocument()
+    const preview = screen.getByTestId('tomorrow-preview')
+    expect(preview).toHaveTextContent(/No Fast Food/)
+    expect(preview).toHaveTextContent(/1 activity/)
+  })
+
+  it('shows tomorrow preview when scheduledDays includes tomorrow', () => {
+    setupFakeTime()
+    // Wednesday = dow 3, Thursday = dow 4
+    // Scheduled Wed + Thu so it appears on today's list AND tomorrow preview
+    const WEDNESDAY_DOW: DayOfWeek = 3
+    const routine: Routine = {
+      id: 'routine-wed-thu',
+      name: 'Wed-Thu Run',
+      createdAt: '2025-09-01T00:00:00.000Z',
+      activities: [
+        {
+          id: 'act-wed-thu-run',
+          name: 'Run',
+          direction: 'DO',
+          measurements: [],
+          frequency: '2x_week',
+          scheduledDays: [WEDNESDAY_DOW, THURSDAY_DOW],
+        },
+      ],
+    }
+    seedStore({ routines: [routine], sessions: [] })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.getByTestId('tomorrow-preview')).toBeInTheDocument()
+    const preview = screen.getByTestId('tomorrow-preview')
+    expect(preview).toHaveTextContent(/Wed-Thu Run/)
+  })
+
+  it('does NOT show tomorrow preview when no routines are scheduled for tomorrow', () => {
+    setupFakeTime()
+    // Scheduled only on Wednesday (3) — shows today, but tomorrow (Thu 4) has nothing
+    const WEDNESDAY_DOW: DayOfWeek = 3
+    const routine: Routine = {
+      id: 'routine-wed-only',
+      name: 'Wednesday Only',
+      createdAt: '2025-09-01T00:00:00.000Z',
+      activities: [
+        {
+          id: 'act-wed',
+          name: 'Wednesday workout',
+          direction: 'DO',
+          measurements: [],
+          frequency: '1x_week',
+          scheduledDays: [WEDNESDAY_DOW],
+        },
+      ],
+    }
+    seedStore({ routines: [routine], sessions: [] })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.queryByTestId('tomorrow-preview')).not.toBeInTheDocument()
+  })
+
+  it('excludes routines with no scheduledDays and non-daily frequency', () => {
+    setupFakeTime()
+    // STRENGTH_ROUTINE: frequency '3x_week', no scheduledDays
+    // RUNNING_ROUTINE: frequency '2x_week', no scheduledDays
+    // Both show on today's list (buildTodayCards treats empty scheduledDays as "every day")
+    // but buildTomorrowNames excludes them because it cannot predict non-daily + no days
+    seedStore({ routines: [STRENGTH_ROUTINE, RUNNING_ROUTINE], sessions: [] })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.queryByTestId('tomorrow-preview')).not.toBeInTheDocument()
   })
 })
