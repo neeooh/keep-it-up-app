@@ -297,17 +297,6 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
           </section>
         )}
 
-        {/* e. Delete — low-prominence text link */}
-        <div className="mt-12 flex justify-center">
-          <button
-            type="button"
-            data-testid="delete-routine-button"
-            onClick={() => setShowDeleteDialog(true)}
-            className="text-sm text-destructive hover:text-destructive/80 transition-colors py-2 px-4"
-          >
-            Delete this routine
-          </button>
-        </div>
       </div>
 
       {/* Actions */}
@@ -327,6 +316,14 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
         >
           Cancel
         </Button>
+        <button
+          type="button"
+          data-testid="delete-routine-button"
+          onClick={() => setShowDeleteDialog(true)}
+          className="mt-2 text-sm text-destructive/70 hover:text-destructive transition-colors py-1"
+        >
+          Delete this routine
+        </button>
       </div>
 
       {/* Delete confirmation dialog */}
