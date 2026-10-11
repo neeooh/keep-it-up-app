@@ -85,6 +85,8 @@ describe('EditRoutineScreen — save', () => {
 
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
     expect(state.routines[0].name).toBe('Upper Body')
+    // BUG-005: activity names must NOT be overwritten by the routine name
+    expect(state.routines[0].activities[0].name).toBe('Bench Press')
   })
 
   it('saves updated frequency', async () => {
