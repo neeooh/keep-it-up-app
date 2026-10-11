@@ -134,6 +134,7 @@ function renderScreen(
               frequency: tmpl?.defaultFrequency ?? EMPTY_DRAFT.frequency,
               activityName: skip ? (tmpl?.defaultName ?? '') : EMPTY_DRAFT.activityName,
               measurements: skip ? (tmpl?.defaultMeasurements ?? []) : EMPTY_DRAFT.measurements,
+              preferredTime: tmpl?.defaultPreferredTime ?? EMPTY_DRAFT.preferredTime,
               skippedConfigure: skip,
             })
           }}

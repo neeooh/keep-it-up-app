@@ -26,6 +26,8 @@ export interface ActivityTemplate {
   defaultName: string
   defaultMeasurements: MeasurementConfig[]
   defaultFrequency: Frequency
+  /** Default preferred time of day. Applied to draft during onboarding. */
+  defaultPreferredTime?: string
   /** Suggested challenge duration in days. */
   suggestedChallengeDays?: 30 | 60 | 90
   /**
@@ -120,6 +122,7 @@ const yoga: ActivityTemplate = {
     { type: 'duration', unit: 'min', target: 30 },
   ],
   defaultFrequency: '3x_week',
+  defaultPreferredTime: 'Morning',
 }
 
 const stretching: ActivityTemplate = {
@@ -132,6 +135,7 @@ const stretching: ActivityTemplate = {
     { type: 'duration', unit: 'min', target: 15 },
   ],
   defaultFrequency: 'daily',
+  defaultPreferredTime: 'Morning',
 }
 
 // Personal development ────────────────────────────────────────────────────────
@@ -146,6 +150,7 @@ const reading: ActivityTemplate = {
     { type: 'duration', unit: 'min', target: 20 },
   ],
   defaultFrequency: 'daily',
+  defaultPreferredTime: 'Evening',
 }
 
 const learning: ActivityTemplate = {
@@ -182,6 +187,7 @@ const meditation: ActivityTemplate = {
     { type: 'duration', unit: 'min', target: 10 },
   ],
   defaultFrequency: 'daily',
+  defaultPreferredTime: 'Morning',
 }
 
 const journaling: ActivityTemplate = {
@@ -194,33 +200,10 @@ const journaling: ActivityTemplate = {
     { type: 'duration', unit: 'min', target: 10 },
   ],
   defaultFrequency: 'daily',
+  defaultPreferredTime: 'Morning',
 }
 
 // Daily life ──────────────────────────────────────────────────────────────────
-
-const morningRoutine: ActivityTemplate = {
-  id: 'morning-routine',
-  label: 'Morning routine',
-  category: 'daily_life',
-  direction: 'DO',
-  defaultName: 'Morning routine',
-  defaultMeasurements: [
-    { type: 'duration', unit: 'min', target: 30 },
-  ],
-  defaultFrequency: 'daily',
-}
-
-const eveningRoutine: ActivityTemplate = {
-  id: 'evening-routine',
-  label: 'Evening routine',
-  category: 'daily_life',
-  direction: 'DO',
-  defaultName: 'Evening routine',
-  defaultMeasurements: [
-    { type: 'duration', unit: 'min', target: 30 },
-  ],
-  defaultFrequency: 'daily',
-}
 
 const goOutside: ActivityTemplate = {
   id: 'go-outside',
@@ -232,6 +215,7 @@ const goOutside: ActivityTemplate = {
     { type: 'duration', unit: 'min', target: 20 },
   ],
   defaultFrequency: 'daily',
+  defaultPreferredTime: 'Morning',
 }
 
 // Breaking habits ─────────────────────────────────────────────────────────────
@@ -327,8 +311,6 @@ export const personalDevelopmentTemplates: ActivityTemplate[] = [
 
 /** All daily life templates (DO direction). */
 export const dailyLifeTemplates: ActivityTemplate[] = [
-  morningRoutine,
-  eveningRoutine,
   goOutside,
 ]
 

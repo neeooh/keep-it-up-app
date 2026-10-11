@@ -89,11 +89,9 @@ describe('personal development templates', () => {
 describe('daily life templates', () => {
   const ids = dailyLifeTemplates.map((t) => t.id)
 
-  it('contains all 3 daily life templates from the spec', () => {
-    expect(ids).toContain('morning-routine')
-    expect(ids).toContain('evening-routine')
+  it('contains 1 daily life template', () => {
     expect(ids).toContain('go-outside')
-    expect(dailyLifeTemplates).toHaveLength(3)
+    expect(dailyLifeTemplates).toHaveLength(1)
   })
 
   it('all daily life templates have direction DO', () => {
@@ -295,9 +293,9 @@ describe('custom template sentinel', () => {
 // ─── allTemplates ─────────────────────────────────────────────────────────────
 
 describe('allTemplates', () => {
-  it('contains exactly 21 entries (20 predefined + 1 custom)', () => {
-    // 7 exercise + 5 personal_development + 3 daily_life + 5 breaking_habits + 1 custom = 21
-    expect(allTemplates).toHaveLength(21)
+  it('contains exactly 19 entries (18 predefined + 1 custom)', () => {
+    // 7 exercise + 5 personal_development + 1 daily_life + 5 breaking_habits + 1 custom = 19
+    expect(allTemplates).toHaveLength(19)
   })
 
   it('all template ids are unique', () => {
@@ -374,6 +372,32 @@ describe('templatesForDirection', () => {
 
   it('always includes the custom sentinel for AVOID', () => {
     expect(templatesForDirection('AVOID').some((t) => t.isCustom)).toBe(true)
+  })
+})
+
+// ─── defaultPreferredTime ─────────────────────────────────────────────────────
+
+describe('defaultPreferredTime', () => {
+  it('meditation defaults to Morning', () => {
+    expect(findTemplate('meditation')!.defaultPreferredTime).toBe('Morning')
+  })
+  it('journaling defaults to Morning', () => {
+    expect(findTemplate('journaling')!.defaultPreferredTime).toBe('Morning')
+  })
+  it('stretching defaults to Morning', () => {
+    expect(findTemplate('stretching')!.defaultPreferredTime).toBe('Morning')
+  })
+  it('yoga defaults to Morning', () => {
+    expect(findTemplate('yoga')!.defaultPreferredTime).toBe('Morning')
+  })
+  it('go-outside defaults to Morning', () => {
+    expect(findTemplate('go-outside')!.defaultPreferredTime).toBe('Morning')
+  })
+  it('reading defaults to Evening', () => {
+    expect(findTemplate('reading')!.defaultPreferredTime).toBe('Evening')
+  })
+  it('running has no defaultPreferredTime', () => {
+    expect(findTemplate('running')!.defaultPreferredTime).toBeUndefined()
   })
 })
 
