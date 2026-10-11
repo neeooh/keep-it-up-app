@@ -130,22 +130,22 @@ describe('DashboardScreen — activity cards', () => {
     expect(screen.getByTestId('activity-card-act-bench')).toBeInTheDocument()
   })
 
-  it('shows "Log" button for incomplete activities', () => {
+  it('shows tappable card for incomplete activities', () => {
     setup()
-    const btn = screen.getByTestId(`log-session-button-${STRENGTH_ROUTINE.id}`)
-    expect(btn).toHaveTextContent('Log')
+    const card = screen.getByTestId(`activity-card-act-bench`)
+    expect(card.getAttribute('role')).toBe('button')
   })
 
   it('calls onStartSession with the correct routine ID', async () => {
     const user = userEvent.setup()
     const { onStartSession } = setup()
-    await user.click(screen.getByTestId(`log-session-button-${STRENGTH_ROUTINE.id}`))
+    await user.click(screen.getByTestId(`activity-card-act-bench`))
     expect(onStartSession).toHaveBeenCalledWith(STRENGTH_ROUTINE.id)
   })
 })
 
 describe('DashboardScreen — completed activity state', () => {
-  it('shows completed badge and Log again button in a row', () => {
+  it('shows Done badge and Log again link', () => {
     const nowIso = new Date().toISOString()
     const sessions = [
       makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
@@ -159,12 +159,9 @@ describe('DashboardScreen — completed activity state', () => {
         />
       </StoreWrapper>,
     )
-    expect(screen.getByTestId('completed-badge-act-bench')).toHaveTextContent('Completed')
+    expect(screen.getByTestId('completed-badge-act-bench')).toHaveTextContent('Done')
     const logBtn = screen.getByTestId(`log-session-button-${STRENGTH_ROUTINE.id}`)
     expect(logBtn).toHaveTextContent('Log again')
-    // Both should be in the same row
-    expect(screen.getByTestId('completed-badge-act-bench').parentElement)
-      .toBe(logBtn.parentElement)
   })
 
   it('shows session measurements on the completed card', () => {
@@ -243,20 +240,20 @@ describe('DashboardScreen — multiple routines', () => {
     expect(screen.getByTestId('activity-card-act-run')).toBeInTheDocument()
   })
 
-  it('renders a log-session button for each routine', () => {
+  it('renders a tappable card for each routine', () => {
     setupMulti()
     expect(
-      screen.getByTestId(`log-session-button-${STRENGTH_ROUTINE.id}`),
+      screen.getByTestId(`activity-card-act-bench`),
     ).toBeInTheDocument()
     expect(
-      screen.getByTestId(`log-session-button-${RUNNING_ROUTINE.id}`),
+      screen.getByTestId(`activity-card-act-run`),
     ).toBeInTheDocument()
   })
 
   it('calls onStartSession with the correct ID for each routine', async () => {
     const user = userEvent.setup()
     const { onStartSession } = setupMulti()
-    await user.click(screen.getByTestId(`log-session-button-${RUNNING_ROUTINE.id}`))
+    await user.click(screen.getByTestId(`activity-card-act-run`))
     expect(onStartSession).toHaveBeenCalledWith(RUNNING_ROUTINE.id)
   })
 })
@@ -283,7 +280,7 @@ describe('DashboardScreen — no analytics sections', () => {
 })
 
 describe('DashboardScreen — remind button', () => {
-  it('shows remind button next to Log for incomplete activities', () => {
+  it('shows overflow menu button for incomplete activities', () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
     render(
       <StoreWrapper>
@@ -294,7 +291,6 @@ describe('DashboardScreen — remind button', () => {
       </StoreWrapper>,
     )
     expect(screen.getByTestId(`remind-button-${STRENGTH_ROUTINE.id}`)).toBeInTheDocument()
-    expect(screen.getByText('Remind')).toBeInTheDocument()
   })
 
   it('opens remind menu on click', async () => {
@@ -332,7 +328,7 @@ describe('DashboardScreen — remind button', () => {
     expect(screen.queryByTestId(`remind-button-${STRENGTH_ROUTINE.id}`)).not.toBeInTheDocument()
   })
 
-  it('Log and Remind buttons share the row (both visible)', () => {
+  it('overflow menu button is inside the tappable card', () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
     render(
       <StoreWrapper>
@@ -342,9 +338,9 @@ describe('DashboardScreen — remind button', () => {
         />
       </StoreWrapper>,
     )
-    const logBtn = screen.getByTestId(`log-session-button-${STRENGTH_ROUTINE.id}`)
+    const card = screen.getByTestId(`activity-card-act-bench`)
     const remindBtn = screen.getByTestId(`remind-button-${STRENGTH_ROUTINE.id}`)
-    expect(logBtn.parentElement).toBe(remindBtn.closest('div')?.parentElement)
+    expect(card.contains(remindBtn)).toBe(true)
   })
 })
 
@@ -612,8 +608,6 @@ describe('DashboardScreen — primary target subtitle', () => {
         />
       </StoreWrapper>,
     )
-    const card = screen.getByTestId('activity-card-act-no-fast-food')
-    expect(card.querySelector('.text-muted-foreground')).toBeNull()
     expect(screen.queryByText(/target/)).not.toBeInTheDocument()
   })
 

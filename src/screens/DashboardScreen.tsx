@@ -14,7 +14,7 @@
  * Spec reference: docs/uiux-audits/v1.1-ui-ux-audit.md sections 1-7.
  */
 
-import { Plus, ClipboardCheck, Check, Bell, TrendingUp, TrendingDown } from 'lucide-react'
+import { Plus, MoreHorizontal, Check, TrendingUp, TrendingDown } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '../components/ui/button'
 import { Progress } from '../components/ui/progress'
@@ -591,150 +591,144 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
                   const primaryActivity = cardActivities[0]!
                   const hasMultipleActivities = cardActivities.length > 1
 
+                  if (completedToday) {
+                    const result = getCompletedResult(sessions, routine, primaryActivity, todayStr)
+                    return (
+                      <div
+                        key={routine.id}
+                        data-testid={`activity-card-${primaryActivity.id}`}
+                        className="rounded-xl border border-success/30 bg-success-muted/30 p-4"
+                      >
+                        <div className="flex items-start gap-2">
+                          <ActivityIcon name={routine.name} size={32} className="mt-0.5" />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-foreground">{routine.name}</p>
+                              <span
+                                data-testid={`completed-badge-${primaryActivity.id}`}
+                                className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success"
+                              >
+                                <Check size={12} aria-hidden="true" />
+                                Done
+                              </span>
+                            </div>
+                            {hasMultipleActivities && (
+                              <p className="text-sm text-muted-foreground mt-0.5">
+                                {cardActivities.map((a) => a.name).join(', ')}
+                              </p>
+                            )}
+                            {result && result.measurements.length > 0 && (
+                              <p className="text-sm text-muted-foreground mt-0.5">
+                                {result.measurements.join(' \u00b7 ')}
+                              </p>
+                            )}
+                            {result?.delta && (
+                              <div
+                                data-testid={`activity-delta-${primaryActivity.id}`}
+                                className={`flex items-center gap-1 mt-1.5 text-sm font-medium ${
+                                  result.delta.percent > 0 ? 'text-success' : 'text-destructive'
+                                }`}
+                              >
+                                {result.delta.percent > 0
+                                  ? <TrendingUp size={14} aria-hidden="true" />
+                                  : <TrendingDown size={14} aria-hidden="true" />
+                                }
+                                <span>
+                                  {result.delta.percent > 0 ? '+' : ''}{result.delta.percent}%{' '}
+                                  {result.delta.label} vs last session
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          data-testid={`log-session-button-${routine.id}`}
+                          onClick={() => onStartSession(routine.id)}
+                          className="mt-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          Log again
+                        </button>
+                      </div>
+                    )
+                  }
+
                   return (
                     <div
                       key={routine.id}
+                      role="button"
+                      tabIndex={0}
                       data-testid={`activity-card-${primaryActivity.id}`}
-                      className={`rounded-xl border p-4 ${
-                        completedToday
-                          ? 'border-success/30 bg-success-muted/30'
-                          : 'border-border bg-card ring-1 ring-foreground/5'
-                      }`}
+                      onClick={() => onStartSession(routine.id)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onStartSession(routine.id) } }}
+                      className="rounded-xl border border-border bg-card ring-1 ring-foreground/5 p-4 w-full text-left cursor-pointer hover:bg-surface-muted active:bg-surface-muted/80 transition-colors"
                     >
-                      {completedToday ? (() => {
-                        const result = getCompletedResult(sessions, routine, primaryActivity, todayStr)
-                        return (
-                          <>
-                            <div className="flex items-start justify-between gap-2">
-                              <ActivityIcon name={routine.name} size={32} className="mt-0.5" />
-                              <div className="min-w-0 flex-1">
-                                <p className="font-semibold text-foreground">{routine.name}</p>
-                                {hasMultipleActivities && (
-                                  <p className="text-sm text-muted-foreground mt-0.5">
-                                    {cardActivities.map((a) => a.name).join(', ')}
-                                  </p>
-                                )}
-                                {result && result.measurements.length > 0 && (
-                                  <p className="text-sm text-muted-foreground mt-0.5">
-                                    {result.measurements.join(' · ')}
-                                  </p>
-                                )}
-                                {result?.delta && (
-                                  <div
-                                    data-testid={`activity-delta-${primaryActivity.id}`}
-                                    className={`flex items-center gap-1 mt-1.5 text-sm font-medium ${
-                                      result.delta.percent > 0 ? 'text-success' : 'text-destructive'
-                                    }`}
-                                  >
-                                    {result.delta.percent > 0
-                                      ? <TrendingUp size={14} aria-hidden="true" />
-                                      : <TrendingDown size={14} aria-hidden="true" />
-                                    }
-                                    <span>
-                                      {result.delta.percent > 0 ? '+' : ''}{result.delta.percent}%{' '}
-                                      {result.delta.label} vs last session
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex gap-2 mt-3">
-                              <div
-                                data-testid={`completed-badge-${primaryActivity.id}`}
-                                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-success/15 py-2.5 text-sm font-medium text-success"
-                                aria-label="Completed"
-                              >
-                                <Check size={16} aria-hidden="true" />
-                                Completed
-                              </div>
-                              <Button
-                                data-testid={`log-session-button-${routine.id}`}
-                                variant="outline"
-                                onClick={() => onStartSession(routine.id)}
-                                className="flex-1 text-muted-foreground"
-                              >
-                                <ClipboardCheck size={16} className="mr-2" aria-hidden="true" />
-                                Log again
-                              </Button>
-                            </div>
-                          </>
-                        )
-                      })() : (
-                        <>
-                          <div className="flex items-start justify-between gap-2">
-                            <ActivityIcon name={routine.name} size={32} className="mt-0.5" />
-                            <div className="min-w-0 flex-1">
-                              <p className="font-semibold text-foreground">{routine.name}</p>
-                              {hasMultipleActivities ? (
+                      <div className="flex items-start gap-2">
+                        <ActivityIcon name={routine.name} size={32} className="mt-0.5" />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-foreground">{routine.name}</p>
+                          {hasMultipleActivities ? (
+                            <p className="text-sm text-muted-foreground mt-0.5">
+                              {cardActivities.map((a) => a.name).join(', ')}
+                            </p>
+                          ) : (
+                            (() => {
+                              if (primaryActivity.direction === 'AVOID') return null
+                              const target = primaryTarget(primaryActivity)
+                              if (!target) return null
+                              return (
                                 <p className="text-sm text-muted-foreground mt-0.5">
-                                  {cardActivities.map((a) => a.name).join(', ')}
+                                  {target}
                                 </p>
-                              ) : (
-                                (() => {
-                                  // AVOID activities: no subtitle needed
-                                  if (primaryActivity.direction === 'AVOID') return null
-                                  const target = primaryTarget(primaryActivity)
-                                  if (!target) return null
-                                  return (
-                                    <p className="text-sm text-muted-foreground mt-0.5">
-                                      {target}
-                                    </p>
-                                  )
-                                })()
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex gap-2 mt-3">
-                            <Button
-                              data-testid={`log-session-button-${routine.id}`}
-                              onClick={() => onStartSession(routine.id)}
-                              className="flex-1"
+                              )
+                            })()
+                          )}
+                        </div>
+                        <div
+                          className="relative shrink-0 -mr-2 -mt-1"
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation() }}
+                        >
+                          <button
+                            type="button"
+                            data-testid={`remind-button-${routine.id}`}
+                            aria-label={`Options for ${routine.name}`}
+                            onClick={() => setOpenSnooze(openSnooze === routine.id ? null : routine.id)}
+                            className="flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors"
+                          >
+                            <MoreHorizontal size={18} aria-hidden="true" />
+                          </button>
+                          {openSnooze === routine.id && (
+                            <div
+                              data-testid={`remind-menu-${routine.id}`}
+                              className="absolute right-0 top-full mt-1 z-10 w-44 rounded-lg border border-border bg-card p-1 shadow-lg ring-1 ring-foreground/5"
                             >
-                              <ClipboardCheck size={16} className="mr-2" aria-hidden="true" />
-                              Log
-                            </Button>
-                            <div className="relative flex-1">
-                              <Button
-                                data-testid={`remind-button-${routine.id}`}
-                                variant="outline"
-                                onClick={() => setOpenSnooze(openSnooze === routine.id ? null : routine.id)}
-                                className="w-full"
-                              >
-                                <Bell size={16} className="mr-2" aria-hidden="true" />
-                                Remind
-                              </Button>
-                              {openSnooze === routine.id && (
-                                <div
-                                  data-testid={`remind-menu-${routine.id}`}
-                                  className="absolute right-0 top-full mt-1 z-10 w-44 rounded-lg border border-border bg-card p-1 shadow-lg ring-1 ring-foreground/5"
+                              <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground">Remind me</p>
+                              {SNOOZE_OPTIONS.map((opt) => (
+                                <button
+                                  key={opt.label}
+                                  type="button"
+                                  data-testid={`remind-option-${opt.minutes}`}
+                                  onClick={() => handleSnooze(routine.name, routine.id, opt.minutes)}
+                                  className="flex w-full items-center rounded-md px-3 py-2 text-sm text-foreground hover:bg-surface-muted transition-colors"
                                 >
-                                  {SNOOZE_OPTIONS.map((opt) => (
-                                    <button
-                                      key={opt.label}
-                                      type="button"
-                                      data-testid={`remind-option-${opt.minutes}`}
-                                      onClick={() => handleSnooze(routine.name, routine.id, opt.minutes)}
-                                      className="flex w-full items-center rounded-md px-3 py-2 text-sm text-foreground hover:bg-surface-muted transition-colors"
-                                    >
-                                      {opt.label}
-                                    </button>
-                                  ))}
-                                  {permission === 'denied' && (
-                                    <p className="px-3 py-2 text-xs text-destructive">
-                                      Notifications are blocked. Enable them in your browser settings.
-                                    </p>
-                                  )}
-                                  {permission === 'unsupported' && (
-                                    <p className="px-3 py-2 text-xs text-muted-foreground">
-                                      Notifications are not supported in this browser.
-                                    </p>
-                                  )}
-                                </div>
+                                  {opt.label}
+                                </button>
+                              ))}
+                              {permission === 'denied' && (
+                                <p className="px-3 py-2 text-xs text-destructive">
+                                  Notifications are blocked. Enable them in your browser settings.
+                                </p>
+                              )}
+                              {permission === 'unsupported' && (
+                                <p className="px-3 py-2 text-xs text-muted-foreground">
+                                  Notifications are not supported in this browser.
+                                </p>
                               )}
                             </div>
-                          </div>
-                        </>
-                      )}
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )
                 })}
