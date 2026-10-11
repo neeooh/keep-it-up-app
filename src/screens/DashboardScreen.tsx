@@ -161,15 +161,22 @@ function shouldShowMissedYesterday(
   allCompleteToday: boolean,
 ): boolean {
   if (allCompleteToday) return false
+  if (sessions.length === 0) return false
 
   const y = yesterday()
   const yDow = isoDayOfWeek(y)
+
   return routines.some((routine) => {
+    if (routine.createdAt.slice(0, 10) >= y) return false
+
     const scheduledYesterday = routine.activities.some((a) => {
-      if (!a.scheduledDays || a.scheduledDays.length === 0) return true
+      if (a.frequency === 'daily') return true
+      if (!a.scheduledDays || a.scheduledDays.length === 0) return false
       return a.scheduledDays.includes(yDow)
     })
+
     if (!scheduledYesterday) return false
+
     const didYesterday = sessionsForRoutine(sessions, routine.id).some(
       (s) => s.completedAt.slice(0, 10) === y,
     )
