@@ -47,6 +47,12 @@ function yesterday(): string {
   return d.toISOString().slice(0, 10)
 }
 
+function tomorrow(): string {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
+
 /** ISO day-of-week (1 = Mon … 7 = Sun) for a YYYY-MM-DD date. */
 function isoDayOfWeek(dateStr: string): DayOfWeek {
   const [y, m, d] = dateStr.split('-').map(Number)
@@ -181,6 +187,25 @@ function shouldShowMissedYesterday(
     )
     return !didYesterday
   })
+}
+
+// ─── Tomorrow preview ─────────────────────────────────────────────────────────
+
+function buildTomorrowNames(routines: Routine[]): string[] {
+  const tomorrowStr = tomorrow()
+  const tomorrowDow = isoDayOfWeek(tomorrowStr)
+
+  return routines
+    .filter((routine) => {
+      return routine.activities.some((a) => {
+        if (a.frequency === 'daily') return true
+        if (a.scheduledDays && a.scheduledDays.length > 0) {
+          return a.scheduledDays.includes(tomorrowDow)
+        }
+        return false // no scheduled days + non-daily = cannot predict
+      })
+    })
+    .map((r) => r.name)
 }
 
 // ─── Format duration ──────────────────────────────────────────────────────────
@@ -371,6 +396,7 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
   const hasSessions = sessions.length > 0
 
   const missedYesterday = shouldShowMissedYesterday(routines, sessions, allComplete)
+  const tomorrowNames = buildTomorrowNames(routines)
 
   if (totalCards === 0) {
     return (
@@ -600,6 +626,15 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
             })}
           </div>
         </div>
+
+        {tomorrowNames.length > 0 && (
+          <div data-testid="tomorrow-preview">
+            <SectionHeader title="Tomorrow" />
+            <p className="text-sm text-muted-foreground">
+              {tomorrowNames.join(', ')} · {tomorrowNames.length} {tomorrowNames.length === 1 ? 'activity' : 'activities'}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )
