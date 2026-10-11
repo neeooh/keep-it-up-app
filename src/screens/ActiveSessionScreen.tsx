@@ -30,6 +30,8 @@ import type {
 interface Props {
   navigate: Navigate
   routineId: string | null
+  /** Optional ISO date (YYYY-MM-DD) to log for. Defaults to today. */
+  sessionDate?: string
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -388,10 +390,30 @@ function SessionProgress({ total }: { total: number }) {
   )
 }
 
+// ─── Date selector helpers ────────────────────────────────────────────────────
+
+/** Generate the last 7 days as {label, value} pairs. */
+function lastSevenDays(): { label: string; value: string }[] {
+  const days: { label: string; value: string }[] = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    const value = d.toISOString().slice(0, 10)
+    let label: string
+    if (i === 0) label = 'Today'
+    else if (i === 1) label = 'Yesterday'
+    else label = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+    days.push({ label, value })
+  }
+  return days
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export function ActiveSessionScreen({ navigate, routineId }: Props) {
+export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props) {
   const { state, addSession } = useAppStore()
+  const [selectedDate, setSelectedDate] = useState(sessionDate ?? new Date().toISOString().slice(0, 10))
+  const dateOptions = useMemo(() => lastSevenDays(), [])
 
   const routine = routineId
     ? state.routines.find((r) => r.id === routineId)
@@ -520,7 +542,9 @@ export function ActiveSessionScreen({ navigate, routineId }: Props) {
     addSession({
       id: crypto.randomUUID(),
       routineId: routine.id,
-      completedAt: new Date().toISOString(),
+      completedAt: selectedDate === new Date().toISOString().slice(0, 10)
+        ? new Date().toISOString()
+        : `${selectedDate}T12:00:00.000Z`,
       results,
     })
 
@@ -531,6 +555,26 @@ export function ActiveSessionScreen({ navigate, routineId }: Props) {
     <div data-testid="screen-active-session" className="flex flex-col min-h-full">
       {/* Header */}
       <PageHeader title={routine.name} backAction={() => navigate('dashboard')} />
+
+      {/* Date selector */}
+      <div data-testid="date-selector" className="px-5 pb-2">
+        <Label htmlFor="session-date" className="text-sm font-medium text-muted-foreground mb-1.5 block">
+          Logging for
+        </Label>
+        <select
+          id="session-date"
+          data-testid="session-date-select"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          {dateOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {/* Session progress indicator */}
       <SessionProgress total={routine.activities.length} />

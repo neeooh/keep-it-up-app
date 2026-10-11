@@ -651,3 +651,48 @@ describe('DashboardScreen — primary target subtitle', () => {
     expect(screen.getByText('Squat, Deadlift')).toBeInTheDocument()
   })
 })
+
+describe('DashboardScreen — missed-yesterday actionable buttons', () => {
+  it('shows Log [routine name] button when a daily routine was missed yesterday', () => {
+    // AVOID_ROUTINE has frequency 'daily' and was created 30 days ago
+    const sessions = [
+      makeAvoidSession(AVOID_ROUTINE.id, 'act-no-fast-food', daysAgo(3), true),
+    ]
+    seedStore({ routines: [AVOID_ROUTINE], sessions })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.getByTestId('missed-yesterday')).toBeInTheDocument()
+    expect(screen.getByTestId(`log-yesterday-${AVOID_ROUTINE.id}`)).toBeInTheDocument()
+    expect(screen.getByTestId(`log-yesterday-${AVOID_ROUTINE.id}`)).toHaveTextContent('Log No Fast Food')
+  })
+
+  it('calls onStartSession with routine id and yesterday date when Log button is clicked', async () => {
+    const sessions = [
+      makeAvoidSession(AVOID_ROUTINE.id, 'act-no-fast-food', daysAgo(3), true),
+    ]
+    seedStore({ routines: [AVOID_ROUTINE], sessions })
+    const onStartSession = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={onStartSession}
+        />
+      </StoreWrapper>,
+    )
+    await user.click(screen.getByTestId(`log-yesterday-${AVOID_ROUTINE.id}`))
+    const expectedYesterday = (() => {
+      const d = new Date()
+      d.setUTCDate(d.getUTCDate() - 1)
+      return d.toISOString().slice(0, 10)
+    })()
+    expect(onStartSession).toHaveBeenCalledWith(AVOID_ROUTINE.id, expectedYesterday)
+  })
+})
