@@ -18,12 +18,15 @@ import { DashboardScreen } from './DashboardScreen'
 import {
   STRENGTH_ROUTINE,
   RUNNING_ROUTINE,
+  AVOID_ROUTINE,
   makeStrengthSession,
+  makeAvoidSession,
   daysAgo,
   seedStore,
   clearStore,
   StoreWrapper,
 } from './__tests__/fixtures'
+import type { Routine } from '../domain/types'
 
 afterEach(() => {
   clearStore()
@@ -414,5 +417,80 @@ describe('DashboardScreen — activity sorting', () => {
     // Running (incomplete) should appear before Bench Press (completed)
     expect(cards[0]).toHaveAttribute('data-testid', 'activity-card-act-run')
     expect(cards[1]).toHaveAttribute('data-testid', 'activity-card-act-bench')
+  })
+})
+
+describe('DashboardScreen — missed-yesterday banner', () => {
+  it('does NOT show when sessions is empty (first-time user)', () => {
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+          onEditRoutine={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.queryByTestId('missed-yesterday')).not.toBeInTheDocument()
+  })
+
+  it('does NOT show when routine was created today', () => {
+    const newRoutine: Routine = {
+      ...STRENGTH_ROUTINE,
+      createdAt: new Date().toISOString(),
+    }
+    // Provide an old session from another routine so sessions.length > 0
+    const sessions = [
+      makeStrengthSession('other-routine', 'other-act', daysAgo(3), 50, 8),
+    ]
+    seedStore({ routines: [newRoutine], sessions })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+          onEditRoutine={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.queryByTestId('missed-yesterday')).not.toBeInTheDocument()
+  })
+
+  it('does NOT show when all activities are completed today', () => {
+    const nowIso = new Date().toISOString()
+    const sessions = [
+      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', daysAgo(3), 50, 8),
+      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
+    ]
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+          onEditRoutine={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.queryByTestId('missed-yesterday')).not.toBeInTheDocument()
+  })
+
+  it('shows banner when a daily routine was missed yesterday', () => {
+    // AVOID_ROUTINE has frequency 'daily'
+    const sessions = [
+      makeAvoidSession(AVOID_ROUTINE.id, 'act-no-fast-food', daysAgo(3), true),
+    ]
+    seedStore({ routines: [AVOID_ROUTINE], sessions })
+    render(
+      <StoreWrapper>
+        <DashboardScreen
+          navigate={vi.fn()}
+          onStartSession={vi.fn()}
+          onEditRoutine={vi.fn()}
+        />
+      </StoreWrapper>,
+    )
+    expect(screen.getByTestId('missed-yesterday')).toBeInTheDocument()
   })
 })
