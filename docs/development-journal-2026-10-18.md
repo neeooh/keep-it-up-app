@@ -160,3 +160,40 @@ Examples:
 3. **Small details matter.** The user notices mismatches (placeholder text not matching the activity) and cares about the first impression (Welcome screen centering and warmth).
 
 4. **Git discipline.** The user wants feature branches, clean merges, and documented decisions. Not just working code — traceable development history.
+
+### 04:27 — Shorter inline motivation badges
+
+**User feedback:** Badge text is too long. Should be short positive-outcome words, not full sentences. Layout should be inline wrapping, not vertical stack. Fill 2-3 lines maximum.
+
+**Fix:**
+- Shortened all badge text to 2-4 words: "Feel strong", "Calm mind", "Breathe free".
+- 4 options per template (up from 3) to fill the space.
+- Changed layout from `flex-col` to `flex-wrap` with `rounded-full` pill styling.
+- Renamed "Write my own" to "Custom".
+
+### 04:36 — Multi-select badges + emotional custom text
+
+**User feedback:** Three refinements in one:
+1. Users should select multiple badges, not just one.
+2. The "Custom" option should not be a badge toggle. It should be a separate, always-visible textarea for raw emotional free text.
+3. The placeholder text should be deeply human and vulnerable — imagine psychological pain and the desire to change.
+
+**User also requested:** Rename button to something warmer than "Commit!". Save all decisions and steering to disk.
+
+**My response:** Proposed "I'm ready" + Rocket icon as the button text. Proposed combined storage format: "Badge1 · Badge2 — personal note". Proposed emotionalPlaceholder() with 18 deeply honest placeholders.
+
+**Implementation:**
+- Multi-select: tapping badges toggles them independently. Multiple can be active.
+- Separate emotional section with Heart icon: "What is really driving you?"
+- Placeholders like "My mind will not stop and I need to find some peace" (meditation) and "I am scared of what this is doing to me" (no smoking).
+- Combined motivation stored as single string: badges joined with " · ", custom note after " — ".
+- Both PlanReviewScreen and EditRoutineScreen parse the combined string back into badges + note on mount.
+- Button renamed from "Commit!" to "I'm ready" with Rocket icon.
+
+**Steering pattern:** The user refined the motivation feature across 4 iterations in ~20 minutes:
+1. Free text textarea → too much friction
+2. Single-select badges → user cannot like the placeholder text
+3. Short inline multi-select pills → almost there
+4. Multi-select + separate emotional text → final form
+
+Each iteration was a small, precise correction. The user knew what felt wrong before knowing the exact solution. The conversation was a discovery process, not a specification handoff.

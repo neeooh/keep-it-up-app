@@ -11,13 +11,13 @@
  */
 
 import { useState } from 'react'
-import { ChevronLeft, ChevronDown, AlertTriangle, Check, X, Medal, Trophy, Rocket, Pencil } from 'lucide-react'
+import { ChevronLeft, ChevronDown, AlertTriangle, Check, X, Medal, Trophy, Rocket, Heart } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { OnboardingProgress } from '../../components/OnboardingProgress'
 import { ActivityIcon } from '../../components/ActivityIcon'
 import { useAppStore } from '../../store/useAppStore'
 import type { Navigate, OnboardingDraft } from '../../App'
-import { findTemplate, motivationOptions } from '../../domain/templates'
+import { findTemplate, motivationOptions, emotionalPlaceholder } from '../../domain/templates'
 import type { ChallengeDuration, DayOfWeek, Frequency } from '../../domain/types'
 
 interface Props {
@@ -116,6 +116,47 @@ export function PlanReviewScreen({
   const challengeDurationDays =
     challengeDurationDaysProp ?? draft.challengeDurationDays
   const motivation = motivationProp ?? draft.motivation ?? ''
+
+  // Parse existing motivation back into badges + custom text.
+  const options = motivationOptions(draft.templateId, activityName)
+  const [selectedBadges, setSelectedBadges] = useState<string[]>(() => {
+    if (!motivation) return []
+    // Split on " · " and keep only known badge values.
+    const parts = motivation.split(' — ')[0]?.split(' · ') ?? []
+    return parts.filter((p) => options.includes(p))
+  })
+  const [customNote, setCustomNote] = useState<string>(() => {
+    if (!motivation) return ''
+    // Everything after " — " is the custom note.
+    const idx = motivation.indexOf(' — ')
+    return idx >= 0 ? motivation.slice(idx + 3) : ''
+  })
+
+  // Combine badges + custom note into one string and push to parent.
+  function pushMotivation(badges: string[], note: string) {
+    const badgePart = badges.join(' · ')
+    const trimmedNote = note.trim()
+    let combined = badgePart
+    if (trimmedNote) {
+      combined = combined ? `${combined} — ${trimmedNote}` : trimmedNote
+    }
+    onMotivationChange?.(combined)
+  }
+
+  function toggleBadge(badge: string) {
+    setSelectedBadges((prev) => {
+      const next = prev.includes(badge)
+        ? prev.filter((b) => b !== badge)
+        : [...prev, badge]
+      pushMotivation(next, customNote)
+      return next
+    })
+  }
+
+  function handleCustomNoteChange(value: string) {
+    setCustomNote(value)
+    pushMotivation(selectedBadges, value)
+  }
 
   // Collapsible section state — both collapsed by default.
   const [daysOpen, setDaysOpen] = useState(false)
@@ -281,25 +322,21 @@ export function PlanReviewScreen({
           )}
         </div>
 
-        {/* Motivation */}
+        {/* Motivation badges (multi-select) */}
         <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-3">
           <p className="text-sm font-medium text-foreground">
-            Why does this matter to you?
+            What do you want from this?
           </p>
-          <p className="text-xs text-muted-foreground">
-            Optional. This reminder shows up when you log a session.
-          </p>
-
           <div className="flex flex-wrap gap-2">
-            {motivationOptions(draft.templateId, activityName).map((option) => {
-              const isSelected = motivation === option
+            {options.map((option) => {
+              const isSelected = selectedBadges.includes(option)
               return (
                 <button
                   key={option}
                   type="button"
                   data-testid="motivation-option"
                   aria-pressed={isSelected}
-                  onClick={() => onMotivationChange?.(isSelected ? '' : option)}
+                  onClick={() => toggleBadge(option)}
                   className={[
                     'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors',
                     isSelected
@@ -312,42 +349,29 @@ export function PlanReviewScreen({
                 </button>
               )
             })}
-            {(() => {
-              const presets = motivationOptions(draft.templateId, activityName)
-              const isCustomActive = motivation !== '' && !presets.includes(motivation)
-              return (
-                <>
-                  <button
-                    type="button"
-                    data-testid="motivation-custom-toggle"
-                    aria-pressed={isCustomActive}
-                    onClick={() => onMotivationChange?.(isCustomActive ? '' : ' ')}
-                    className={[
-                      'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors',
-                      isCustomActive
-                        ? 'border-brand bg-brand-light font-medium text-foreground'
-                        : 'border-border bg-card text-foreground hover:bg-surface-muted',
-                    ].join(' ')}
-                  >
-                    <Pencil size={12} className={isCustomActive ? 'text-brand shrink-0' : 'text-muted-foreground shrink-0'} aria-hidden="true" />
-                    Custom
-                  </button>
-                  {isCustomActive && (
-                    <input
-                      type="text"
-                      data-testid="motivation-custom-input"
-                      placeholder="I want to..."
-                      value={motivation.trim()}
-                      onChange={(e) => onMotivationChange?.(e.target.value)}
-                      maxLength={200}
-                      autoFocus
-                      className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring"
-                    />
-                  )}
-                </>
-              )
-            })()}
           </div>
+        </div>
+
+        {/* Emotional free text (separate, always visible) */}
+        <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <Heart size={16} className="text-brand shrink-0" aria-hidden="true" />
+            <p className="text-sm font-medium text-foreground">
+              What is really driving you?
+            </p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Optional. Say what you would tell yourself when no one is listening.
+          </p>
+          <textarea
+            data-testid="motivation-custom-input"
+            placeholder={emotionalPlaceholder(draft.templateId, activityName)}
+            value={customNote}
+            onChange={(e) => handleCustomNoteChange(e.target.value)}
+            maxLength={300}
+            rows={2}
+            className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 placeholder:italic resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+          />
         </div>
 
         {/* Collapsible: Set preferred days */}
@@ -494,7 +518,7 @@ export function PlanReviewScreen({
           className="w-full"
         >
           <Rocket size={16} className="mr-1.5" aria-hidden="true" />
-          Commit!
+          I'm ready
         </Button>
         <Button
           type="button"

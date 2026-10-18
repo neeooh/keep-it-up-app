@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react'
-import { Check, RotateCcw, Pencil } from 'lucide-react'
+import { Check, RotateCcw, Heart } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -26,7 +26,7 @@ import { SectionHeader } from '../components/SectionHeader'
 import { useAppStore } from '../store/useAppStore'
 import type { Navigate } from '../App'
 import type { DayOfWeek, Frequency, Routine } from '../domain/types'
-import { motivationOptions } from '../domain/templates'
+import { motivationOptions, emotionalPlaceholder } from '../domain/templates'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -91,7 +91,35 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
   )
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [challengeRestarted, setChallengeRestarted] = useState(false)
-  const [motivation, setMotivation] = useState(routine?.motivation ?? '')
+
+  // Parse existing motivation into badges + custom note.
+  const editOptions = motivationOptions(undefined, routine?.name)
+  const [selectedBadges, setSelectedBadges] = useState<string[]>(() => {
+    const m = routine?.motivation ?? ''
+    if (!m) return []
+    const parts = m.split(' — ')[0]?.split(' · ') ?? []
+    return parts.filter((p) => editOptions.includes(p))
+  })
+  const [customNote, setCustomNote] = useState<string>(() => {
+    const m = routine?.motivation ?? ''
+    if (!m) return ''
+    const idx = m.indexOf(' — ')
+    return idx >= 0 ? m.slice(idx + 3) : ''
+  })
+
+  function buildMotivation(badges: string[], note: string): string {
+    const badgePart = badges.join(' · ')
+    const trimmed = note.trim()
+    let combined = badgePart
+    if (trimmed) combined = combined ? `${combined} — ${trimmed}` : trimmed
+    return combined
+  }
+
+  function toggleEditBadge(badge: string) {
+    setSelectedBadges((prev) =>
+      prev.includes(badge) ? prev.filter((b) => b !== badge) : [...prev, badge],
+    )
+  }
 
   // Not-found state
   if (!routine) {
@@ -128,7 +156,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
     const updated: Routine = {
       ...routine,
       name: name.trim() || routine.name,
-      motivation: motivation.trim() || undefined,
+      motivation: buildMotivation(selectedBadges, customNote) || undefined,
       activities: routine.activities.map((a) => ({
         ...a,
         frequency,
@@ -173,20 +201,17 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-1.5 mt-4">
-            <Label htmlFor="edit-motivation">Motivation</Label>
-            <p className="text-xs text-muted-foreground">
-              Why does this matter to you? Shows up when you log a session.
-            </p>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {motivationOptions(undefined, routine?.name).map((option) => {
-                const isSelected = motivation === option
+          <div className="flex flex-col gap-3 mt-4">
+            <Label>Motivation</Label>
+            <div className="flex flex-wrap gap-2">
+              {editOptions.map((option) => {
+                const isSelected = selectedBadges.includes(option)
                 return (
                   <button
                     key={option}
                     type="button"
                     aria-pressed={isSelected}
-                    onClick={() => setMotivation(isSelected ? '' : option)}
+                    onClick={() => toggleEditBadge(option)}
                     className={[
                       'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors',
                       isSelected
@@ -199,41 +224,21 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                   </button>
                 )
               })}
-              {(() => {
-                const presets = motivationOptions(undefined, routine?.name)
-                const isCustomActive = motivation !== '' && !presets.includes(motivation)
-                return (
-                  <>
-                    <button
-                      type="button"
-                      data-testid="edit-motivation-custom-toggle"
-                      aria-pressed={isCustomActive}
-                      onClick={() => setMotivation(isCustomActive ? '' : ' ')}
-                      className={[
-                        'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors',
-                        isCustomActive
-                          ? 'border-brand bg-brand-light font-medium text-foreground'
-                          : 'border-border bg-card text-foreground hover:bg-surface-muted',
-                      ].join(' ')}
-                    >
-                      <Pencil size={12} className={isCustomActive ? 'text-brand shrink-0' : 'text-muted-foreground shrink-0'} aria-hidden="true" />
-                      Custom
-                    </button>
-                    {isCustomActive && (
-                      <input
-                        type="text"
-                        data-testid="edit-motivation-custom-input"
-                        placeholder="I want to..."
-                        value={motivation.trim()}
-                        onChange={(e) => setMotivation(e.target.value)}
-                        maxLength={200}
-                        autoFocus
-                        className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring"
-                      />
-                    )}
-                  </>
-                )
-              })()}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <Heart size={14} className="text-brand shrink-0" aria-hidden="true" />
+                <p className="text-xs text-muted-foreground">What is really driving you?</p>
+              </div>
+              <textarea
+                data-testid="edit-motivation-custom-input"
+                placeholder={emotionalPlaceholder(undefined, routine?.name)}
+                value={customNote}
+                onChange={(e) => setCustomNote(e.target.value)}
+                maxLength={300}
+                rows={2}
+                className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 placeholder:italic resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+              />
             </div>
           </div>
         </section>

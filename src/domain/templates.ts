@@ -425,3 +425,49 @@ export function motivationOptions(templateId?: string | null, activityName?: str
 
   return ['Be consistent', 'Feel proud', 'Build discipline', 'Better myself']
 }
+
+/**
+ * Return a deeply personal, emotionally honest placeholder for the
+ * free-text motivation field. These speak to the raw human reason
+ * underneath the rational goals — the thing you would say to yourself
+ * when no one is listening.
+ */
+export function emotionalPlaceholder(templateId?: string | null, activityName?: string): string {
+  const byTemplate: Record<string, string> = {
+    'strength-workout': 'I am tired of feeling weak and unsure of myself',
+    'running': 'I need to outrun the version of me that gave up',
+    'walking': 'I have been stuck inside my own head for too long',
+    'cycling': 'I need to feel the wind and remember I am alive',
+    'swimming': 'I want to feel weightless, even just for a moment',
+    'yoga': 'My body carries everything and I never let it rest',
+    'stretching': 'I wake up stiff and tired and I want that to stop',
+    'reading': 'I have been numbing myself with screens and I want my mind back',
+    'learning': 'I am afraid of standing still while the world moves on',
+    'practice-skill': 'I need to prove to myself that I can still grow',
+    'meditation': 'My mind will not stop and I need to find some peace',
+    'journaling': 'I have things inside me that I have never said out loud',
+    'go-outside': 'I have been hiding from the world and I need to step back in',
+    'no-smoking': 'I am scared of what this is doing to me',
+    'no-fast-food': 'I do not recognise the person I see in the mirror',
+    'no-social-media': 'I have been comparing myself to everyone and it is breaking me',
+    'no-alcohol': 'I do not like who I become when I drink',
+    'no-unnecessary-spending': 'I am anxious every time I check my account',
+  }
+
+  if (templateId && byTemplate[templateId]) return byTemplate[templateId]
+
+  const name = activityName?.toLowerCase() ?? ''
+  if (name.includes('meditat')) return byTemplate['meditation']!
+  if (name.includes('journal')) return byTemplate['journaling']!
+  if (name.includes('read')) return byTemplate['reading']!
+  if (name.includes('yoga')) return byTemplate['yoga']!
+  if (name.includes('run')) return byTemplate['running']!
+  if (name.includes('walk')) return byTemplate['walking']!
+  if (name.includes('swim')) return byTemplate['swimming']!
+  if (name.includes('stretch')) return byTemplate['stretching']!
+  if (name.includes('smok')) return byTemplate['no-smoking']!
+  if (name.includes('alcohol') || name.includes('drink')) return byTemplate['no-alcohol']!
+  if (name.includes('social media')) return byTemplate['no-social-media']!
+
+  return 'Something needs to change and this is where I start'
+}
