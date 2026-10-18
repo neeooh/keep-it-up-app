@@ -17,7 +17,7 @@ import { OnboardingProgress } from '../../components/OnboardingProgress'
 import { ActivityIcon } from '../../components/ActivityIcon'
 import { useAppStore } from '../../store/useAppStore'
 import type { Navigate, OnboardingDraft } from '../../App'
-import { findTemplate, motivationOptions, emotionalPlaceholder } from '../../domain/templates'
+import { findTemplate, motivationOptions, emotionalPlaceholder, MAX_MOTIVATION_BADGES } from '../../domain/templates'
 import type { ChallengeDuration, DayOfWeek, Frequency } from '../../domain/types'
 
 interface Props {
@@ -147,7 +147,7 @@ export function PlanReviewScreen({
     setSelectedBadges((prev) => {
       const next = prev.includes(badge)
         ? prev.filter((b) => b !== badge)
-        : [...prev, badge]
+        : prev.length >= MAX_MOTIVATION_BADGES ? prev : [...prev, badge]
       pushMotivation(next, customNote)
       return next
     })
@@ -330,18 +330,22 @@ export function PlanReviewScreen({
           <div className="flex flex-wrap gap-2">
             {options.map((option) => {
               const isSelected = selectedBadges.includes(option)
+              const atLimit = selectedBadges.length >= MAX_MOTIVATION_BADGES && !isSelected
               return (
                 <button
                   key={option}
                   type="button"
                   data-testid="motivation-option"
                   aria-pressed={isSelected}
+                  disabled={atLimit}
                   onClick={() => toggleBadge(option)}
                   className={[
                     'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors',
                     isSelected
                       ? 'border-brand bg-brand-light font-medium text-foreground'
-                      : 'border-border bg-card text-foreground hover:bg-surface-muted',
+                      : atLimit
+                        ? 'border-border bg-card text-muted-foreground/40 cursor-not-allowed'
+                        : 'border-border bg-card text-foreground hover:bg-surface-muted',
                   ].join(' ')}
                 >
                   {isSelected && <Check size={12} className="text-brand shrink-0" aria-hidden="true" />}
@@ -350,6 +354,9 @@ export function PlanReviewScreen({
               )
             })}
           </div>
+          {selectedBadges.length >= MAX_MOTIVATION_BADGES && (
+            <p className="text-xs text-muted-foreground">Pick up to {MAX_MOTIVATION_BADGES}.</p>
+          )}
         </div>
 
         {/* Emotional free text (separate, always visible) */}

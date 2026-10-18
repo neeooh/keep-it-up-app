@@ -381,29 +381,30 @@ export function needsConfigureScreen(template: ActivityTemplate | null | undefin
 
 /**
  * Return short positive-outcome badges for the given activity.
- * Each badge is a concise outcome phrase (2–4 words).
- * Used as inline selectable pills on PlanReview and EditRoutine screens.
+ * Each badge is a concise outcome phrase (2-3 words). 7 options per
+ * template to fill two rows of inline pills on a mobile viewport.
+ * The user can select up to 3.
  */
 export function motivationOptions(templateId?: string | null, activityName?: string): string[] {
   const byTemplate: Record<string, string[]> = {
-    'strength-workout': ['Feel strong', 'Build discipline', 'Look my best', 'Gain confidence'],
-    'running': ['Run a 10K', 'Feel free', 'More energy', 'Clear my head'],
-    'walking': ['Move more', 'Fresh air daily', 'Clear my head', 'Feel grounded'],
-    'cycling': ['Explore more', 'Stay active', 'Build endurance', 'Feel free'],
-    'swimming': ['Feel weightless', 'Full-body strength', 'Clear my mind', 'Stay fit'],
-    'yoga': ['Feel calm', 'Less stress', 'Stay flexible', 'Start centered'],
-    'stretching': ['Feel loose', 'Prevent injury', 'Move better', 'Morning ritual'],
-    'reading': ['Learn more', 'Screen-free time', 'Finish more books', 'Grow daily'],
-    'learning': ['Grow my skills', 'Stay sharp', 'Invest in myself', 'Stay curious'],
-    'practice-skill': ['Improve weekly', 'Master my craft', 'Stay dedicated', 'See progress'],
-    'meditation': ['Calm mind', 'Less stress', 'More clarity', 'Inner peace'],
-    'journaling': ['Know myself', 'Process thoughts', 'Track growth', 'Daily reflection'],
-    'go-outside': ['Fresh air', 'Feel alive', 'Break the cycle', 'Daylight daily'],
-    'no-smoking': ['Breathe free', 'Protect my health', 'Stay in control', 'Save money'],
-    'no-fast-food': ['Eat clean', 'More energy', 'Feel lighter', 'Save money'],
-    'no-social-media': ['Reclaim time', 'More focus', 'Be present', 'Less noise'],
-    'no-alcohol': ['Clear mornings', 'Better sleep', 'Sharp mind', 'Stay in control'],
-    'no-unnecessary-spending': ['Save more', 'Spend with purpose', 'Peace of mind', 'Stay intentional'],
+    'strength-workout': ['Feel strong', 'Build muscle', 'More discipline', 'Look my best', 'Gain confidence', 'Push limits', 'Stay sharp'],
+    'running': ['Run a 10K', 'Feel free', 'More energy', 'Clear my head', 'Lose weight', 'Sleep better', 'Beat stress'],
+    'walking': ['Move more', 'Fresh air', 'Clear my head', 'Feel grounded', 'Less stress', 'Stay active', 'Think better'],
+    'cycling': ['Explore more', 'Stay fit', 'Build endurance', 'Feel free', 'Save fuel', 'More energy', 'Beat stress'],
+    'swimming': ['Feel weightless', 'Full-body fit', 'Clear my mind', 'Stay lean', 'More stamina', 'Less pain', 'Feel alive'],
+    'yoga': ['Feel calm', 'Less stress', 'Stay flexible', 'Start centered', 'Sleep better', 'Breathe deep', 'Find balance'],
+    'stretching': ['Feel loose', 'Less stiffness', 'Move better', 'Morning ritual', 'Prevent injury', 'More range', 'Feel younger'],
+    'reading': ['Learn more', 'No screens', 'Finish books', 'Grow daily', 'Relax more', 'Stay curious', 'Feed my mind'],
+    'learning': ['Grow skills', 'Stay sharp', 'Invest in me', 'Stay curious', 'Get ahead', 'Know more', 'Level up'],
+    'practice-skill': ['Get better', 'See progress', 'Master it', 'Stay dedicated', 'Build skill', 'Prove myself', 'Stay focused'],
+    'meditation': ['Calm mind', 'Less stress', 'More clarity', 'Inner peace', 'Sleep better', 'Stay present', 'Let go'],
+    'journaling': ['Know myself', 'Clear thoughts', 'Track growth', 'Daily ritual', 'Less anxiety', 'Find clarity', 'Heal slowly'],
+    'go-outside': ['Fresh air', 'Feel alive', 'See the sky', 'Break routine', 'More daylight', 'Move freely', 'Reset mind'],
+    'no-smoking': ['Breathe free', 'Stay healthy', 'Save money', 'Stay in control', 'Smell better', 'More energy', 'Live longer'],
+    'no-fast-food': ['Eat clean', 'More energy', 'Feel lighter', 'Save money', 'Look better', 'Clear skin', 'Stay sharp'],
+    'no-social-media': ['Reclaim time', 'More focus', 'Be present', 'Less noise', 'Real life', 'Less anxiety', 'Think clearly'],
+    'no-alcohol': ['Clear mornings', 'Better sleep', 'Sharp mind', 'Stay in control', 'Save money', 'More energy', 'Feel proud'],
+    'no-unnecessary-spending': ['Save more', 'Less stress', 'Be intentional', 'Peace of mind', 'Build wealth', 'Buy less', 'Feel free'],
   }
 
   if (templateId && byTemplate[templateId]) {
@@ -423,8 +424,11 @@ export function motivationOptions(templateId?: string | null, activityName?: str
   if (name.includes('alcohol') || name.includes('drink')) return byTemplate['no-alcohol']!
   if (name.includes('social media')) return byTemplate['no-social-media']!
 
-  return ['Be consistent', 'Feel proud', 'Build discipline', 'Better myself']
+  return ['Be consistent', 'Feel proud', 'Build discipline', 'Better myself', 'Stay focused', 'Show up daily', 'Prove it']
 }
+
+/** Maximum number of motivation badges the user can select. */
+export const MAX_MOTIVATION_BADGES = 3
 
 /**
  * Return a deeply personal, emotionally honest placeholder for the

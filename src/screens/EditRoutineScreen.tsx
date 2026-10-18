@@ -26,7 +26,7 @@ import { SectionHeader } from '../components/SectionHeader'
 import { useAppStore } from '../store/useAppStore'
 import type { Navigate } from '../App'
 import type { DayOfWeek, Frequency, Routine } from '../domain/types'
-import { motivationOptions, emotionalPlaceholder } from '../domain/templates'
+import { motivationOptions, emotionalPlaceholder, MAX_MOTIVATION_BADGES } from '../domain/templates'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -117,7 +117,9 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
 
   function toggleEditBadge(badge: string) {
     setSelectedBadges((prev) =>
-      prev.includes(badge) ? prev.filter((b) => b !== badge) : [...prev, badge],
+      prev.includes(badge)
+        ? prev.filter((b) => b !== badge)
+        : prev.length >= MAX_MOTIVATION_BADGES ? prev : [...prev, badge],
     )
   }
 
@@ -206,17 +208,21 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
             <div className="flex flex-wrap gap-2">
               {editOptions.map((option) => {
                 const isSelected = selectedBadges.includes(option)
+                const atLimit = selectedBadges.length >= MAX_MOTIVATION_BADGES && !isSelected
                 return (
                   <button
                     key={option}
                     type="button"
                     aria-pressed={isSelected}
+                    disabled={atLimit}
                     onClick={() => toggleEditBadge(option)}
                     className={[
                       'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors',
                       isSelected
                         ? 'border-brand bg-brand-light font-medium text-foreground'
-                        : 'border-border bg-card text-foreground hover:bg-surface-muted',
+                        : atLimit
+                          ? 'border-border bg-card text-muted-foreground/40 cursor-not-allowed'
+                          : 'border-border bg-card text-foreground hover:bg-surface-muted',
                     ].join(' ')}
                   >
                     {isSelected && <Check size={12} className="text-brand shrink-0" aria-hidden="true" />}
@@ -225,6 +231,9 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                 )
               })}
             </div>
+            {selectedBadges.length >= MAX_MOTIVATION_BADGES && (
+              <p className="text-xs text-muted-foreground">Pick up to {MAX_MOTIVATION_BADGES}.</p>
+            )}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2">
                 <Heart size={14} className="text-brand shrink-0" aria-hidden="true" />
