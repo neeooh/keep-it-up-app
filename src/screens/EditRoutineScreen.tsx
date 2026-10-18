@@ -2,8 +2,9 @@
  * EditRoutineScreen — edit an existing routine.
  *
  * Pre-populates all fields from the current routine and groups them into
- * clear sections: Routine, Schedule, Time, and Challenge. Supports save,
- * delete (with confirmation), and cancel.
+ * clear sections: Routine, Schedule, and Challenge. The Schedule section
+ * uses a unified day picker with preset shortcuts. Days are the source of
+ * truth; frequency is derived from the day count.
  *
  * Spec reference: mvp_product_spec.md — reachable from weekly review
  * and dashboard.
@@ -35,32 +36,52 @@ interface Props {
   routineId: string | null
 }
 
-// ─── Frequency options ────────────────────────────────────────────────────────
+// ─── Preset definitions ───────────────────────────────────────────────────────
 
-interface FrequencyOption {
-  value: Frequency
+interface Preset {
   label: string
+  days: DayOfWeek[]
 }
 
-const FREQUENCY_OPTIONS: FrequencyOption[] = [
-  { value: 'daily', label: 'Every day' },
-  { value: '3x_week', label: '3× per week' },
-  { value: '2x_week', label: '2× per week' },
-  { value: '1x_week', label: 'Once a week' },
-  { value: 'flexible', label: "I'll decide each time" },
+const PRESETS: Preset[] = [
+  { label: 'Every day', days: [1, 2, 3, 4, 5, 6, 7] },
+  { label: '3×/week', days: [1, 3, 5] },
+  { label: '2×/week', days: [2, 4] },
+  { label: 'Weekdays', days: [1, 2, 3, 4, 5] },
+  { label: 'Flexible', days: [] },
 ]
 
-const DAY_OPTIONS: { value: DayOfWeek; short: string }[] = [
-  { value: 1, short: 'Mon' },
-  { value: 2, short: 'Tue' },
-  { value: 3, short: 'Wed' },
-  { value: 4, short: 'Thu' },
-  { value: 5, short: 'Fri' },
-  { value: 6, short: 'Sat' },
-  { value: 7, short: 'Sun' },
+const DAY_BUTTONS: { value: DayOfWeek; letter: string }[] = [
+  { value: 1, letter: 'M' },
+  { value: 2, letter: 'T' },
+  { value: 3, letter: 'W' },
+  { value: 4, letter: 'T' },
+  { value: 5, letter: 'F' },
+  { value: 6, letter: 'S' },
+  { value: 7, letter: 'S' },
 ]
 
 const TIME_OPTIONS = ['Morning', 'Afternoon', 'Evening', 'Anytime']
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Derive frequency from the number of selected days. */
+function deriveFrequency(dayCount: number): Frequency {
+  if (dayCount === 0) return 'flexible'
+  if (dayCount === 1) return '1x_week'
+  if (dayCount === 2) return '2x_week'
+  if (dayCount === 3) return '3x_week'
+  if (dayCount <= 5) return '3x_week'
+  // 6 or 7
+  return 'daily'
+}
+
+/** Check whether a preset matches the current day selection. */
+function presetMatches(preset: Preset, selectedDays: DayOfWeek[]): boolean {
+  if (preset.days.length !== selectedDays.length) return false
+  const sorted = [...selectedDays].sort((a, b) => a - b)
+  return preset.days.every((d, i) => d === sorted[i])
+}
 
 // ─── Shared selectable-button styles ──────────────────────────────────────────
 
@@ -80,9 +101,6 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
 
   // Form state — initialised from the routine
   const [name, setName] = useState(routine?.name ?? '')
-  const [frequency, setFrequency] = useState<Frequency>(
-    routine?.activities[0]?.frequency ?? '3x_week',
-  )
   const [scheduledDays, setScheduledDays] = useState<DayOfWeek[]>(
     routine?.activities[0]?.scheduledDays ?? [],
   )
@@ -114,12 +132,19 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
     )
   }
 
+  // Derived frequency from current day selection
+  const frequency = deriveFrequency(scheduledDays.length)
+
   function toggleDay(day: DayOfWeek) {
     setScheduledDays((prev) =>
       prev.includes(day)
         ? prev.filter((d) => d !== day)
         : [...prev, day].sort((a, b) => a - b),
     )
+  }
+
+  function applyPreset(preset: Preset) {
+    setScheduledDays([...preset.days])
   }
 
   function handleSave() {
@@ -193,49 +218,35 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
           </div>
         </section>
 
-        {/* b. Schedule */}
+        {/* b. Schedule — unified day picker with presets */}
         <section>
           <SectionHeader title="Schedule" />
 
-          {/* Frequency */}
-          <p className="text-sm font-medium text-foreground mb-2">Frequency</p>
-          <div
-            className="flex flex-col gap-2"
-            role="radiogroup"
-            aria-label="Frequency"
-          >
-            {FREQUENCY_OPTIONS.map(({ value, label }) => {
-              const isSelected = frequency === value
+          {/* Preset pills */}
+          <div className="flex gap-2 flex-wrap" data-testid="preset-pills">
+            {PRESETS.map((preset) => {
+              const isActive = presetMatches(preset, scheduledDays)
               return (
                 <button
-                  key={value}
+                  key={preset.label}
                   type="button"
-                  role="radio"
-                  aria-checked={isSelected}
-                  data-testid={`edit-frequency-${value}`}
-                  onClick={() => setFrequency(value)}
+                  data-testid={`edit-preset-${preset.label.toLowerCase().replace(/[×\/\s]+/g, '-')}`}
+                  onClick={() => applyPreset(preset)}
                   className={[
-                    'flex items-center justify-between w-full rounded-lg border px-4 py-3 text-left text-sm transition-colors',
-                    isSelected
-                      ? 'border-brand bg-brand-light text-foreground font-medium'
-                      : 'border-border bg-card hover:bg-surface-muted',
+                    'inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                    isActive ? SELECTED_PILL : UNSELECTED_PILL,
                   ].join(' ')}
                 >
-                  <span>{label}</span>
-                  {isSelected && (
-                    <Check size={16} aria-hidden="true" className="text-brand" />
-                  )}
+                  {preset.label}
                 </button>
               )
             })}
           </div>
 
-          {/* Scheduled days */}
-          <p className="text-sm font-medium text-foreground mt-4 mb-2">
-            Preferred days (optional)
-          </p>
-          <div className="flex gap-2 flex-wrap">
-            {DAY_OPTIONS.map(({ value, short }) => {
+          {/* Day toggle buttons */}
+          <p className="text-xs font-medium text-muted-foreground mt-3 mb-2">Days</p>
+          <div className="flex gap-2">
+            {DAY_BUTTONS.map(({ value, letter }) => {
               const isSelected = scheduledDays.includes(value)
               return (
                 <button
@@ -245,23 +256,18 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                   data-testid={`edit-day-${value}`}
                   onClick={() => toggleDay(value)}
                   className={[
-                    'rounded-lg border px-3 py-2 text-sm font-medium transition-colors min-w-[3rem]',
+                    'flex items-center justify-center rounded-lg border w-9 h-9 text-sm font-medium transition-colors',
                     isSelected ? SELECTED_PILL : UNSELECTED_PILL,
                   ].join(' ')}
                 >
-                  {short}
+                  {letter}
                 </button>
               )
             })}
           </div>
-        </section>
 
-        {/* c. Time */}
-        <section>
-          <SectionHeader title="Time" />
-          <p className="text-sm font-medium text-foreground mb-2">
-            Preferred time (optional)
-          </p>
+          {/* Time of day */}
+          <p className="text-xs font-medium text-muted-foreground mt-4 mb-2">Time of day</p>
           <div className="flex gap-2 flex-wrap">
             {TIME_OPTIONS.map((time) => {
               const isSelected = preferredTime === time
@@ -273,11 +279,11 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                   data-testid={`edit-time-${time.toLowerCase()}`}
                   onClick={() => setPreferredTime(isSelected ? '' : time)}
                   className={[
-                    'inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
+                    'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                     isSelected ? SELECTED_PILL : UNSELECTED_PILL,
                   ].join(' ')}
                 >
-                  {isSelected && <Check size={14} aria-hidden="true" />}
+                  {isSelected && <Check size={12} aria-hidden="true" />}
                   {time}
                 </button>
               )
@@ -285,7 +291,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
           </div>
         </section>
 
-        {/* d. Challenge */}
+        {/* c. Challenge */}
         {routine.challengeDurationDays && (
           <section>
             <SectionHeader title="Challenge" />
@@ -328,14 +334,6 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
           className="w-full"
         >
           Save changes
-        </Button>
-        <Button
-          data-testid="cancel-button"
-          variant="ghost"
-          onClick={handleCancel}
-          className="w-full text-muted-foreground"
-        >
-          Cancel
         </Button>
         <button
           type="button"
