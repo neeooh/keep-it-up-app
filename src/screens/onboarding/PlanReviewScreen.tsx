@@ -301,7 +301,7 @@ export function PlanReviewScreen({
             </p>
           </div>
           <p className="text-xs text-muted-foreground">
-            Optional. Say what you would tell yourself when no one is listening.
+            Optional. Shows up when you log a session.
           </p>
           <textarea
             data-testid="motivation-custom-input"

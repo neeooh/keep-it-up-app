@@ -225,7 +225,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
               <Label>What is really driving you?</Label>
             </div>
             <p className="text-xs text-muted-foreground">
-              Optional. Say what you would tell yourself when no one is listening.
+              Optional. Shows up when you log a session.
             </p>
             <textarea
               data-testid="edit-motivation-custom-input"
