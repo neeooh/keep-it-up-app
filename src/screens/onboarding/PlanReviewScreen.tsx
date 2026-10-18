@@ -11,13 +11,13 @@
  */
 
 import { useState } from 'react'
-import { ChevronLeft, ChevronDown, AlertTriangle, Check, X, Medal, Trophy, Rocket } from 'lucide-react'
+import { ChevronLeft, ChevronDown, AlertTriangle, Check, X, Medal, Trophy, Rocket, Pencil } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { OnboardingProgress } from '../../components/OnboardingProgress'
 import { ActivityIcon } from '../../components/ActivityIcon'
 import { useAppStore } from '../../store/useAppStore'
 import type { Navigate, OnboardingDraft } from '../../App'
-import { findTemplate, motivationPlaceholder } from '../../domain/templates'
+import { findTemplate, motivationOptions } from '../../domain/templates'
 import type { ChallengeDuration, DayOfWeek, Frequency } from '../../domain/types'
 
 interface Props {
@@ -115,7 +115,7 @@ export function PlanReviewScreen({
   const preferredTime = preferredTimeProp ?? draft.preferredTime
   const challengeDurationDays =
     challengeDurationDaysProp ?? draft.challengeDurationDays
-  const motivation = motivationProp ?? draft.motivation
+  const motivation = motivationProp ?? draft.motivation ?? ''
 
   // Collapsible section state — both collapsed by default.
   const [daysOpen, setDaysOpen] = useState(false)
@@ -282,26 +282,80 @@ export function PlanReviewScreen({
         </div>
 
         {/* Motivation */}
-        <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-2">
-          <label
-            htmlFor="motivation-input"
-            className="text-sm font-medium text-foreground"
-          >
+        <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-3">
+          <p className="text-sm font-medium text-foreground">
             Why does this matter to you?
-          </label>
+          </p>
           <p className="text-xs text-muted-foreground">
             Optional. This reminder shows up when you log a session.
           </p>
-          <textarea
-            id="motivation-input"
-            data-testid="motivation-input"
-            placeholder={motivationPlaceholder(draft.templateId, activityName)}
-            value={motivation}
-            onChange={(e) => onMotivationChange?.(e.target.value)}
-            maxLength={200}
-            rows={2}
-            className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-          />
+
+          <div className="flex flex-col gap-2">
+            {motivationOptions(draft.templateId, activityName).map((option) => {
+              const isSelected = motivation === option
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  data-testid={`motivation-option`}
+                  aria-pressed={isSelected}
+                  onClick={() => onMotivationChange?.(isSelected ? '' : option)}
+                  className={[
+                    'flex items-center gap-2 w-full rounded-lg border px-4 py-2.5 text-left text-sm transition-colors',
+                    isSelected
+                      ? 'border-brand bg-brand-light font-medium text-foreground'
+                      : 'border-border bg-card text-foreground hover:bg-surface-muted',
+                  ].join(' ')}
+                >
+                  {isSelected && <Check size={14} className="text-brand shrink-0" aria-hidden="true" />}
+                  <span>{option}</span>
+                </button>
+              )
+            })}
+
+            {/* Custom option */}
+            {(() => {
+              const presets = motivationOptions(draft.templateId, activityName)
+              const isCustomActive = motivation !== '' && !presets.includes(motivation)
+              return (
+                <>
+                  <button
+                    type="button"
+                    data-testid="motivation-custom-toggle"
+                    aria-pressed={isCustomActive}
+                    onClick={() => {
+                      if (isCustomActive) {
+                        onMotivationChange?.('')
+                      } else {
+                        onMotivationChange?.(' ')
+                      }
+                    }}
+                    className={[
+                      'flex items-center gap-2 w-full rounded-lg border px-4 py-2.5 text-left text-sm transition-colors',
+                      isCustomActive
+                        ? 'border-brand bg-brand-light font-medium text-foreground'
+                        : 'border-border bg-card text-foreground hover:bg-surface-muted',
+                    ].join(' ')}
+                  >
+                    <Pencil size={14} className={isCustomActive ? 'text-brand shrink-0' : 'text-muted-foreground shrink-0'} aria-hidden="true" />
+                    <span>Write my own</span>
+                  </button>
+                  {isCustomActive && (
+                    <input
+                      type="text"
+                      data-testid="motivation-custom-input"
+                      placeholder="I want to..."
+                      value={motivation.trim()}
+                      onChange={(e) => onMotivationChange?.(e.target.value)}
+                      maxLength={200}
+                      autoFocus
+                      className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  )}
+                </>
+              )
+            })()}
+          </div>
         </div>
 
         {/* Collapsible: Set preferred days */}

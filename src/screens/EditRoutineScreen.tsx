@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react'
-import { Check, RotateCcw } from 'lucide-react'
+import { Check, RotateCcw, Pencil } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -26,7 +26,7 @@ import { SectionHeader } from '../components/SectionHeader'
 import { useAppStore } from '../store/useAppStore'
 import type { Navigate } from '../App'
 import type { DayOfWeek, Frequency, Routine } from '../domain/types'
-import { motivationPlaceholder } from '../domain/templates'
+import { motivationOptions } from '../domain/templates'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -178,16 +178,63 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
             <p className="text-xs text-muted-foreground">
               Why does this matter to you? Shows up when you log a session.
             </p>
-            <textarea
-              id="edit-motivation"
-              data-testid="edit-motivation"
-              placeholder={motivationPlaceholder(undefined, routine?.name)}
-              value={motivation}
-              onChange={(e) => setMotivation(e.target.value)}
-              maxLength={200}
-              rows={2}
-              className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+            <div className="flex flex-col gap-2 mt-1">
+              {motivationOptions(undefined, routine?.name).map((option) => {
+                const isSelected = motivation === option
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => setMotivation(isSelected ? '' : option)}
+                    className={[
+                      'flex items-center gap-2 w-full rounded-lg border px-4 py-2.5 text-left text-sm transition-colors',
+                      isSelected
+                        ? 'border-brand bg-brand-light font-medium text-foreground'
+                        : 'border-border bg-card text-foreground hover:bg-surface-muted',
+                    ].join(' ')}
+                  >
+                    {isSelected && <Check size={14} className="text-brand shrink-0" aria-hidden="true" />}
+                    <span>{option}</span>
+                  </button>
+                )
+              })}
+              {(() => {
+                const presets = motivationOptions(undefined, routine?.name)
+                const isCustomActive = motivation !== '' && !presets.includes(motivation)
+                return (
+                  <>
+                    <button
+                      type="button"
+                      data-testid="edit-motivation-custom-toggle"
+                      aria-pressed={isCustomActive}
+                      onClick={() => setMotivation(isCustomActive ? '' : ' ')}
+                      className={[
+                        'flex items-center gap-2 w-full rounded-lg border px-4 py-2.5 text-left text-sm transition-colors',
+                        isCustomActive
+                          ? 'border-brand bg-brand-light font-medium text-foreground'
+                          : 'border-border bg-card text-foreground hover:bg-surface-muted',
+                      ].join(' ')}
+                    >
+                      <Pencil size={14} className={isCustomActive ? 'text-brand shrink-0' : 'text-muted-foreground shrink-0'} aria-hidden="true" />
+                      <span>Write my own</span>
+                    </button>
+                    {isCustomActive && (
+                      <input
+                        type="text"
+                        data-testid="edit-motivation-custom-input"
+                        placeholder="I want to..."
+                        value={motivation.trim()}
+                        onChange={(e) => setMotivation(e.target.value)}
+                        maxLength={200}
+                        autoFocus
+                        className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    )}
+                  </>
+                )
+              })()}
+            </div>
           </div>
         </section>
 

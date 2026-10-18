@@ -380,49 +380,129 @@ export function needsConfigureScreen(template: ActivityTemplate | null | undefin
 }
 
 /**
- * Return a contextual placeholder for the motivation text field,
- * based on the template or activity name.
+ * Return predefined motivation options for the given activity.
+ * Each option starts with "I want to..." and is specific to the template
+ * or activity name. The last option is always a custom free-text sentinel.
+ *
+ * Used as selectable badges on the PlanReview and EditRoutine screens.
  */
-export function motivationPlaceholder(templateId?: string | null, activityName?: string): string {
+export function motivationOptions(templateId?: string | null, activityName?: string): string[] {
   // Match by template ID first (most specific).
-  if (templateId) {
-    const placeholders: Record<string, string> = {
-      'strength-workout': 'e.g. I want to feel strong and confident in my body',
-      'running': 'e.g. I want to run a 10K and feel that sense of freedom',
-      'walking': 'e.g. I want to clear my head and move every day',
-      'cycling': 'e.g. I want to explore new places and stay active',
-      'swimming': 'e.g. I want a low-impact workout that clears my mind',
-      'yoga': 'e.g. I want to feel calm and flexible in my body',
-      'stretching': 'e.g. I want to start every day feeling loose and ready',
-      'reading': 'e.g. I want to learn more and unwind without a screen',
-      'learning': 'e.g. I want to grow my skills and invest in myself',
-      'practice-skill': 'e.g. I want to get noticeably better each week',
-      'meditation': 'e.g. I want a calmer mind and less stress',
-      'journaling': 'e.g. I want to understand myself better and process my thoughts',
-      'go-outside': 'e.g. I want fresh air and daylight every single day',
-      'no-smoking': 'e.g. I want to breathe freely and protect my health',
-      'no-fast-food': 'e.g. I want to feel better about what I put in my body',
-      'no-social-media': 'e.g. I want to reclaim my time and focus',
-      'no-alcohol': 'e.g. I want clearer mornings and sharper thinking',
-      'no-unnecessary-spending': 'e.g. I want to save for something that matters',
-    }
-    if (placeholders[templateId]) return placeholders[templateId]
+  const byTemplate: Record<string, string[]> = {
+    'strength-workout': [
+      'I want to feel strong and confident',
+      'I want to build discipline through training',
+      'I want to look and feel my best',
+    ],
+    'running': [
+      'I want to run a 10K',
+      'I want to feel that runner\'s freedom',
+      'I want more energy throughout the day',
+    ],
+    'walking': [
+      'I want to clear my head every day',
+      'I want to move more and sit less',
+      'I want fresh air and daylight daily',
+    ],
+    'cycling': [
+      'I want to explore new places on two wheels',
+      'I want a fun way to stay active',
+      'I want to build endurance',
+    ],
+    'swimming': [
+      'I want a workout that clears my mind',
+      'I want to build full-body strength',
+      'I want to feel weightless and free',
+    ],
+    'yoga': [
+      'I want to feel calm and flexible',
+      'I want to reduce stress and tension',
+      'I want to start my day centered',
+    ],
+    'stretching': [
+      'I want to start every day feeling loose',
+      'I want to prevent stiffness and injury',
+      'I want to move better as I age',
+    ],
+    'reading': [
+      'I want to learn more and grow',
+      'I want to unwind without a screen',
+      'I want to finish more books this year',
+    ],
+    'learning': [
+      'I want to grow my skills',
+      'I want to invest in myself',
+      'I want to stay curious and sharp',
+    ],
+    'practice-skill': [
+      'I want to get noticeably better each week',
+      'I want to master something I care about',
+      'I want to prove to myself I can improve',
+    ],
+    'meditation': [
+      'I want a calmer mind',
+      'I want less stress and more clarity',
+      'I want to respond rather than react',
+    ],
+    'journaling': [
+      'I want to understand myself better',
+      'I want to process my thoughts on paper',
+      'I want to track my growth over time',
+    ],
+    'go-outside': [
+      'I want fresh air and daylight every day',
+      'I want to break the indoor cycle',
+      'I want to feel connected to the world',
+    ],
+    'no-smoking': [
+      'I want to breathe freely again',
+      'I want to protect my health',
+      'I want to prove I am in control',
+    ],
+    'no-fast-food': [
+      'I want to feel better about what I eat',
+      'I want more energy and less sluggishness',
+      'I want to save money and eat well',
+    ],
+    'no-social-media': [
+      'I want to reclaim my time',
+      'I want more focus and less distraction',
+      'I want to be present in real life',
+    ],
+    'no-alcohol': [
+      'I want clearer mornings',
+      'I want sharper thinking and better sleep',
+      'I want to prove I do not need it',
+    ],
+    'no-unnecessary-spending': [
+      'I want to save for something that matters',
+      'I want to be intentional with my money',
+      'I want financial peace of mind',
+    ],
   }
 
-  // Fallback: match by activity name (for custom routines or edit screen).
+  if (templateId && byTemplate[templateId]) {
+    return byTemplate[templateId]
+  }
+
+  // Fallback: match by activity name keywords.
   const name = activityName?.toLowerCase() ?? ''
-  if (name.includes('meditat')) return 'e.g. I want a calmer mind and less stress'
-  if (name.includes('journal')) return 'e.g. I want to understand myself better'
-  if (name.includes('read')) return 'e.g. I want to learn more and unwind without a screen'
-  if (name.includes('yoga')) return 'e.g. I want to feel calm and flexible'
-  if (name.includes('run')) return 'e.g. I want to feel that runner\'s freedom'
-  if (name.includes('walk')) return 'e.g. I want to move and clear my head'
-  if (name.includes('swim')) return 'e.g. I want a workout that clears my mind'
-  if (name.includes('stretch')) return 'e.g. I want to start every day feeling ready'
-  if (name.includes('smok')) return 'e.g. I want to breathe freely again'
-  if (name.includes('alcohol') || name.includes('drink')) return 'e.g. I want clearer mornings'
-  if (name.includes('social media')) return 'e.g. I want to reclaim my time'
+  if (name.includes('meditat')) return byTemplate['meditation']!
+  if (name.includes('journal')) return byTemplate['journaling']!
+  if (name.includes('read')) return byTemplate['reading']!
+  if (name.includes('yoga')) return byTemplate['yoga']!
+  if (name.includes('run')) return byTemplate['running']!
+  if (name.includes('walk')) return byTemplate['walking']!
+  if (name.includes('swim')) return byTemplate['swimming']!
+  if (name.includes('stretch')) return byTemplate['stretching']!
+  if (name.includes('smok')) return byTemplate['no-smoking']!
+  if (name.includes('alcohol') || name.includes('drink')) return byTemplate['no-alcohol']!
+  if (name.includes('social media')) return byTemplate['no-social-media']!
 
   // Generic fallback
-  return 'e.g. What will keep you going when it gets hard?'
+  return [
+    'I want to build a better version of myself',
+    'I want to prove I can stay consistent',
+    'I want to feel proud of showing up',
+  ]
 }
