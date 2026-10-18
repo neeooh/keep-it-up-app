@@ -13,7 +13,7 @@ import type {
 import { useAppStore, AppStoreProvider } from './store/useAppStore'
 import { ThemeProvider } from './hooks/useTheme'
 import { PreferencesProvider } from './hooks/usePreferences'
-import { findTemplate, needsConfigureScreen } from './domain/templates'
+import { findTemplate, needsConfigureScreen, personaPresets } from './domain/templates'
 
 // ── Onboarding screens ────────────────────────────────────────────────────────
 import { WelcomeScreen } from './screens/onboarding/WelcomeScreen'
@@ -143,6 +143,14 @@ function renderScreen(
               preferredTime: tmpl?.defaultPreferredTime ?? EMPTY_DRAFT.preferredTime,
               skippedConfigure: skip,
             })
+          }}
+          onInstallPreset={(presetId) => {
+            const preset = personaPresets.find((p) => p.id === presetId)
+            if (!preset) return
+            const routine = preset.buildRoutine()
+            addRoutine(routine)
+            setDraftState(EMPTY_DRAFT)
+            navigate('dashboard')
           }}
           onClose={onClose}
         />

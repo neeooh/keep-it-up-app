@@ -7,7 +7,7 @@
  * Source of truth: mvp_product_spec.md sections 5 and 6.
  */
 
-import type { Direction, Frequency, MeasurementConfig } from './types'
+import type { Direction, Frequency, MeasurementConfig, Routine } from './types'
 
 // ─── Template type ────────────────────────────────────────────────────────────
 
@@ -475,3 +475,208 @@ export function emotionalPlaceholder(templateId?: string | null, activityName?: 
 
   return 'Something needs to change and this is where I start'
 }
+
+// ─── Persona presets ──────────────────────────────────────────────────────────
+
+/**
+ * A persona preset is a complete routine bundle inspired by a real person
+ * or philosophy. The user taps one card and gets a fully configured routine
+ * without going through the onboarding form.
+ */
+export interface PersonaPreset {
+  /** Stable identifier. */
+  id: string
+  /** Display name shown on the card. */
+  name: string
+  /** Short tagline (1 line). */
+  tagline: string
+  /** Emoji or short icon hint for the card. */
+  emoji: string
+  /** The motivation text stored on the created routine. */
+  motivation: string
+  /** Factory: builds a Routine object with fresh IDs and timestamps. */
+  buildRoutine: () => Routine
+}
+
+export const personaPresets: PersonaPreset[] = [
+  {
+    id: 'stoic',
+    name: 'The Stoic',
+    tagline: 'Discipline, reflection, and daily practice',
+    emoji: '🏛️',
+    motivation: 'You have power over your mind, not outside events. Realise this, and you will find strength.',
+    buildRoutine: () => ({
+      id: crypto.randomUUID(),
+      name: 'Stoic Daily Practice',
+      createdAt: new Date().toISOString(),
+      motivation: 'You have power over your mind, not outside events. Realise this, and you will find strength.',
+      activities: [
+        {
+          id: crypto.randomUUID(),
+          name: 'Morning journaling',
+          direction: 'DO',
+          measurements: [{ type: 'duration', unit: 'min', target: 10 }],
+          frequency: 'daily',
+          preferredTime: 'Morning',
+        },
+        {
+          id: crypto.randomUUID(),
+          name: 'Reading',
+          direction: 'DO',
+          measurements: [{ type: 'duration', unit: 'min', target: 20 }],
+          frequency: 'daily',
+          preferredTime: 'Evening',
+        },
+        {
+          id: crypto.randomUUID(),
+          name: 'Walking',
+          direction: 'DO',
+          measurements: [{ type: 'duration', unit: 'min', target: 30 }],
+          frequency: 'daily',
+          preferredTime: 'Morning',
+        },
+        {
+          id: crypto.randomUUID(),
+          name: 'Evening reflection',
+          direction: 'DO',
+          measurements: [{ type: 'duration', unit: 'min', target: 10 }],
+          frequency: 'daily',
+          preferredTime: 'Evening',
+        },
+      ],
+    }),
+  },
+  {
+    id: 'jesus',
+    name: 'The Carpenter',
+    tagline: 'Service, stillness, and gratitude',
+    emoji: '✝️',
+    motivation: 'Love your neighbour as yourself. Start with showing up for your own life.',
+    buildRoutine: () => ({
+      id: crypto.randomUUID(),
+      name: 'Daily Devotion',
+      createdAt: new Date().toISOString(),
+      motivation: 'Love your neighbour as yourself. Start with showing up for your own life.',
+      activities: [
+        {
+          id: crypto.randomUUID(),
+          name: 'Prayer or meditation',
+          direction: 'DO',
+          measurements: [{ type: 'duration', unit: 'min', target: 15 }],
+          frequency: 'daily',
+          preferredTime: 'Morning',
+        },
+        {
+          id: crypto.randomUUID(),
+          name: 'Gratitude journaling',
+          direction: 'DO',
+          measurements: [{ type: 'duration', unit: 'min', target: 10 }],
+          frequency: 'daily',
+          preferredTime: 'Evening',
+        },
+        {
+          id: crypto.randomUUID(),
+          name: 'Act of kindness',
+          direction: 'DO',
+          measurements: [{ type: 'quantity', target: 1 }],
+          frequency: 'daily',
+        },
+        {
+          id: crypto.randomUUID(),
+          name: 'Walking in nature',
+          direction: 'DO',
+          measurements: [{ type: 'duration', unit: 'min', target: 20 }],
+          frequency: '3x_week',
+        },
+      ],
+    }),
+  },
+  {
+    id: 'peterson',
+    name: 'Peterson',
+    tagline: 'Order, responsibility, and meaning',
+    emoji: '🦞',
+    motivation: 'Compare yourself to who you were yesterday, not to who someone else is today.',
+    buildRoutine: () => ({
+      id: crypto.randomUUID(),
+      name: 'Clean Up Your Life',
+      createdAt: new Date().toISOString(),
+      motivation: 'Compare yourself to who you were yesterday, not to who someone else is today.',
+      activities: [
+        {
+          id: crypto.randomUUID(),
+          name: 'Clean your room',
+          direction: 'DO',
+          measurements: [{ type: 'duration', unit: 'min', target: 15 }],
+          frequency: 'daily',
+          preferredTime: 'Morning',
+        },
+        {
+          id: crypto.randomUUID(),
+          name: 'Reading',
+          direction: 'DO',
+          measurements: [{ type: 'duration', unit: 'min', target: 30 }],
+          frequency: 'daily',
+          preferredTime: 'Evening',
+        },
+        {
+          id: crypto.randomUUID(),
+          name: 'Journaling',
+          direction: 'DO',
+          measurements: [{ type: 'duration', unit: 'min', target: 15 }],
+          frequency: 'daily',
+          preferredTime: 'Evening',
+        },
+        {
+          id: crypto.randomUUID(),
+          name: 'No unnecessary spending',
+          direction: 'AVOID',
+          measurements: [],
+          frequency: 'daily',
+        },
+      ],
+    }),
+  },
+  {
+    id: 'arnold',
+    name: 'Arnold',
+    tagline: 'Strength, volume, and no excuses',
+    emoji: '💪',
+    motivation: 'The mind is the limit. As long as the mind can envision that you can do something, you can do it.',
+    buildRoutine: () => ({
+      id: crypto.randomUUID(),
+      name: 'Arnold Blueprint',
+      createdAt: new Date().toISOString(),
+      motivation: 'The mind is the limit. As long as the mind can envision that you can do something, you can do it.',
+      activities: [
+        {
+          id: crypto.randomUUID(),
+          name: 'Strength workout',
+          direction: 'DO',
+          measurements: [
+            { type: 'sets', target: 4 },
+            { type: 'reps', target: 10 },
+            { type: 'weight', unit: 'kg' },
+          ],
+          frequency: 'daily',
+          scheduledDays: [1, 2, 3, 4, 5, 6],
+        },
+        {
+          id: crypto.randomUUID(),
+          name: 'Cardio',
+          direction: 'DO',
+          measurements: [{ type: 'duration', unit: 'min', target: 30 }],
+          frequency: '3x_week',
+          scheduledDays: [2, 4, 6],
+        },
+        {
+          id: crypto.randomUUID(),
+          name: 'No fast food',
+          direction: 'AVOID',
+          measurements: [],
+          frequency: 'daily',
+        },
+      ],
+    }),
+  },
+]
