@@ -24,6 +24,7 @@ import { ActivityIcon } from '../components/ActivityIcon'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { useAppStore } from '../store/useAppStore'
 import { usePreferences } from '../hooks/usePreferences'
+import { personaPresets } from '../domain/templates'
 import { useNotification } from '../hooks/useNotification'
 import { sessionsForRoutine, calculateVolume } from '../domain/calculations'
 import type { Navigate } from '../App'
@@ -715,6 +716,15 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
                 })()}
               </p>
             )}
+            {preferences.chosenPath && (() => {
+              const preset = personaPresets.find((p) => p.id === preferences.chosenPath)
+              if (!preset) return null
+              return (
+                <p data-testid="path-badge" className="text-sm text-brand font-medium">
+                  {preset.emoji} {preset.name}
+                </p>
+              )
+            })()}
           </div>
         </div>
 

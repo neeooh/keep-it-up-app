@@ -12,7 +12,7 @@ import type {
 } from './domain/types'
 import { useAppStore, AppStoreProvider } from './store/useAppStore'
 import { ThemeProvider } from './hooks/useTheme'
-import { PreferencesProvider } from './hooks/usePreferences'
+import { PreferencesProvider, usePreferences } from './hooks/usePreferences'
 import { findTemplate, needsConfigureScreen, personaPresets } from './domain/templates'
 
 // ── Onboarding screens ────────────────────────────────────────────────────────
@@ -21,6 +21,7 @@ import { ChooseDirectionScreen } from './screens/onboarding/ChooseDirectionScree
 import { ConfigureActivityScreen } from './screens/onboarding/ConfigureActivityScreen'
 import { SetFrequencyScreen } from './screens/onboarding/SetFrequencyScreen'
 import { PlanReviewScreen } from './screens/onboarding/PlanReviewScreen'
+import { PathPreviewScreen } from './screens/onboarding/PathPreviewScreen'
 
 // ── Main app screens ──────────────────────────────────────────────────────────
 import { DashboardScreen } from './screens/DashboardScreen'
@@ -102,6 +103,10 @@ interface ScreenProps {
   onClose?: () => void
   /** Install a persona preset routine by id. */
   onInstallPreset: (presetId: string) => void
+  /** Confirm the previewed path — install and navigate to dashboard. */
+  onConfirmPath: (presetId: string) => void
+  /** The currently previewed preset id. */
+  selectedPresetId: string | null
   sessionDate?: string
 }
 
@@ -117,6 +122,8 @@ function renderScreen(
     onEditRoutine,
     onClose,
     onInstallPreset,
+    onConfirmPath,
+    selectedPresetId,
     sessionDate,
   }: ScreenProps,
 ) {
@@ -215,6 +222,14 @@ function renderScreen(
             }
           }}
           onClose={onClose}
+        />
+      )
+    case 'path-preview':
+      return (
+        <PathPreviewScreen
+          navigate={navigate}
+          presetId={selectedPresetId}
+          onConfirm={onConfirmPath}
         />
       )
     case 'dashboard':
@@ -325,6 +340,7 @@ export default function App({ initialScreen }: AppProps) {
 
 function AppShell({ initialScreen }: AppProps) {
   const { addRoutine, state: appState } = useAppStore()
+  const { preferences, updatePreferences } = usePreferences()
 
   // Route to dashboard when routines already exist, unless explicitly overridden.
   const resolvedInitial =
@@ -333,6 +349,7 @@ function AppShell({ initialScreen }: AppProps) {
   const [screen, setScreen] = useState<Screen>(resolvedInitial)
   const [draft, setDraftState] = useState<OnboardingDraft>(EMPTY_DRAFT)
   const [selectedRoutineId, setSelectedRoutineId] = useState<string | null>(null)
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
   const [sessionDate, setSessionDate] = useState<string | undefined>(undefined)
 
   const navigate = useCallback((next: Screen) => {
@@ -442,9 +459,12 @@ function AppShell({ initialScreen }: AppProps) {
             onEditRoutine,
             onClose: appState.routines.length > 0 ? () => navigate('dashboard') : undefined,
             onInstallPreset: (presetId: string) => {
+              setSelectedPresetId(presetId)
+              navigate('path-preview')
+            },
+            onConfirmPath: (presetId: string) => {
               const preset = personaPresets.find((p) => p.id === presetId)
               if (!preset) return
-              // Collect existing activity names to avoid duplicates.
               const existingNames = new Set(
                 appState.routines.flatMap((r) =>
                   r.activities.map((a) => a.name.toLowerCase()),
@@ -456,8 +476,10 @@ function AppShell({ initialScreen }: AppProps) {
                 existingNames.add(activityName)
                 addRoutine(routine)
               }
+              updatePreferences({ chosenPath: presetId })
               navigate('dashboard')
             },
+            selectedPresetId,
             sessionDate,
           })}
         </main>

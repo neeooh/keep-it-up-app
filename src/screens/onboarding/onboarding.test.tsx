@@ -23,6 +23,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { WelcomeScreen } from './WelcomeScreen'
 import { ChooseDirectionScreen } from './ChooseDirectionScreen'
+import { PreferencesProvider } from '../../hooks/usePreferences'
 import {
   doTemplates,
   avoidTemplates,
@@ -36,7 +37,7 @@ describe('WelcomeScreen', () => {
   function setup() {
     const navigate = vi.fn()
     const onDirectionChoose = vi.fn()
-    render(<WelcomeScreen navigate={navigate} onDirectionChoose={onDirectionChoose} />)
+    render(<PreferencesProvider><WelcomeScreen navigate={navigate} onDirectionChoose={onDirectionChoose} /></PreferencesProvider>)
     return { navigate, onDirectionChoose }
   }
 
@@ -87,7 +88,7 @@ describe('WelcomeScreen', () => {
   it('works without onDirectionChoose (optional prop)', async () => {
     const user = userEvent.setup()
     const navigate = vi.fn()
-    render(<WelcomeScreen navigate={navigate} />)
+    render(<PreferencesProvider><WelcomeScreen navigate={navigate} /></PreferencesProvider>)
     // Should not throw
     await user.click(screen.getByTestId('direction-do'))
     expect(navigate).toHaveBeenCalledWith('choose-direction')

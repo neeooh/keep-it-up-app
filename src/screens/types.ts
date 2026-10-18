@@ -15,6 +15,7 @@ export type Screen =
   | 'configure-activity'
   | 'set-frequency'
   | 'plan-review'
+  | 'path-preview'
   // ── Main app ─────────────────────────────────────────────────────────────
   | 'dashboard'
   | 'plan'
@@ -32,6 +33,7 @@ export const ONBOARDING_SCREENS: Screen[] = [
   'configure-activity',
   'set-frequency',
   'plan-review',
+  'path-preview',
 ]
 
 /** Screens that show the persistent bottom navigation bar. */

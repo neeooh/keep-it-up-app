@@ -19,6 +19,7 @@ import { ThemeToggle } from '../components/ThemeToggle'
 import { usePreferences } from '../hooks/usePreferences'
 import { useAppStore } from '../store/useAppStore'
 import { exportJSON, exportCSV, exportMarkdown, downloadFile } from '../domain/export'
+import { personaPresets } from '../domain/templates'
 import type { Navigate } from '../App'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -109,6 +110,36 @@ export function SettingsScreen({ navigate }: Props) {
             />
           </div>
         </section>
+
+        {/* ── Your path section ────────────────────────────────────────── */}
+        {preferences.chosenPath && (() => {
+          const preset = personaPresets.find((p) => p.id === preferences.chosenPath)
+          if (!preset) return null
+          return (
+            <section>
+              <SectionHeader title="Your path" />
+              <div className="flex items-center gap-3 mt-2 rounded-xl border border-border bg-card px-4 py-3">
+                <span className="text-2xl" aria-hidden="true">{preset.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">{preset.name}</p>
+                  <p className="text-xs text-muted-foreground">{preset.tagline}</p>
+                </div>
+              </div>
+              <Button
+                data-testid="switch-path-button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  updatePreferences({ chosenPath: undefined })
+                  navigate('welcome')
+                }}
+                className="mt-2 text-muted-foreground"
+              >
+                Switch path
+              </Button>
+            </section>
+          )
+        })()}
 
         {/* ── Data export section ──────────────────────────────────────── */}
         <section>
