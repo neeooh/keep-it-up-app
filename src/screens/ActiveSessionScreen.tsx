@@ -644,9 +644,13 @@ export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props)
             data-testid={`activity-card-${activity.id}`}
             className="border-b border-border/50 py-5 first:pt-2 last:border-0"
           >
-            <h2 className="text-base font-semibold text-foreground mb-3">
+            <h2 className="text-base font-semibold text-foreground">
               {activity.name}
             </h2>
+            {activity.description && (
+              <p className="text-xs text-muted-foreground italic mb-3">{activity.description}</p>
+            )}
+            {!activity.description && <div className="mb-3" />}
 
             {activity.direction === 'AVOID' && (
               <AvoidInput

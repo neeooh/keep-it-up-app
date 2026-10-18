@@ -43,6 +43,8 @@ export interface MeasurementConfig {
 export interface Activity {
   id: string
   name: string
+  /** One-line prompt or tip. Shows on the dashboard card and session screen. */
+  description?: string
   direction: Direction
   measurements: MeasurementConfig[]
   frequency: Frequency

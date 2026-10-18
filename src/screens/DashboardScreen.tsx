@@ -766,6 +766,9 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
                                 Done
                               </span>
                             </div>
+                            {primaryActivity.description && !hasMultipleActivities && (
+                              <p className="text-xs text-muted-foreground italic mt-0.5">{primaryActivity.description}</p>
+                            )}
                             {hasMultipleActivities && (
                               <p className="text-sm text-muted-foreground mt-0.5">
                                 {cardActivities.map((a) => a.name).join(', ')}
@@ -821,6 +824,9 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
                         <ActivityIcon name={routine.name} size={32} className="mt-0.5" />
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold text-foreground">{routine.name}</p>
+                          {primaryActivity.description && !hasMultipleActivities && (
+                            <p className="text-xs text-muted-foreground italic mt-0.5">{primaryActivity.description}</p>
+                          )}
                           {hasMultipleActivities ? (
                             <p className="text-sm text-muted-foreground mt-0.5">
                               {cardActivities.map((a) => a.name).join(', ')}

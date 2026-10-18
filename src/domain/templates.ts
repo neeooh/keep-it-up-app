@@ -501,7 +501,7 @@ export interface PersonaPreset {
 /** Helper: build one routine per activity definition, sharing the same motivation. */
 function buildSeparateRoutines(
   motivation: string,
-  activities: { name: string; direction: 'DO' | 'AVOID'; measurements: MeasurementConfig[]; frequency: Frequency; preferredTime?: string; scheduledDays?: (1|2|3|4|5|6|7)[] }[],
+  activities: { name: string; description?: string; direction: 'DO' | 'AVOID'; measurements: MeasurementConfig[]; frequency: Frequency; preferredTime?: string; scheduledDays?: (1|2|3|4|5|6|7)[] }[],
 ): Routine[] {
   const now = new Date().toISOString()
   return activities.map((a) => ({
@@ -512,6 +512,7 @@ function buildSeparateRoutines(
     activities: [{
       id: crypto.randomUUID(),
       name: a.name,
+      description: a.description,
       direction: a.direction,
       measurements: a.measurements,
       frequency: a.frequency,
@@ -531,10 +532,10 @@ export const personaPresets: PersonaPreset[] = [
     buildRoutines: () => buildSeparateRoutines(
       'You have power over your mind, not outside events. Realise this, and you will find strength.',
       [
-        { name: 'Morning journaling', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 10 }], frequency: 'daily', preferredTime: 'Morning' },
-        { name: 'Reading', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 20 }], frequency: 'daily', preferredTime: 'Evening' },
-        { name: 'Walking', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 30 }], frequency: 'daily', preferredTime: 'Morning' },
-        { name: 'Evening reflection', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 10 }], frequency: 'daily', preferredTime: 'Evening' },
+        { name: 'Morning journaling', description: 'Write 3 things on your mind', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 10 }], frequency: 'daily', preferredTime: 'Morning' },
+        { name: 'Reading', description: 'A few pages of something meaningful', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 20 }], frequency: 'daily', preferredTime: 'Evening' },
+        { name: 'Walking', description: 'Move your body, clear your mind', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 30 }], frequency: 'daily', preferredTime: 'Morning' },
+        { name: 'Evening reflection', description: 'What went well today?', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 10 }], frequency: 'daily', preferredTime: 'Evening' },
       ],
     ),
   },
@@ -547,10 +548,10 @@ export const personaPresets: PersonaPreset[] = [
     buildRoutines: () => buildSeparateRoutines(
       'Love your neighbour as yourself. Start with showing up for your own life.',
       [
-        { name: 'Prayer or meditation', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 15 }], frequency: 'daily', preferredTime: 'Morning' },
-        { name: 'Gratitude journaling', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 10 }], frequency: 'daily', preferredTime: 'Evening' },
-        { name: 'Act of kindness', direction: 'DO', measurements: [{ type: 'quantity', target: 1 }], frequency: 'daily' },
-        { name: 'Walking in nature', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 20 }], frequency: '3x_week' },
+        { name: 'Prayer or meditation', description: 'Be still and listen', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 15 }], frequency: 'daily', preferredTime: 'Morning' },
+        { name: 'Gratitude journaling', description: 'Write 3 things you are thankful for', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 10 }], frequency: 'daily', preferredTime: 'Evening' },
+        { name: 'Act of kindness', description: 'One deliberate act for someone else', direction: 'DO', measurements: [{ type: 'quantity', target: 1 }], frequency: 'daily' },
+        { name: 'Walking in nature', description: 'Step outside and be present', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 20 }], frequency: '3x_week' },
       ],
     ),
   },
@@ -563,10 +564,10 @@ export const personaPresets: PersonaPreset[] = [
     buildRoutines: () => buildSeparateRoutines(
       'Compare yourself to who you were yesterday, not to who someone else is today.',
       [
-        { name: 'Clean your room', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 15 }], frequency: 'daily', preferredTime: 'Morning' },
-        { name: 'Reading', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 30 }], frequency: 'daily', preferredTime: 'Evening' },
-        { name: 'Journaling', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 15 }], frequency: 'daily', preferredTime: 'Evening' },
-        { name: 'No unnecessary spending', direction: 'AVOID', measurements: [], frequency: 'daily' },
+        { name: 'Clean your room', description: '15 minutes. One area. Start small.', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 15 }], frequency: 'daily', preferredTime: 'Morning' },
+        { name: 'Reading', description: 'Something that challenges your thinking', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 30 }], frequency: 'daily', preferredTime: 'Evening' },
+        { name: 'Journaling', description: 'Write honestly about what matters', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 15 }], frequency: 'daily', preferredTime: 'Evening' },
+        { name: 'No unnecessary spending', description: 'Ask: do I need this or want this?', direction: 'AVOID', measurements: [], frequency: 'daily' },
       ],
     ),
   },
@@ -579,9 +580,9 @@ export const personaPresets: PersonaPreset[] = [
     buildRoutines: () => buildSeparateRoutines(
       'The mind is the limit. As long as the mind can envision that you can do something, you can do it.',
       [
-        { name: 'Strength workout', direction: 'DO', measurements: [{ type: 'sets', target: 4 }, { type: 'reps', target: 10 }, { type: 'weight', unit: 'kg' }], frequency: 'daily', scheduledDays: [1, 2, 3, 4, 5, 6] },
-        { name: 'Cardio', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 30 }], frequency: '3x_week', scheduledDays: [2, 4, 6] },
-        { name: 'No fast food', direction: 'AVOID', measurements: [], frequency: 'daily' },
+        { name: 'Strength workout', description: 'Push yourself. Log every set.', direction: 'DO', measurements: [{ type: 'sets', target: 4 }, { type: 'reps', target: 10 }, { type: 'weight', unit: 'kg' }], frequency: 'daily', scheduledDays: [1, 2, 3, 4, 5, 6] },
+        { name: 'Cardio', description: '30 minutes. No shortcuts.', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 30 }], frequency: '3x_week', scheduledDays: [2, 4, 6] },
+        { name: 'No fast food', description: 'Fuel your body, not your cravings', direction: 'AVOID', measurements: [], frequency: 'daily' },
       ],
     ),
   },
