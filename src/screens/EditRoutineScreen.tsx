@@ -277,7 +277,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                   data-testid={`edit-day-${value}`}
                   onClick={() => toggleDay(value)}
                   className={[
-                    'flex-1 flex items-center justify-center rounded-lg border h-9 text-xs font-medium transition-colors',
+                    'flex-1 flex items-center justify-center rounded-full border h-9 text-xs font-medium transition-colors',
                     isSelected ? SELECTED_PILL : UNSELECTED_PILL,
                   ].join(' ')}
                 >
@@ -345,15 +345,6 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
           </section>
         )}
 
-        {/* Delete — at the end of scroll area, away from Save */}
-        <button
-          type="button"
-          data-testid="delete-routine-button"
-          onClick={() => setShowDeleteDialog(true)}
-          className="mt-4 text-sm text-destructive/70 hover:text-destructive transition-colors py-1 self-center"
-        >
-          Delete this routine
-        </button>
       </div>
 
       {/* Save */}
@@ -365,6 +356,14 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
         >
           Save changes
         </Button>
+        <button
+          type="button"
+          data-testid="delete-routine-button"
+          onClick={() => setShowDeleteDialog(true)}
+          className="w-full mt-4 text-xs text-muted-foreground/50 hover:text-destructive transition-colors py-1"
+        >
+          Delete this routine
+        </button>
       </div>
 
       {/* Delete confirmation dialog */}
