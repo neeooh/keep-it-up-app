@@ -17,6 +17,7 @@ import { EmptyState } from '../components/EmptyState'
 import { StatCard } from '../components/StatCard'
 import { SectionHeader } from '../components/SectionHeader'
 import { Button } from '../components/ui/button'
+import { ThemeToggle } from '../components/ThemeToggle'
 import { useAppStore } from '../store/useAppStore'
 import {
   calculateConsistency,
@@ -366,7 +367,7 @@ export function ProgressScreen({ navigate, onEditRoutine }: Props) {
   if (routines.length === 0 || !hasEnoughData) {
     return (
       <div data-testid="screen-progress" className="flex flex-col min-h-full">
-        <PageHeader title="Progress" />
+        <PageHeader title="Progress" rightAction={<ThemeToggle />} />
         <div data-testid="progress-not-enough-data" className="flex flex-col px-5 pb-6">
           <EmptyState
             icon={<BarChart3 size={32} aria-hidden="true" />}
@@ -482,7 +483,7 @@ export function ProgressScreen({ navigate, onEditRoutine }: Props) {
 
   return (
     <div data-testid="screen-progress" className="flex flex-col min-h-full">
-      <PageHeader title="Progress" />
+      <PageHeader title="Progress" rightAction={<ThemeToggle />} />
 
       {/* Time range selector */}
       <div className="flex gap-1 bg-surface-muted rounded-lg p-1 mx-5 mb-4">

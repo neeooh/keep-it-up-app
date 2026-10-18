@@ -11,6 +11,7 @@ import type {
   MeasurementConfig,
 } from './domain/types'
 import { useAppStore, AppStoreProvider } from './store/useAppStore'
+import { ThemeProvider } from './hooks/useTheme'
 import { findTemplate, needsConfigureScreen } from './domain/templates'
 
 // ── Onboarding screens ────────────────────────────────────────────────────────
@@ -276,9 +277,11 @@ interface AppProps {
 
 export default function App({ initialScreen }: AppProps) {
   return (
-    <AppStoreProvider>
-      <AppShell initialScreen={initialScreen} />
-    </AppStoreProvider>
+    <ThemeProvider>
+      <AppStoreProvider>
+        <AppShell initialScreen={initialScreen} />
+      </AppStoreProvider>
+    </ThemeProvider>
   )
 }
 

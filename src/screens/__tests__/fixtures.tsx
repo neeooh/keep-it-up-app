@@ -7,6 +7,7 @@
 
 import type { AppState, Routine, Session } from '../../domain/types'
 import { AppStoreProvider, STORAGE_KEY } from '../../store/useAppStore'
+import { ThemeProvider } from '../../hooks/useTheme'
 import type { ReactNode } from 'react'
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
@@ -163,5 +164,9 @@ export function clearStore(): void {
  * Call seedStore() BEFORE render() so the provider reads the seeded data.
  */
 export function StoreWrapper({ children }: { children: ReactNode }) {
-  return <AppStoreProvider>{children}</AppStoreProvider>
+  return (
+    <ThemeProvider>
+      <AppStoreProvider>{children}</AppStoreProvider>
+    </ThemeProvider>
+  )
 }

@@ -105,6 +105,12 @@ export interface AppStore {
    * Remove a session by id.
    */
   deleteSession: (sessionId: string) => void
+
+  /**
+   * Replace an existing session by id.
+   * Does nothing if no session with the given id exists.
+   */
+  updateSession: (session: Session) => void
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -156,9 +162,16 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     }))
   }, [])
 
+  const updateSession = useCallback((session: Session) => {
+    setState((prev) => ({
+      ...prev,
+      sessions: prev.sessions.map((s) => (s.id === session.id ? session : s)),
+    }))
+  }, [])
+
   const store = useMemo<AppStore>(
-    () => ({ state, addRoutine, updateRoutine, deleteRoutine, addSession, deleteSession }),
-    [state, addRoutine, updateRoutine, deleteRoutine, addSession, deleteSession],
+    () => ({ state, addRoutine, updateRoutine, deleteRoutine, addSession, deleteSession, updateSession }),
+    [state, addRoutine, updateRoutine, deleteRoutine, addSession, deleteSession, updateSession],
   )
 
   return (

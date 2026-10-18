@@ -14,7 +14,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { HistoryScreen } from './HistoryScreen'
 import {
   STRENGTH_ROUTINE,
+  RUNNING_ROUTINE,
+  AVOID_ROUTINE,
   makeStrengthSession,
+  makeRunningSession,
+  makeAvoidSession,
   daysAgo,
   seedStore,
   clearStore,
@@ -123,5 +127,127 @@ describe('HistoryScreen — with sessions', () => {
     expect(screen.getByText(/delete this session/i)).toBeInTheDocument()
     expect(screen.getByTestId(`confirm-delete-${sessions[0]!.id}`)).toBeInTheDocument()
     expect(screen.getByTestId(`cancel-delete-${sessions[0]!.id}`)).toBeInTheDocument()
+  })
+})
+
+describe('HistoryScreen — edit session dialog', () => {
+  it('opens edit dialog when Edit button is clicked (does not navigate)', async () => {
+    const session = makeStrengthSession(
+      STRENGTH_ROUTINE.id,
+      'act-bench',
+      daysAgo(0),
+      70,
+      8,
+    )
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [session] })
+    const navigate = vi.fn()
+    const user = userEvent.setup()
+    render(<StoreWrapper><HistoryScreen navigate={navigate} /></StoreWrapper>)
+
+    // Expand the entry
+    await user.click(screen.getByTestId(`history-entry-${session.id}`))
+    // Click Edit
+    await user.click(screen.getByTestId(`edit-session-${session.id}`))
+
+    // Dialog should appear
+    expect(screen.getByTestId('edit-session-dialog')).toBeInTheDocument()
+    expect(screen.getByText('Edit session')).toBeInTheDocument()
+    // Should NOT have navigated
+    expect(navigate).not.toHaveBeenCalled()
+  })
+
+  it('pre-fills strength set values from the existing session', async () => {
+    const session = makeStrengthSession(
+      STRENGTH_ROUTINE.id,
+      'act-bench',
+      daysAgo(0),
+      75,
+      10,
+    )
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [session] })
+    const user = userEvent.setup()
+    render(<StoreWrapper><HistoryScreen navigate={vi.fn()} /></StoreWrapper>)
+
+    await user.click(screen.getByTestId(`history-entry-${session.id}`))
+    await user.click(screen.getByTestId(`edit-session-${session.id}`))
+
+    // The first set should be pre-filled with weight=75, reps=10
+    const weightInput = screen.getByTestId('edit-set-weight-0') as HTMLInputElement
+    const repsInput = screen.getByTestId('edit-set-reps-0') as HTMLInputElement
+    expect(weightInput.value).toBe('75')
+    expect(repsInput.value).toBe('10')
+  })
+
+  it('saves edited session when Save changes is clicked', async () => {
+    const session = makeStrengthSession(
+      STRENGTH_ROUTINE.id,
+      'act-bench',
+      daysAgo(0),
+      60,
+      8,
+    )
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [session] })
+    const user = userEvent.setup()
+    render(<StoreWrapper><HistoryScreen navigate={vi.fn()} /></StoreWrapper>)
+
+    // Expand → Edit
+    await user.click(screen.getByTestId(`history-entry-${session.id}`))
+    await user.click(screen.getByTestId(`edit-session-${session.id}`))
+
+    // Change the weight on set 0
+    const weightInput = screen.getByTestId('edit-set-weight-0')
+    await user.clear(weightInput)
+    await user.type(weightInput, '80')
+
+    // Save
+    await user.click(screen.getByTestId('edit-session-save'))
+
+    // Dialog should close
+    expect(screen.queryByTestId('edit-session-dialog')).not.toBeInTheDocument()
+
+    // The summary in the list should now reflect 80 kg
+    expect(screen.getByText(/80 kg/)).toBeInTheDocument()
+  })
+
+  it('opens edit dialog for a metric session and pre-fills values', async () => {
+    const session = makeRunningSession(
+      RUNNING_ROUTINE.id,
+      'act-run',
+      daysAgo(0),
+      5.2,
+      31,
+    )
+    seedStore({ routines: [RUNNING_ROUTINE], sessions: [session] })
+    const user = userEvent.setup()
+    render(<StoreWrapper><HistoryScreen navigate={vi.fn()} /></StoreWrapper>)
+
+    await user.click(screen.getByTestId(`history-entry-${session.id}`))
+    await user.click(screen.getByTestId(`edit-session-${session.id}`))
+
+    expect(screen.getByTestId('edit-session-dialog')).toBeInTheDocument()
+    const distanceInput = screen.getByTestId('edit-metric-distance') as HTMLInputElement
+    const durationInput = screen.getByTestId('edit-metric-duration') as HTMLInputElement
+    expect(distanceInput.value).toBe('5.2')
+    expect(durationInput.value).toBe('31')
+  })
+
+  it('opens edit dialog for an AVOID session and pre-fills stayedOnTrack', async () => {
+    const session = makeAvoidSession(
+      AVOID_ROUTINE.id,
+      'act-no-fast-food',
+      daysAgo(0),
+      true,
+    )
+    seedStore({ routines: [AVOID_ROUTINE], sessions: [session] })
+    const user = userEvent.setup()
+    render(<StoreWrapper><HistoryScreen navigate={vi.fn()} /></StoreWrapper>)
+
+    await user.click(screen.getByTestId(`history-entry-${session.id}`))
+    await user.click(screen.getByTestId(`edit-session-${session.id}`))
+
+    expect(screen.getByTestId('edit-session-dialog')).toBeInTheDocument()
+    // The "Yes" button should be pressed
+    expect(screen.getByTestId('edit-avoid-yes')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId('edit-avoid-no')).toHaveAttribute('aria-pressed', 'false')
   })
 })

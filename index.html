@@ -5,9 +5,24 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#D97745" />
+    <meta name="theme-color" content="#FAF9F6" />
     <meta name="description" content="Track habits, log workouts, and build consistency. A simple habit tracker that helps you show up." />
     <title>Keep It Up</title>
+    <!-- FOWT prevention: apply dark class before first paint so users with
+         a stored dark preference (or OS dark mode) see no white flash. -->
+    <script>
+      ;(function () {
+        var t = 'keep-it-up:theme'
+        var s
+        try { s = localStorage.getItem(t) } catch (e) {}
+        var dark = s === 'dark' || (!s && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        if (dark) {
+          document.documentElement.classList.add('dark')
+          var m = document.querySelector('meta[name="theme-color"]')
+          if (m) m.setAttribute('content', '#2E2C28')
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

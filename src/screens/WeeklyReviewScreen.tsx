@@ -21,6 +21,7 @@ import { SectionHeader } from '../components/SectionHeader'
 import { StatCard } from '../components/StatCard'
 import { StatusBadge } from '../components/StatusBadge'
 import { EmptyState } from '../components/EmptyState'
+import { ThemeToggle } from '../components/ThemeToggle'
 import { useAppStore } from '../store/useAppStore'
 import {
   calculateWeeklySummary,
@@ -160,7 +161,7 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
     const nextMon = nextMonday()
     return (
       <div data-testid="screen-weekly-review" className="flex flex-col min-h-full">
-        <PageHeader title="Your week" />
+        <PageHeader title="Your week" rightAction={<ThemeToggle />} />
         <EmptyState
           icon={<CalendarCheck size={32} aria-hidden="true" />}
           title="Your weekly review"
@@ -227,7 +228,7 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
 
   return (
     <div data-testid="screen-weekly-review" className="flex flex-col min-h-full">
-      <PageHeader title="Your week" description={formatWeekRange(weekStart)} />
+      <PageHeader title="Your week" description={formatWeekRange(weekStart)} rightAction={<ThemeToggle />} />
 
       <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-6">
         {/* a. Completion summary */}

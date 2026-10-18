@@ -16,6 +16,8 @@ import { EmptyState } from '../components/EmptyState'
 import { StatusBadge } from '../components/StatusBadge'
 import { SectionHeader } from '../components/SectionHeader'
 import { ActivityIcon } from '../components/ActivityIcon'
+import { ThemeToggle } from '../components/ThemeToggle'
+import { EditSessionDialog } from '../components/EditSessionDialog'
 import { useAppStore } from '../store/useAppStore'
 import { calculateVolume } from '../domain/calculations'
 import type { Navigate } from '../App'
@@ -132,11 +134,12 @@ function sessionStatus(
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export function HistoryScreen({ navigate }: Props) {
-  const { state, deleteSession } = useAppStore()
+  const { state, deleteSession, updateSession } = useAppStore()
   const { routines, sessions } = state
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
 
   function toggleExpand(sessionId: string) {
     setExpandedIds((prev) => {
@@ -165,7 +168,7 @@ export function HistoryScreen({ navigate }: Props) {
   if (sessions.length === 0) {
     return (
       <div data-testid="screen-history" className="flex flex-col min-h-full">
-        <PageHeader title="History" />
+        <PageHeader title="History" rightAction={<ThemeToggle />} />
         <div data-testid="history-empty" className="flex flex-1 flex-col">
           <EmptyState
             icon={<Clock size={32} aria-hidden="true" />}
@@ -196,7 +199,7 @@ export function HistoryScreen({ navigate }: Props) {
 
   return (
     <div data-testid="screen-history" className="flex flex-col min-h-full">
-      <PageHeader title="History" />
+      <PageHeader title="History" rightAction={<ThemeToggle />} />
 
       <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-6">
         {groups.map((group) => (
@@ -287,8 +290,7 @@ export function HistoryScreen({ navigate }: Props) {
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                // Navigate to active session screen to re-log
-                                navigate('dashboard')
+                                setEditingSessionId(session.id)
                               }}
                             >
                               <Pencil size={14} className="mr-1" aria-hidden="true" />
@@ -315,6 +317,25 @@ export function HistoryScreen({ navigate }: Props) {
           </div>
         ))}
       </div>
+
+      {/* Edit session dialog */}
+      {editingSessionId && (() => {
+        const editSession = sessions.find((s) => s.id === editingSessionId)
+        const editRoutine = editSession ? routines.find((r) => r.id === editSession.routineId) : null
+        if (!editSession || !editRoutine) return null
+        return (
+          <EditSessionDialog
+            open={true}
+            onOpenChange={(open) => { if (!open) setEditingSessionId(null) }}
+            session={editSession}
+            routine={editRoutine}
+            onSave={(updated) => {
+              updateSession(updated)
+              setEditingSessionId(null)
+            }}
+          />
+        )
+      })()}
     </div>
   )
 }

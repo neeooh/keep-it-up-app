@@ -21,6 +21,7 @@ import { PageHeader } from '../components/PageHeader'
 import { SectionHeader } from '../components/SectionHeader'
 import { EmptyState } from '../components/EmptyState'
 import { ActivityIcon } from '../components/ActivityIcon'
+import { ThemeToggle } from '../components/ThemeToggle'
 import { useAppStore } from '../store/useAppStore'
 import { useNotification } from '../hooks/useNotification'
 import { sessionsForRoutine, calculateVolume } from '../domain/calculations'
@@ -582,15 +583,18 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
         <PageHeader
           title={formatToday()}
           rightAction={
-            <Button
-              variant="ghost"
-              size="icon"
-              data-testid="add-routine-button"
-              aria-label="Add routine"
-              onClick={() => navigate('welcome')}
-            >
-              <Plus size={20} aria-hidden="true" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <ThemeToggle />
+              <Button
+                variant="ghost"
+                size="icon"
+                data-testid="add-routine-button"
+                aria-label="Add routine"
+                onClick={() => navigate('welcome')}
+              >
+                <Plus size={20} aria-hidden="true" />
+              </Button>
+            </div>
           }
         />
         <div data-testid="today-empty" className="flex flex-1 flex-col">
@@ -611,15 +615,18 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
       <PageHeader
         title={formatToday()}
         rightAction={
-          <Button
-            variant="ghost"
-            size="icon"
-            data-testid="add-routine-button"
-            aria-label="Add routine"
-            onClick={() => navigate('welcome')}
-          >
-            <Plus size={20} aria-hidden="true" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              data-testid="add-routine-button"
+              aria-label="Add routine"
+              onClick={() => navigate('welcome')}
+            >
+              <Plus size={20} aria-hidden="true" />
+            </Button>
+          </div>
         }
       />
 
