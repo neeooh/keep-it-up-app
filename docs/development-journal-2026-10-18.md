@@ -262,3 +262,121 @@ Each iteration was a small, precise correction. The user knew what felt wrong be
 - Requires careful IP/likeness handling — public-domain figures (philosophers) are safe. Modern influencers need licensing or careful attribution.
 
 **Status:** Backlog. Documented for future consideration. Requires backend for scalable delivery and potential monetisation.
+
+### 05:09 — PlanReview screen polish batch
+
+**Button rename:** "Edit plan" → "Start over" (navigates to welcome, not configure-activity).
+
+**Inline editing on PlanReview:** User pointed out that the duplicate name warning tells you to rename but gives no way to do it. Also, simple templates (Running, Walking) skip the configure screen entirely, so the user never gets to adjust the suggested distance/duration values.
+
+Fix: activity name and measurement targets are now editable inline inputs on the plan summary card. Styled to look like text (transparent background, no border) until focused (brand underline). Template defaults are copied into draft on first edit.
+
+### 05:23 — Hide number input spinners
+
+User feedback: native up/down arrows on number inputs are small and awkward. Added a global CSS rule to suppress spinners on all `input[type="number"]` elements. Numeric keyboard still opens on mobile.
+
+### 05:25 — Merge schedule summary into one line
+
+Days and time-of-day were showing as separate lines on the plan card ("Days: Mon · Wed · Fri" and "Time: Morning"). Merged into one: "Mon · Wed · Fri · Morning" under a single "Schedule" label.
+
+### 05:29 — Edit routine screen cleanup session
+
+User wanted to move on to other screens. Multiple issues identified and fixed:
+
+- **05:48** — Motivation text not retrieved on edit screen. Investigated thoroughly — turned out to be pre-existing routines created before the motivation feature. Not a bug. Works for new routines.
+
+- **05:54** — Schedule UI overhaul. User identified that Frequency and Preferred Days are redundant questions. Brainstormed three approaches (A: days-first, B: frequency-first, C: unified picker with presets). Built both B and C on separate branches.
+
+- **06:14** — User asked which approach to recommend. Recommended C (day buttons are truth, presets are shortcuts, no contradictions). User tested both and found bugs in C's two-way matching.
+
+- **06:34** — Fixed preset matching: changed from exact day-set matching to count-based matching. "3×/week" now highlights when ANY 3 days are selected, not just Mon/Wed/Fri.
+
+- **06:37** — Replaced "Flexible" preset with "Weekend" (Sat+Sun). "Flexible" was the absence of a choice — if the user wants no fixed days, they just do not select any.
+
+- **06:38** — Removed verbose motivation helper text. Heart icon + question is enough.
+
+- **06:39** — Day button labels changed from single letters to 3-letter abbreviations (Mon, Tue, Wed).
+
+- **06:40** — Delete button placement: moved below Save in the footer, styled as very muted text. Save is the obvious action, Delete is discoverable but not competing.
+
+- **06:47** — Changed all pills from `rounded-full` to `rounded-lg` for consistency with the rest of the app.
+
+- **06:51** — Removed "Optional. Shows up when you log a session." helper text entirely from both screens.
+
+- **06:54** — Replaced 18 per-template emotional placeholders with one universal: "Why this matters to me..."
+
+- **06:58** — Removed triple "routine" repetition: dropped the "Routine" section header and renamed "Routine name" to "Name".
+
+- **07:01** — User asked about inconsistent input styling across screens. Conclusion: confirmation screens use inline editing, form screens use form inputs. That is a coherent pattern, not inconsistency.
+
+- **07:03** — Merged approach-c branch into develop.
+
+### 07:12 — Log session screen overhaul
+
+User requested full review. Six improvements identified and implemented:
+
+1. Progress bars now track per-activity completion (muted → brand as each is filled).
+2. Removed "Logging for" label, compact inline date selector.
+3. Pre-fill notice shortened to "Pre-filled from 12 Oct".
+4. Info cards (pre-fill + motivation) made compact to prevent stacking.
+5. Button renamed from "Log session" to "Done!" with Check icon.
+6. Success overlay: PartyPopper icon + "Session logged!" for 1.2 seconds before navigating.
+
+### 07:22 — Template list UX fix
+
+**User feedback from early tester:** Default activity list felt restrictive. "Something else" (custom) option was unclear and hidden at the bottom.
+
+Three fixes:
+- Renamed "Something else" → "Create your own"
+- Moved to TOP of the list
+- Visually distinct: brand-colored dashed border, Sparkles icon in tinted container, subtitle "Track anything you want"
+- Added hint: "Create your own or pick a template to get started."
+
+### 07:32 — Persona preset routines (The Stoic, The Carpenter, Peterson, Arnold)
+
+User suggested hardcoded complete routine bundles inspired by famous people. Originally a backlog idea (with revenue potential), simplified to 4 hardcoded presets.
+
+Each preset creates multiple separate routines (one per activity) so they appear as individual cards on the dashboard sorted by time of day. Includes motivation quotes.
+
+### 07:49 — Persona presets bug fix
+
+`onInstallPreset` was calling `addRoutine` which was out of scope in `renderScreen`. Fixed by wiring through `ScreenProps`.
+
+### 08:10 — Persona presets on WelcomeScreen
+
+User wanted presets on the very first screen, not buried in the activity selection. Added horizontal scrollable row of square cards below the DO/AVOID buttons, separated by a divider: "or try a ready-made routine" with "One tap setup — a complete routine in a second."
+
+### 08:13 — Preset creates separate routines (not one bundled routine)
+
+User found that installing "The Stoic" created one card with 4 sub-activities instead of 4 separate cards. Changed `buildRoutine()` to `buildRoutines()` — each activity becomes its own routine. They now sort into correct time sections on the dashboard.
+
+### 08:20 — Deduplication + activity tips
+
+**Duplicates:** Installing multiple personas with overlapping activities (Reading, Journaling) created duplicates. Fixed: case-insensitive name check before install, skip if exists.
+
+**Activity tips:** Added `description` field to Activity type. Each preset activity gets a one-line prompt: "Write 3 things on your mind", "What went well today?", "Push yourself. Log every set." Shows as italic subtitle on dashboard cards and session screen.
+
+### 08:38 — Session end
+
+6.5 hours of continuous development. User pulled an all-nighter. Sun is rising.
+
+## Session Statistics
+
+- **Duration:** ~6.5 hours (02:24 – 08:40)
+- **Commits on develop:** ~25 commits
+- **Features built:** dark mode, settings, export (JSON/CSV/MD), personalized greeting, motivation field, persona presets
+- **Screens modified:** all screens touched at least once
+- **Bugs fixed:** ~8 (history edit, frequency→days, preset scope, duplicates, triple routine label, etc.)
+- **Polish iterations:** ~20 (pills, badges, placeholders, button names, padding, border radius, etc.)
+- **Tests:** 451 passing (up from 426 at session start)
+- **Feature branches created:** 8
+- **Documentation files:** 3 (dark mode decisions, settings decisions, development journal)
+
+## Key design patterns that emerged
+
+1. **Inline editing on confirmation screens.** Form inputs on form screens. The screen's job determines the input style.
+2. **Presets as shortcuts, not constraints.** The custom option is always first. Templates are suggestions.
+3. **One routine per activity** for presets. Bundled routines do not work with the dashboard's card-per-routine model.
+4. **Deduplicate by name** on preset install. First persona to claim an activity wins.
+5. **Descriptions are prompts, not instructions.** "Write 3 things on your mind" tells you WHAT, not HOW.
+6. **Motivation has two layers:** rational outcomes (future: feeling pills on session log) and emotional truth (free text on routine creation).
