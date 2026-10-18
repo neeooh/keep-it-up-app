@@ -48,7 +48,7 @@ const PRESETS: Preset[] = [
   { label: '3×/week', days: [1, 3, 5] },
   { label: '2×/week', days: [2, 4] },
   { label: 'Weekdays', days: [1, 2, 3, 4, 5] },
-  { label: 'Flexible', days: [] },
+  { label: 'Weekend', days: [6, 7] },
 ]
 
 const DAY_BUTTONS: { value: DayOfWeek; letter: string }[] = [
@@ -90,14 +90,14 @@ function presetMatches(preset: Preset, selectedDays: DayOfWeek[]): boolean {
     return sorted.length === 5 && sorted.every((d, i) => d === [1, 2, 3, 4, 5][i])
   }
 
+  // "Weekend" must be exactly Sat-Sun
+  if (preset.label === 'Weekend') {
+    return sorted.length === 2 && sorted[0] === 6 && sorted[1] === 7
+  }
+
   // "Every day" must be exactly 7
   if (preset.label === 'Every day') {
     return sorted.length === 7
-  }
-
-  // "Flexible" must be 0
-  if (preset.label === 'Flexible') {
-    return sorted.length === 0
   }
 
   // Frequency presets match by count
