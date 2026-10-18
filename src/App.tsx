@@ -443,7 +443,9 @@ function AppShell({ initialScreen }: AppProps) {
             onInstallPreset: (presetId: string) => {
               const preset = personaPresets.find((p) => p.id === presetId)
               if (!preset) return
-              addRoutine(preset.buildRoutine())
+              for (const routine of preset.buildRoutines()) {
+                addRoutine(routine)
+              }
               navigate('dashboard')
             },
             sessionDate,

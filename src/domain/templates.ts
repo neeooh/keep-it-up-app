@@ -492,10 +492,33 @@ export interface PersonaPreset {
   tagline: string
   /** Emoji or short icon hint for the card. */
   emoji: string
-  /** The motivation text stored on the created routine. */
+  /** The motivation text stored on each created routine. */
   motivation: string
-  /** Factory: builds a Routine object with fresh IDs and timestamps. */
-  buildRoutine: () => Routine
+  /** Factory: builds one Routine per activity with fresh IDs and timestamps. */
+  buildRoutines: () => Routine[]
+}
+
+/** Helper: build one routine per activity definition, sharing the same motivation. */
+function buildSeparateRoutines(
+  motivation: string,
+  activities: { name: string; direction: 'DO' | 'AVOID'; measurements: MeasurementConfig[]; frequency: Frequency; preferredTime?: string; scheduledDays?: (1|2|3|4|5|6|7)[] }[],
+): Routine[] {
+  const now = new Date().toISOString()
+  return activities.map((a) => ({
+    id: crypto.randomUUID(),
+    name: a.name,
+    createdAt: now,
+    motivation,
+    activities: [{
+      id: crypto.randomUUID(),
+      name: a.name,
+      direction: a.direction,
+      measurements: a.measurements,
+      frequency: a.frequency,
+      preferredTime: a.preferredTime,
+      scheduledDays: a.scheduledDays,
+    }],
+  }))
 }
 
 export const personaPresets: PersonaPreset[] = [
@@ -505,46 +528,15 @@ export const personaPresets: PersonaPreset[] = [
     tagline: 'Discipline, reflection, and daily practice',
     emoji: '🏛️',
     motivation: 'You have power over your mind, not outside events. Realise this, and you will find strength.',
-    buildRoutine: () => ({
-      id: crypto.randomUUID(),
-      name: 'Stoic Daily Practice',
-      createdAt: new Date().toISOString(),
-      motivation: 'You have power over your mind, not outside events. Realise this, and you will find strength.',
-      activities: [
-        {
-          id: crypto.randomUUID(),
-          name: 'Morning journaling',
-          direction: 'DO',
-          measurements: [{ type: 'duration', unit: 'min', target: 10 }],
-          frequency: 'daily',
-          preferredTime: 'Morning',
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Reading',
-          direction: 'DO',
-          measurements: [{ type: 'duration', unit: 'min', target: 20 }],
-          frequency: 'daily',
-          preferredTime: 'Evening',
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Walking',
-          direction: 'DO',
-          measurements: [{ type: 'duration', unit: 'min', target: 30 }],
-          frequency: 'daily',
-          preferredTime: 'Morning',
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Evening reflection',
-          direction: 'DO',
-          measurements: [{ type: 'duration', unit: 'min', target: 10 }],
-          frequency: 'daily',
-          preferredTime: 'Evening',
-        },
+    buildRoutines: () => buildSeparateRoutines(
+      'You have power over your mind, not outside events. Realise this, and you will find strength.',
+      [
+        { name: 'Morning journaling', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 10 }], frequency: 'daily', preferredTime: 'Morning' },
+        { name: 'Reading', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 20 }], frequency: 'daily', preferredTime: 'Evening' },
+        { name: 'Walking', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 30 }], frequency: 'daily', preferredTime: 'Morning' },
+        { name: 'Evening reflection', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 10 }], frequency: 'daily', preferredTime: 'Evening' },
       ],
-    }),
+    ),
   },
   {
     id: 'jesus',
@@ -552,44 +544,15 @@ export const personaPresets: PersonaPreset[] = [
     tagline: 'Service, stillness, and gratitude',
     emoji: '✝️',
     motivation: 'Love your neighbour as yourself. Start with showing up for your own life.',
-    buildRoutine: () => ({
-      id: crypto.randomUUID(),
-      name: 'Daily Devotion',
-      createdAt: new Date().toISOString(),
-      motivation: 'Love your neighbour as yourself. Start with showing up for your own life.',
-      activities: [
-        {
-          id: crypto.randomUUID(),
-          name: 'Prayer or meditation',
-          direction: 'DO',
-          measurements: [{ type: 'duration', unit: 'min', target: 15 }],
-          frequency: 'daily',
-          preferredTime: 'Morning',
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Gratitude journaling',
-          direction: 'DO',
-          measurements: [{ type: 'duration', unit: 'min', target: 10 }],
-          frequency: 'daily',
-          preferredTime: 'Evening',
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Act of kindness',
-          direction: 'DO',
-          measurements: [{ type: 'quantity', target: 1 }],
-          frequency: 'daily',
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Walking in nature',
-          direction: 'DO',
-          measurements: [{ type: 'duration', unit: 'min', target: 20 }],
-          frequency: '3x_week',
-        },
+    buildRoutines: () => buildSeparateRoutines(
+      'Love your neighbour as yourself. Start with showing up for your own life.',
+      [
+        { name: 'Prayer or meditation', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 15 }], frequency: 'daily', preferredTime: 'Morning' },
+        { name: 'Gratitude journaling', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 10 }], frequency: 'daily', preferredTime: 'Evening' },
+        { name: 'Act of kindness', direction: 'DO', measurements: [{ type: 'quantity', target: 1 }], frequency: 'daily' },
+        { name: 'Walking in nature', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 20 }], frequency: '3x_week' },
       ],
-    }),
+    ),
   },
   {
     id: 'peterson',
@@ -597,45 +560,15 @@ export const personaPresets: PersonaPreset[] = [
     tagline: 'Order, responsibility, and meaning',
     emoji: '🦞',
     motivation: 'Compare yourself to who you were yesterday, not to who someone else is today.',
-    buildRoutine: () => ({
-      id: crypto.randomUUID(),
-      name: 'Clean Up Your Life',
-      createdAt: new Date().toISOString(),
-      motivation: 'Compare yourself to who you were yesterday, not to who someone else is today.',
-      activities: [
-        {
-          id: crypto.randomUUID(),
-          name: 'Clean your room',
-          direction: 'DO',
-          measurements: [{ type: 'duration', unit: 'min', target: 15 }],
-          frequency: 'daily',
-          preferredTime: 'Morning',
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Reading',
-          direction: 'DO',
-          measurements: [{ type: 'duration', unit: 'min', target: 30 }],
-          frequency: 'daily',
-          preferredTime: 'Evening',
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Journaling',
-          direction: 'DO',
-          measurements: [{ type: 'duration', unit: 'min', target: 15 }],
-          frequency: 'daily',
-          preferredTime: 'Evening',
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'No unnecessary spending',
-          direction: 'AVOID',
-          measurements: [],
-          frequency: 'daily',
-        },
+    buildRoutines: () => buildSeparateRoutines(
+      'Compare yourself to who you were yesterday, not to who someone else is today.',
+      [
+        { name: 'Clean your room', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 15 }], frequency: 'daily', preferredTime: 'Morning' },
+        { name: 'Reading', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 30 }], frequency: 'daily', preferredTime: 'Evening' },
+        { name: 'Journaling', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 15 }], frequency: 'daily', preferredTime: 'Evening' },
+        { name: 'No unnecessary spending', direction: 'AVOID', measurements: [], frequency: 'daily' },
       ],
-    }),
+    ),
   },
   {
     id: 'arnold',
@@ -643,40 +576,13 @@ export const personaPresets: PersonaPreset[] = [
     tagline: 'Strength, volume, and no excuses',
     emoji: '💪',
     motivation: 'The mind is the limit. As long as the mind can envision that you can do something, you can do it.',
-    buildRoutine: () => ({
-      id: crypto.randomUUID(),
-      name: 'Arnold Blueprint',
-      createdAt: new Date().toISOString(),
-      motivation: 'The mind is the limit. As long as the mind can envision that you can do something, you can do it.',
-      activities: [
-        {
-          id: crypto.randomUUID(),
-          name: 'Strength workout',
-          direction: 'DO',
-          measurements: [
-            { type: 'sets', target: 4 },
-            { type: 'reps', target: 10 },
-            { type: 'weight', unit: 'kg' },
-          ],
-          frequency: 'daily',
-          scheduledDays: [1, 2, 3, 4, 5, 6],
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Cardio',
-          direction: 'DO',
-          measurements: [{ type: 'duration', unit: 'min', target: 30 }],
-          frequency: '3x_week',
-          scheduledDays: [2, 4, 6],
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'No fast food',
-          direction: 'AVOID',
-          measurements: [],
-          frequency: 'daily',
-        },
+    buildRoutines: () => buildSeparateRoutines(
+      'The mind is the limit. As long as the mind can envision that you can do something, you can do it.',
+      [
+        { name: 'Strength workout', direction: 'DO', measurements: [{ type: 'sets', target: 4 }, { type: 'reps', target: 10 }, { type: 'weight', unit: 'kg' }], frequency: 'daily', scheduledDays: [1, 2, 3, 4, 5, 6] },
+        { name: 'Cardio', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 30 }], frequency: '3x_week', scheduledDays: [2, 4, 6] },
+        { name: 'No fast food', direction: 'AVOID', measurements: [], frequency: 'daily' },
       ],
-    }),
+    ),
   },
 ]
