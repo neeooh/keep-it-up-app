@@ -11,7 +11,7 @@
  */
 
 import { useState } from 'react'
-import { ChevronLeft, ChevronDown, AlertTriangle, Check, X } from 'lucide-react'
+import { ChevronLeft, ChevronDown, AlertTriangle, Check, X, Medal, Trophy } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { OnboardingProgress } from '../../components/OnboardingProgress'
 import { ActivityIcon } from '../../components/ActivityIcon'
@@ -73,12 +73,14 @@ const TIME_OPTIONS = ['Morning', 'Afternoon', 'Evening', 'Anytime']
 interface ChallengeOption {
   value: ChallengeDuration
   label: string
+  icon: typeof Medal
+  color: string
 }
 
 const CHALLENGE_OPTIONS: ChallengeOption[] = [
-  { value: 30, label: '30 days' },
-  { value: 60, label: '60 days' },
-  { value: 90, label: '90 days' },
+  { value: 30, label: '30 days', icon: Medal, color: '#CD7F32' },
+  { value: 60, label: '60 days', icon: Medal, color: '#A0A0A0' },
+  { value: 90, label: '90 days', icon: Trophy, color: '#D4A017' },
 ]
 
 export function PlanReviewScreen({
@@ -379,7 +381,7 @@ export function PlanReviewScreen({
               role="radiogroup"
               aria-label="Challenge duration"
             >
-              {CHALLENGE_OPTIONS.map(({ value, label }) => {
+              {CHALLENGE_OPTIONS.map(({ value, label, icon: Icon, color }) => {
                 const isSelected = challengeDurationDays === value
                 return (
                   <button
@@ -390,14 +392,15 @@ export function PlanReviewScreen({
                     data-testid={`challenge-option-${value}`}
                     onClick={() => toggleChallenge(value)}
                     className={[
-                      'flex items-center justify-between w-full rounded-lg border px-4 py-3 text-left transition-colors',
+                      'flex items-center gap-3 w-full rounded-lg border px-4 py-3 text-left transition-colors',
                       isSelected
                         ? 'border-brand bg-brand-light'
                         : 'border-border bg-card hover:bg-surface-muted',
                     ].join(' ')}
                   >
-                    <span className="text-sm font-medium text-foreground">{label}</span>
-                    {isSelected && <Check size={18} className="text-brand" aria-hidden="true" />}
+                    <Icon size={20} style={{ color }} aria-hidden="true" className="shrink-0" />
+                    <span className="text-sm font-medium text-foreground flex-1">{label}</span>
+                    {isSelected && <Check size={18} className="text-brand shrink-0" aria-hidden="true" />}
                   </button>
                 )
               })}
