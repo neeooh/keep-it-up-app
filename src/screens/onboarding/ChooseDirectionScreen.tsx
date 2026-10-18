@@ -8,6 +8,7 @@ import {
   customTemplate,
   needsConfigureScreen,
   templatesForDirection,
+  personaPresets,
 } from '../../domain/templates'
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
   direction: Direction | null
   onDirectionChange: (direction: Direction) => void
   onTemplateSelect?: (templateId: string) => void
+  onInstallPreset?: (presetId: string) => void
   onClose?: () => void
 }
 
@@ -28,6 +30,7 @@ export function ChooseDirectionScreen({
   navigate,
   direction,
   onTemplateSelect,
+  onInstallPreset,
   onClose,
 }: Props) {
   // Fall back to DO if direction somehow arrives null (deep-link or test)
@@ -125,6 +128,33 @@ export function ChooseDirectionScreen({
               </div>
             </button>
           ))}
+        </div>
+
+        {/* Persona presets */}
+        <div className="mt-6">
+          <p className="text-sm font-medium text-foreground mb-1">
+            Ready-made routines
+          </p>
+          <p className="text-xs text-muted-foreground mb-3">
+            A complete routine in one tap. Just pick and go.
+          </p>
+          <div className="flex flex-col gap-3">
+            {personaPresets.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                data-testid={`persona-preset-${preset.id}`}
+                onClick={() => onInstallPreset?.(preset.id)}
+                className="flex items-center gap-4 w-full rounded-xl border border-border bg-card px-4 py-4 text-left transition-colors hover:bg-surface-muted active:scale-[0.98]"
+              >
+                <span className="text-2xl shrink-0" aria-hidden="true">{preset.emoji}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground">{preset.name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{preset.tagline}</p>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
