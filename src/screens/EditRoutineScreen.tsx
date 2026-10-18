@@ -254,7 +254,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                   data-testid={`edit-preset-${preset.label.toLowerCase().replace(/[×\/\s]+/g, '-')}`}
                   onClick={() => applyPreset(preset)}
                   className={[
-                    'inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                    'inline-flex items-center rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
                     isActive ? SELECTED_PILL : UNSELECTED_PILL,
                   ].join(' ')}
                 >
@@ -277,7 +277,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                   data-testid={`edit-day-${value}`}
                   onClick={() => toggleDay(value)}
                   className={[
-                    'flex-1 flex items-center justify-center rounded-full border h-9 text-xs font-medium transition-colors',
+                    'flex-1 flex items-center justify-center rounded-lg border h-9 text-xs font-medium transition-colors',
                     isSelected ? SELECTED_PILL : UNSELECTED_PILL,
                   ].join(' ')}
                 >
@@ -300,7 +300,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                   data-testid={`edit-time-${time.toLowerCase()}`}
                   onClick={() => setPreferredTime(isSelected ? '' : time)}
                   className={[
-                    'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                    'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
                     isSelected ? SELECTED_PILL : UNSELECTED_PILL,
                   ].join(' ')}
                 >
