@@ -265,25 +265,18 @@ export function PlanReviewScreen({
             </div>
           )}
 
-          {/* Scheduled days summary */}
-          {scheduledDays.length > 0 && (
+          {/* Schedule summary (days + time on one line) */}
+          {(scheduledDays.length > 0 || preferredTime) && (
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Days</p>
+              <p className="text-xs text-muted-foreground mb-1">Schedule</p>
               <p
                 data-testid="plan-scheduled-days"
                 className="text-sm text-foreground"
               >
-                {scheduledDays.map((d) => DAY_NAMES[d]).join(' · ')}
-              </p>
-            </div>
-          )}
-
-          {/* Time preference summary */}
-          {preferredTime && (
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Time</p>
-              <p data-testid="plan-preferred-time" className="text-sm text-foreground">
-                {preferredTime}
+                {[
+                  ...scheduledDays.map((d) => DAY_NAMES[d]),
+                  ...(preferredTime ? [preferredTime] : []),
+                ].join(' · ')}
               </p>
             </div>
           )}

@@ -172,12 +172,14 @@ describe('PlanReviewScreen', () => {
 
   it('shows preferred time when present', () => {
     setup({ preferredTime: 'Morning' })
-    expect(screen.getByTestId('plan-preferred-time')).toHaveTextContent('Morning')
+    expect(screen.getByTestId('plan-scheduled-days')).toHaveTextContent('Morning')
   })
 
   it('does not show preferred time when empty', () => {
     setup({ preferredTime: '' })
-    expect(screen.queryByTestId('plan-preferred-time')).toBeNull()
+    // Schedule line should not contain a time label
+    const el = screen.queryByTestId('plan-scheduled-days')
+    if (el) expect(el.textContent).not.toContain('Morning')
   })
 
   it('shows challenge summary when set', () => {
