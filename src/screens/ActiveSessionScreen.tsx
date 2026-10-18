@@ -10,7 +10,7 @@
  */
 
 import { useState, useMemo } from 'react'
-import { Plus, Trash2, Check, X, Info, ClipboardCheck } from 'lucide-react'
+import { Plus, Trash2, Check, X, Info, ClipboardCheck, Flame } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -588,6 +588,19 @@ export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props)
           <Info size={16} className="text-muted-foreground mt-0.5 shrink-0" aria-hidden="true" />
           <p className="text-sm text-muted-foreground">
             Pre-filled from your last session on {lastSessionDate}. Adjust any values before completing.
+          </p>
+        </div>
+      )}
+
+      {/* Motivation reminder */}
+      {routine.motivation && (
+        <div
+          data-testid="motivation-card"
+          className="mx-5 mt-2 flex items-start gap-2 rounded-xl bg-brand-light px-4 py-3"
+        >
+          <Flame size={16} className="text-brand mt-0.5 shrink-0" aria-hidden="true" />
+          <p className="text-sm text-foreground italic">
+            {routine.motivation}
           </p>
         </div>
       )}

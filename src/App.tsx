@@ -66,6 +66,8 @@ export interface OnboardingDraft {
   challengeDurationDays: ChallengeDuration | null
   /** True when the configure-activity screen was skipped (simple templates). */
   skippedConfigure: boolean
+  /** Free-text motivation: why the user wants to do this routine. */
+  motivation: string
 }
 
 const EMPTY_DRAFT: OnboardingDraft = {
@@ -79,6 +81,7 @@ const EMPTY_DRAFT: OnboardingDraft = {
   preferredTime: '',
   challengeDurationDays: null,
   skippedConfigure: false,
+  motivation: '',
 }
 
 // ── Navigate type ─────────────────────────────────────────────────────────────
@@ -191,6 +194,8 @@ function renderScreen(
             setDraft({ scheduledDays: days, preferredTime: time })
           }
           onChallengeChange={(days) => setDraft({ challengeDurationDays: days })}
+          motivation={draft.motivation}
+          onMotivationChange={(m) => setDraft({ motivation: m })}
           onClose={onClose}
         />
       )
@@ -369,6 +374,7 @@ function AppShell({ initialScreen }: AppProps) {
       challengeStartDate: draft.challengeDurationDays
         ? new Date().toISOString().slice(0, 10)
         : undefined,
+      motivation: draft.motivation.trim() || undefined,
       activities,
     })
 
