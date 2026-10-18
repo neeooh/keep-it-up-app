@@ -217,7 +217,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                     disabled={atLimit}
                     onClick={() => toggleEditBadge(option)}
                     className={[
-                      'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors',
+                      'inline-flex items-center gap-1 rounded-full border px-2.5 py-1.5 text-sm transition-colors',
                       isSelected
                         ? 'border-brand bg-brand-light font-medium text-foreground'
                         : atLimit
