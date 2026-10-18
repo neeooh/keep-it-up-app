@@ -52,13 +52,13 @@ const PRESETS: Preset[] = [
 ]
 
 const DAY_BUTTONS: { value: DayOfWeek; letter: string }[] = [
-  { value: 1, letter: 'M' },
-  { value: 2, letter: 'T' },
-  { value: 3, letter: 'W' },
-  { value: 4, letter: 'T' },
-  { value: 5, letter: 'F' },
-  { value: 6, letter: 'S' },
-  { value: 7, letter: 'S' },
+  { value: 1, letter: 'Mon' },
+  { value: 2, letter: 'Tue' },
+  { value: 3, letter: 'Wed' },
+  { value: 4, letter: 'Thu' },
+  { value: 5, letter: 'Fri' },
+  { value: 6, letter: 'Sat' },
+  { value: 7, letter: 'Sun' },
 ]
 
 const TIME_OPTIONS = ['Morning', 'Afternoon', 'Evening', 'Anytime']
@@ -277,7 +277,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                   data-testid={`edit-day-${value}`}
                   onClick={() => toggleDay(value)}
                   className={[
-                    'flex items-center justify-center rounded-lg border w-9 h-9 text-sm font-medium transition-colors',
+                    'flex-1 flex items-center justify-center rounded-lg border h-9 text-xs font-medium transition-colors',
                     isSelected ? SELECTED_PILL : UNSELECTED_PILL,
                   ].join(' ')}
                 >
