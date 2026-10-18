@@ -47,7 +47,7 @@ describe('WelcomeScreen', () => {
 
   it('renders supporting text', () => {
     setup()
-    expect(screen.getByText(/more consistently/i)).toBeInTheDocument()
+    expect(screen.getByText(/build a habit/i)).toBeInTheDocument()
   })
 
   it('renders both direction buttons', () => {

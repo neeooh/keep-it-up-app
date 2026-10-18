@@ -96,7 +96,7 @@ export function SettingsScreen({ navigate }: Props) {
           <div className="flex flex-col gap-1.5 mt-2">
             <Label htmlFor="user-name">Your name</Label>
             <p className="text-sm text-muted-foreground">
-              Used in the dashboard greeting. Saves automatically.
+              Used in the dashboard greeting.
             </p>
             <Input
               id="user-name"
