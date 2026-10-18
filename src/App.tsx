@@ -163,7 +163,16 @@ function renderScreen(
         <SetFrequencyScreen
           navigate={navigate}
           frequency={draft.frequency}
-          onFrequencyChange={(f) => setDraft({ frequency: f })}
+          onFrequencyChange={(f) => {
+            const defaultDays: Record<string, DayOfWeek[]> = {
+              daily: [1, 2, 3, 4, 5, 6, 7],
+              '3x_week': [1, 3, 5],
+              '2x_week': [2, 4],
+              '1x_week': [6],
+              flexible: [],
+            }
+            setDraft({ frequency: f, scheduledDays: defaultDays[f] ?? [] })
+          }}
           skippedConfigure={draft.skippedConfigure}
           onClose={onClose}
         />
