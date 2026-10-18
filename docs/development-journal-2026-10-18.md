@@ -197,3 +197,41 @@ Examples:
 4. Multi-select + separate emotional text → final form
 
 Each iteration was a small, precise correction. The user knew what felt wrong before knowing the exact solution. The conversation was a discovery process, not a specification handoff.
+
+### 04:46–05:01 — Motivation pills: iterated and removed
+
+**04:46 — Custom badge input idea.** User asked about adding a custom badge input to the pill row. I advised against it — two typing surfaces (custom badge + emotional textarea) creates a UX decision nobody wants to make. User agreed to skip.
+
+**04:49 — More pills, limit to 3.** User wanted pills to fill two full rows (no wrapping to third). Expanded to 7 pills per template, capped selection at 3. Added dimming on unselected pills when at capacity.
+
+**04:53 — Tighter padding.** Still wrapping to 3 rows. Reduced `px-3.5` to `px-2.5` and `gap-1.5` to `gap-1`.
+
+**04:55 — Still 3 rows. User questioned the feature.** Asked if the pills are even useful or just unnecessary mental exercise.
+
+**My honest assessment:** The pills are overthought. Generic outcomes like "Feel strong" and "More energy" do not tell the user something they do not already know. The emotional textarea is the stronger feature — personal, unique, impossible to capture with predefined options.
+
+**Decision: remove pills entirely from PlanReview and EditRoutine.** Keep only the emotional textarea with Heart icon.
+
+**04:58 — Pills relocated to session logging (future feature).** User had the insight that feeling pills belong on the log-activity screen, not the planning screen. After completing a run, the user taps "Felt free" or "Felt energised". This becomes visible in history and progress.
+
+**This is a better design because:**
+1. The user is in the moment (just finished the activity).
+2. It is a micro-reflection, not a planning exercise.
+3. Over time, the data reveals emotional patterns ("You felt energised in 8 of your last 10 runs").
+
+**Decision: document as a planned future feature. Do not implement now — it touches Session data model, ActiveSessionScreen, HistoryScreen, and ProgressScreen. Deserves its own focused session.**
+
+## Planned Features (Backlog)
+
+### Session feeling pills
+
+**Concept:** After logging measurements for an activity, the user can tap 1-3 short feeling pills that describe how the session made them feel. Examples: "Felt strong", "Enjoyed it", "Felt free", "Struggled", "Low energy".
+
+**Where it shows up:**
+- **ActiveSessionScreen** — pill row after measurements, before the Log button.
+- **HistoryScreen** — feeling pills displayed alongside measurements in each session entry.
+- **ProgressScreen** — aggregate emotional patterns over time ("Felt energised in 8 of 10 runs").
+
+**Data model change:** Add `feelings?: string[]` to `ActivityResult` in the Session type.
+
+**Status:** Documented. Not yet implemented.

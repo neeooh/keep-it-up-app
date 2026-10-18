@@ -17,7 +17,7 @@ import { OnboardingProgress } from '../../components/OnboardingProgress'
 import { ActivityIcon } from '../../components/ActivityIcon'
 import { useAppStore } from '../../store/useAppStore'
 import type { Navigate, OnboardingDraft } from '../../App'
-import { findTemplate, motivationOptions, emotionalPlaceholder, MAX_MOTIVATION_BADGES } from '../../domain/templates'
+import { findTemplate, emotionalPlaceholder } from '../../domain/templates'
 import type { ChallengeDuration, DayOfWeek, Frequency } from '../../domain/types'
 
 interface Props {
@@ -116,47 +116,6 @@ export function PlanReviewScreen({
   const challengeDurationDays =
     challengeDurationDaysProp ?? draft.challengeDurationDays
   const motivation = motivationProp ?? draft.motivation ?? ''
-
-  // Parse existing motivation back into badges + custom text.
-  const options = motivationOptions(draft.templateId, activityName)
-  const [selectedBadges, setSelectedBadges] = useState<string[]>(() => {
-    if (!motivation) return []
-    // Split on " · " and keep only known badge values.
-    const parts = motivation.split(' — ')[0]?.split(' · ') ?? []
-    return parts.filter((p) => options.includes(p))
-  })
-  const [customNote, setCustomNote] = useState<string>(() => {
-    if (!motivation) return ''
-    // Everything after " — " is the custom note.
-    const idx = motivation.indexOf(' — ')
-    return idx >= 0 ? motivation.slice(idx + 3) : ''
-  })
-
-  // Combine badges + custom note into one string and push to parent.
-  function pushMotivation(badges: string[], note: string) {
-    const badgePart = badges.join(' · ')
-    const trimmedNote = note.trim()
-    let combined = badgePart
-    if (trimmedNote) {
-      combined = combined ? `${combined} — ${trimmedNote}` : trimmedNote
-    }
-    onMotivationChange?.(combined)
-  }
-
-  function toggleBadge(badge: string) {
-    setSelectedBadges((prev) => {
-      const next = prev.includes(badge)
-        ? prev.filter((b) => b !== badge)
-        : prev.length >= MAX_MOTIVATION_BADGES ? prev : [...prev, badge]
-      pushMotivation(next, customNote)
-      return next
-    })
-  }
-
-  function handleCustomNoteChange(value: string) {
-    setCustomNote(value)
-    pushMotivation(selectedBadges, value)
-  }
 
   // Collapsible section state — both collapsed by default.
   const [daysOpen, setDaysOpen] = useState(false)
@@ -322,44 +281,7 @@ export function PlanReviewScreen({
           )}
         </div>
 
-        {/* Motivation badges (multi-select) */}
-        <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-3">
-          <p className="text-sm font-medium text-foreground">
-            What do you want from this?
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {options.map((option) => {
-              const isSelected = selectedBadges.includes(option)
-              const atLimit = selectedBadges.length >= MAX_MOTIVATION_BADGES && !isSelected
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  data-testid="motivation-option"
-                  aria-pressed={isSelected}
-                  disabled={atLimit}
-                  onClick={() => toggleBadge(option)}
-                  className={[
-                    'inline-flex items-center gap-1 rounded-full border px-2.5 py-1.5 text-sm transition-colors',
-                    isSelected
-                      ? 'border-brand bg-brand-light font-medium text-foreground'
-                      : atLimit
-                        ? 'border-border bg-card text-muted-foreground/40 cursor-not-allowed'
-                        : 'border-border bg-card text-foreground hover:bg-surface-muted',
-                  ].join(' ')}
-                >
-                  {isSelected && <Check size={12} className="text-brand shrink-0" aria-hidden="true" />}
-                  {option}
-                </button>
-              )
-            })}
-          </div>
-          {selectedBadges.length >= MAX_MOTIVATION_BADGES && (
-            <p className="text-xs text-muted-foreground">Pick up to {MAX_MOTIVATION_BADGES}.</p>
-          )}
-        </div>
-
-        {/* Emotional free text (separate, always visible) */}
+        {/* Motivation */}
         <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <Heart size={16} className="text-brand shrink-0" aria-hidden="true" />
@@ -373,8 +295,8 @@ export function PlanReviewScreen({
           <textarea
             data-testid="motivation-custom-input"
             placeholder={emotionalPlaceholder(draft.templateId, activityName)}
-            value={customNote}
-            onChange={(e) => handleCustomNoteChange(e.target.value)}
+            value={motivation}
+            onChange={(e) => onMotivationChange?.(e.target.value)}
             maxLength={300}
             rows={2}
             className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 placeholder:italic resize-none focus:outline-none focus:ring-2 focus:ring-ring"

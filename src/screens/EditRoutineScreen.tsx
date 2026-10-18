@@ -26,7 +26,7 @@ import { SectionHeader } from '../components/SectionHeader'
 import { useAppStore } from '../store/useAppStore'
 import type { Navigate } from '../App'
 import type { DayOfWeek, Frequency, Routine } from '../domain/types'
-import { motivationOptions, emotionalPlaceholder, MAX_MOTIVATION_BADGES } from '../domain/templates'
+import { emotionalPlaceholder } from '../domain/templates'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -91,37 +91,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
   )
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [challengeRestarted, setChallengeRestarted] = useState(false)
-
-  // Parse existing motivation into badges + custom note.
-  const editOptions = motivationOptions(undefined, routine?.name)
-  const [selectedBadges, setSelectedBadges] = useState<string[]>(() => {
-    const m = routine?.motivation ?? ''
-    if (!m) return []
-    const parts = m.split(' — ')[0]?.split(' · ') ?? []
-    return parts.filter((p) => editOptions.includes(p))
-  })
-  const [customNote, setCustomNote] = useState<string>(() => {
-    const m = routine?.motivation ?? ''
-    if (!m) return ''
-    const idx = m.indexOf(' — ')
-    return idx >= 0 ? m.slice(idx + 3) : ''
-  })
-
-  function buildMotivation(badges: string[], note: string): string {
-    const badgePart = badges.join(' · ')
-    const trimmed = note.trim()
-    let combined = badgePart
-    if (trimmed) combined = combined ? `${combined} — ${trimmed}` : trimmed
-    return combined
-  }
-
-  function toggleEditBadge(badge: string) {
-    setSelectedBadges((prev) =>
-      prev.includes(badge)
-        ? prev.filter((b) => b !== badge)
-        : prev.length >= MAX_MOTIVATION_BADGES ? prev : [...prev, badge],
-    )
-  }
+  const [motivation, setMotivation] = useState(routine?.motivation ?? '')
 
   // Not-found state
   if (!routine) {
@@ -158,7 +128,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
     const updated: Routine = {
       ...routine,
       name: name.trim() || routine.name,
-      motivation: buildMotivation(selectedBadges, customNote) || undefined,
+      motivation: motivation.trim() || undefined,
       activities: routine.activities.map((a) => ({
         ...a,
         frequency,
@@ -203,52 +173,23 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-3 mt-4">
-            <Label>Motivation</Label>
-            <div className="flex flex-wrap gap-2">
-              {editOptions.map((option) => {
-                const isSelected = selectedBadges.includes(option)
-                const atLimit = selectedBadges.length >= MAX_MOTIVATION_BADGES && !isSelected
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    aria-pressed={isSelected}
-                    disabled={atLimit}
-                    onClick={() => toggleEditBadge(option)}
-                    className={[
-                      'inline-flex items-center gap-1 rounded-full border px-2.5 py-1.5 text-sm transition-colors',
-                      isSelected
-                        ? 'border-brand bg-brand-light font-medium text-foreground'
-                        : atLimit
-                          ? 'border-border bg-card text-muted-foreground/40 cursor-not-allowed'
-                          : 'border-border bg-card text-foreground hover:bg-surface-muted',
-                    ].join(' ')}
-                  >
-                    {isSelected && <Check size={12} className="text-brand shrink-0" aria-hidden="true" />}
-                    {option}
-                  </button>
-                )
-              })}
+          <div className="flex flex-col gap-2 mt-4">
+            <div className="flex items-center gap-2">
+              <Heart size={16} className="text-brand shrink-0" aria-hidden="true" />
+              <Label>What is really driving you?</Label>
             </div>
-            {selectedBadges.length >= MAX_MOTIVATION_BADGES && (
-              <p className="text-xs text-muted-foreground">Pick up to {MAX_MOTIVATION_BADGES}.</p>
-            )}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-2">
-                <Heart size={14} className="text-brand shrink-0" aria-hidden="true" />
-                <p className="text-xs text-muted-foreground">What is really driving you?</p>
-              </div>
-              <textarea
-                data-testid="edit-motivation-custom-input"
-                placeholder={emotionalPlaceholder(undefined, routine?.name)}
-                value={customNote}
-                onChange={(e) => setCustomNote(e.target.value)}
-                maxLength={300}
-                rows={2}
-                className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 placeholder:italic resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Optional. Say what you would tell yourself when no one is listening.
+            </p>
+            <textarea
+              data-testid="edit-motivation-custom-input"
+              placeholder={emotionalPlaceholder(undefined, routine?.name)}
+              value={motivation}
+              onChange={(e) => setMotivation(e.target.value)}
+              maxLength={300}
+              rows={2}
+              className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 placeholder:italic resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+            />
           </div>
         </section>
 
