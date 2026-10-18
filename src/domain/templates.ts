@@ -278,7 +278,7 @@ const noUnnecessarySpending: ActivityTemplate = {
 /** Always present — lets the user define an activity from scratch. */
 export const customTemplate: ActivityTemplate = {
   id: 'custom',
-  label: 'Something else',
+  label: 'Create your own',
   category: 'custom',
   direction: 'DO',
   defaultName: '',
@@ -325,16 +325,16 @@ export const breakingHabitsTemplates: ActivityTemplate[] = [
 
 /** All DO templates across all categories, followed by the custom sentinel. */
 export const doTemplates: ActivityTemplate[] = [
+  customTemplate,
   ...exerciseTemplates,
   ...personalDevelopmentTemplates,
   ...dailyLifeTemplates,
-  customTemplate,
 ]
 
 /** All AVOID templates, followed by the custom sentinel. */
 export const avoidTemplates: ActivityTemplate[] = [
-  ...breakingHabitsTemplates,
   customTemplate,
+  ...breakingHabitsTemplates,
 ]
 
 /** Every template in the catalogue, including the custom sentinel. */

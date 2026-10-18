@@ -163,12 +163,12 @@ describe('ChooseDirectionScreen', () => {
   })
 
   // Custom sentinel always present
-  it('always shows the "Something else" card for DO', () => {
+  it('always shows the "Create your own" card for DO', () => {
     setupDO()
     expect(screen.getByTestId('template-card-custom')).toBeInTheDocument()
   })
 
-  it('always shows the "Something else" card for AVOID', () => {
+  it('always shows the "Create your own" card for AVOID', () => {
     setupAVOID()
     expect(screen.getByTestId('template-card-custom')).toBeInTheDocument()
   })

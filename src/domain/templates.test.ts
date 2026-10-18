@@ -277,12 +277,12 @@ describe('custom template sentinel', () => {
     expect(customTemplate.isCustom).toBe(true)
   })
 
-  it('is always the last item in doTemplates', () => {
-    expect(doTemplates[doTemplates.length - 1]!.id).toBe('custom')
+  it('is always the first item in doTemplates', () => {
+    expect(doTemplates[0]!.id).toBe('custom')
   })
 
-  it('is always the last item in avoidTemplates', () => {
-    expect(avoidTemplates[avoidTemplates.length - 1]!.id).toBe('custom')
+  it('is always the first item in avoidTemplates', () => {
+    expect(avoidTemplates[0]!.id).toBe('custom')
   })
 
   it('is present in allTemplates', () => {
@@ -316,8 +316,8 @@ describe('doTemplates', () => {
     expect(nonDo).toHaveLength(0)
   })
 
-  it('always ends with the custom sentinel', () => {
-    expect(doTemplates[doTemplates.length - 1]!.isCustom).toBe(true)
+  it('always starts with the custom sentinel', () => {
+    expect(doTemplates[0]!.isCustom).toBe(true)
   })
 })
 
@@ -329,8 +329,8 @@ describe('avoidTemplates', () => {
     expect(nonAvoid).toHaveLength(0)
   })
 
-  it('always ends with the custom sentinel', () => {
-    expect(avoidTemplates[avoidTemplates.length - 1]!.isCustom).toBe(true)
+  it('always starts with the custom sentinel', () => {
+    expect(avoidTemplates[0]!.isCustom).toBe(true)
   })
 })
 

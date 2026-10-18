@@ -75,6 +75,9 @@ export function ChooseDirectionScreen({
 
       {/* Template cards */}
       <div className="flex-1 overflow-y-auto px-5 pb-8 pt-2">
+        <p className="text-sm text-muted-foreground mb-3">
+          Create your own or pick a template to get started.
+        </p>
         <div className="flex flex-col gap-3">
           {templates.map((template) => (
             <button
@@ -86,24 +89,34 @@ export function ChooseDirectionScreen({
                 'flex items-center gap-4 w-full rounded-xl border px-4 py-4 text-left',
                 'transition-colors hover:bg-surface-muted active:scale-[0.98]',
                 template.isCustom
-                  ? 'border-dashed border-border bg-transparent'
+                  ? 'border-brand border-dashed bg-brand-light/30'
                   : 'border-border bg-card',
               ].join(' ')}
             >
               {template.isCustom && (
-                <Sparkles
-                  size={20}
-                  className="shrink-0 text-muted-foreground"
-                  aria-hidden="true"
-                />
+                <div className="flex items-center justify-center size-8 rounded-lg bg-brand/10">
+                  <Sparkles
+                    size={18}
+                    className="shrink-0 text-brand"
+                    aria-hidden="true"
+                  />
+                </div>
               )}
               {!template.isCustom && (
                 <ActivityIcon name={template.label} size={24} />
               )}
               <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
+                <p className={[
+                  'text-sm font-medium truncate',
+                  template.isCustom ? 'text-brand' : 'text-foreground',
+                ].join(' ')}>
                   {template.label}
                 </p>
+                {template.isCustom && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Track anything you want
+                  </p>
+                )}
                 {!template.isCustom && (
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {frequencyLabel(template)}
