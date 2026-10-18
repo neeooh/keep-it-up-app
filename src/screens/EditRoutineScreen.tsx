@@ -208,9 +208,8 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
       <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-6">
         {/* a. Routine */}
         <section>
-          <SectionHeader title="Routine" />
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="routine-name">Routine name</Label>
+            <Label htmlFor="routine-name">Name</Label>
             <Input
               id="routine-name"
               data-testid="edit-name"
