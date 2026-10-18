@@ -76,11 +76,32 @@ function deriveFrequency(dayCount: number): Frequency {
   return 'daily'
 }
 
-/** Check whether a preset matches the current day selection. */
+/** Check whether a preset matches the current day selection.
+ *  - "Every day": exactly 7 days selected.
+ *  - "Weekdays": exactly Mon-Fri selected.
+ *  - "Flexible": exactly 0 days selected.
+ *  - "3×/week", "2×/week": any selection with that day count.
+ */
 function presetMatches(preset: Preset, selectedDays: DayOfWeek[]): boolean {
-  if (preset.days.length !== selectedDays.length) return false
   const sorted = [...selectedDays].sort((a, b) => a - b)
-  return preset.days.every((d, i) => d === sorted[i])
+
+  // "Weekdays" must be exactly Mon-Fri
+  if (preset.label === 'Weekdays') {
+    return sorted.length === 5 && sorted.every((d, i) => d === [1, 2, 3, 4, 5][i])
+  }
+
+  // "Every day" must be exactly 7
+  if (preset.label === 'Every day') {
+    return sorted.length === 7
+  }
+
+  // "Flexible" must be 0
+  if (preset.label === 'Flexible') {
+    return sorted.length === 0
+  }
+
+  // Frequency presets match by count
+  return sorted.length === preset.days.length
 }
 
 // ─── Shared selectable-button styles ──────────────────────────────────────────
