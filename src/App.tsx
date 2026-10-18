@@ -12,6 +12,7 @@ import type {
 } from './domain/types'
 import { useAppStore, AppStoreProvider } from './store/useAppStore'
 import { ThemeProvider } from './hooks/useTheme'
+import { PreferencesProvider } from './hooks/usePreferences'
 import { findTemplate, needsConfigureScreen } from './domain/templates'
 
 // ── Onboarding screens ────────────────────────────────────────────────────────
@@ -29,6 +30,7 @@ import { ProgressScreen } from './screens/ProgressScreen'
 import { WeeklyReviewScreen } from './screens/WeeklyReviewScreen'
 import { EditRoutineScreen } from './screens/EditRoutineScreen'
 import { PlanScreen } from './screens/PlanScreen'
+import { SettingsScreen } from './screens/SettingsScreen'
 
 // ── Navigation icons ──────────────────────────────────────────────────────────
 
@@ -224,6 +226,8 @@ function renderScreen(
           routineId={selectedRoutineId}
         />
       )
+    case 'settings':
+      return <SettingsScreen navigate={navigate} />
   }
 }
 
@@ -278,9 +282,11 @@ interface AppProps {
 export default function App({ initialScreen }: AppProps) {
   return (
     <ThemeProvider>
-      <AppStoreProvider>
-        <AppShell initialScreen={initialScreen} />
-      </AppStoreProvider>
+      <PreferencesProvider>
+        <AppStoreProvider>
+          <AppShell initialScreen={initialScreen} />
+        </AppStoreProvider>
+      </PreferencesProvider>
     </ThemeProvider>
   )
 }
@@ -379,7 +385,7 @@ function AppShell({ initialScreen }: AppProps) {
   )
 
   const isOnboarding = ONBOARDING_SCREENS.includes(screen)
-  const hideBottomNav = isOnboarding || screen === 'active-session'
+  const hideBottomNav = isOnboarding || screen === 'active-session' || screen === 'settings'
 
   return (
     <div className="min-h-svh bg-surface-muted">

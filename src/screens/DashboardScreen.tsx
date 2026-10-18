@@ -14,7 +14,7 @@
  * Spec reference: docs/uiux-audits/v1.1-ui-ux-audit.md sections 1-7.
  */
 
-import { Plus, MoreHorizontal, Check, TrendingUp, TrendingDown } from 'lucide-react'
+import { Plus, MoreHorizontal, Check, TrendingUp, TrendingDown, Settings } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '../components/ui/button'
 import { PageHeader } from '../components/PageHeader'
@@ -23,6 +23,7 @@ import { EmptyState } from '../components/EmptyState'
 import { ActivityIcon } from '../components/ActivityIcon'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { useAppStore } from '../store/useAppStore'
+import { usePreferences } from '../hooks/usePreferences'
 import { useNotification } from '../hooks/useNotification'
 import { sessionsForRoutine, calculateVolume } from '../domain/calculations'
 import type { Navigate } from '../App'
@@ -412,11 +413,11 @@ function groupByTime(cards: TodayCard[]): TimeGroup[] {
 
 // ─── Greeting ─────────────────────────────────────────────────────────────────
 
-function greeting(): string {
+function greeting(userName?: string): string {
   const hour = new Date().getHours()
-  if (hour < 12) return 'Good morning'
-  if (hour < 17) return 'Good afternoon'
-  return 'Good evening'
+  const timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  if (userName) return `${timeGreeting}, ${userName}`
+  return timeGreeting
 }
 
 // ─── Streak / days-active helpers ─────────────────────────────────────────────
@@ -527,6 +528,7 @@ function CircularProgress({
 export function DashboardScreen({ navigate, onStartSession }: Props) {
   const { state } = useAppStore()
   const { routines, sessions } = state
+  const { preferences } = usePreferences()
   const { permission, requestPermission, scheduleReminder, confirmation } = useNotification()
   const [openSnooze, setOpenSnooze] = useState<string | null>(null)
 
@@ -588,6 +590,15 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
               <Button
                 variant="ghost"
                 size="icon"
+                data-testid="settings-button"
+                aria-label="Settings"
+                onClick={() => navigate('settings')}
+              >
+                <Settings size={20} aria-hidden="true" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 data-testid="add-routine-button"
                 aria-label="Add routine"
                 onClick={() => navigate('welcome')}
@@ -617,6 +628,15 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
         rightAction={
           <div className="flex items-center gap-1">
             <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              data-testid="settings-button"
+              aria-label="Settings"
+              onClick={() => navigate('settings')}
+            >
+              <Settings size={20} aria-hidden="true" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -680,7 +700,7 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
           />
           <div className="min-w-0 flex-1 flex flex-col gap-0.5">
             <p className="text-xl font-semibold text-foreground">
-              {hasSessions ? greeting() : 'Ready for your first session?'}
+              {hasSessions ? greeting(preferences.userName || undefined) : 'Ready for your first session?'}
             </p>
             <p data-testid="completion-text" className="text-base text-muted-foreground">
               {allComplete ? 'All done for today' : `${completedCount} of ${totalCards} completed`}

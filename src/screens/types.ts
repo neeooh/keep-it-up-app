@@ -23,6 +23,7 @@ export type Screen =
   | 'progress'
   | 'weekly-review'
   | 'edit-routine'
+  | 'settings'
 
 /** Screens that belong to the onboarding flow (no bottom nav). */
 export const ONBOARDING_SCREENS: Screen[] = [
@@ -42,6 +43,7 @@ export const MAIN_SCREENS: Screen[] = [
   'progress',
   'weekly-review',
   'edit-routine',
+  'settings',
 ]
 
 /** Bottom nav tabs (subset of main screens with labels and icon names). */

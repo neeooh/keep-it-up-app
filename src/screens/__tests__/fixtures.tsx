@@ -8,6 +8,7 @@
 import type { AppState, Routine, Session } from '../../domain/types'
 import { AppStoreProvider, STORAGE_KEY } from '../../store/useAppStore'
 import { ThemeProvider } from '../../hooks/useTheme'
+import { PreferencesProvider } from '../../hooks/usePreferences'
 import type { ReactNode } from 'react'
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
@@ -166,7 +167,9 @@ export function clearStore(): void {
 export function StoreWrapper({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
-      <AppStoreProvider>{children}</AppStoreProvider>
+      <PreferencesProvider>
+        <AppStoreProvider>{children}</AppStoreProvider>
+      </PreferencesProvider>
     </ThemeProvider>
   )
 }

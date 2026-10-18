@@ -72,9 +72,9 @@ describe('App — bottom nav hidden on onboarding screens', () => {
 
 describe('App — bottom nav visible on main screens', () => {
   // Not every main screen is a nav tab destination, but the nav should
-  // be present on all of them — except the active session, which hides the
-  // nav to keep the user focused on logging.
-  for (const s of MAIN_SCREENS.filter((m) => m !== 'active-session')) {
+  // be present on all of them — except the active session and settings,
+  // which hide the nav to keep the user focused.
+  for (const s of MAIN_SCREENS.filter((m) => m !== 'active-session' && m !== 'settings')) {
     it(`shows bottom nav on "${s}"`, () => {
       renderAt(s)
       expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument()
@@ -83,6 +83,11 @@ describe('App — bottom nav visible on main screens', () => {
 
   it('hides bottom nav during an active session', () => {
     renderAt('active-session')
+    expect(screen.queryByRole('navigation', { name: 'Main navigation' })).toBeNull()
+  })
+
+  it('hides bottom nav on the settings screen', () => {
+    renderAt('settings')
     expect(screen.queryByRole('navigation', { name: 'Main navigation' })).toBeNull()
   })
 })
