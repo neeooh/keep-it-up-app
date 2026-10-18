@@ -27,7 +27,6 @@ import { SectionHeader } from '../components/SectionHeader'
 import { useAppStore } from '../store/useAppStore'
 import type { Navigate } from '../App'
 import type { DayOfWeek, Frequency, Routine } from '../domain/types'
-import { emotionalPlaceholder } from '../domain/templates'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -226,7 +225,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
             </div>
             <textarea
               data-testid="edit-motivation-custom-input"
-              placeholder={emotionalPlaceholder(undefined, routine?.name)}
+              placeholder="Why this matters to me..."
               value={motivation}
               onChange={(e) => setMotivation(e.target.value)}
               maxLength={300}
