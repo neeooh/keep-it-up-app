@@ -146,7 +146,7 @@ describe('PlanReviewScreen', () => {
 
   it('shows the activity name', () => {
     setup()
-    expect(screen.getByTestId('plan-activity-name')).toHaveTextContent('Running')
+    expect(screen.getByTestId('plan-activity-name')).toHaveValue('Running')
   })
 
   it('shows the frequency', () => {
@@ -266,11 +266,11 @@ describe('PlanReviewScreen', () => {
     expect(onStart).toHaveBeenCalledTimes(1)
   })
 
-  it('"Edit plan" navigates back to configure-activity', async () => {
+  it('"Start over" navigates back to welcome', async () => {
     const user = userEvent.setup()
     const { navigate } = setup()
     await user.click(screen.getByTestId('edit-button'))
-    expect(navigate).toHaveBeenCalledWith('configure-activity')
+    expect(navigate).toHaveBeenCalledWith('welcome')
   })
 
   it('Back navigates to set-frequency', async () => {
@@ -282,7 +282,7 @@ describe('PlanReviewScreen', () => {
 
   it('uses template defaults when activityName is empty', () => {
     setup({ activityName: '', templateId: 'running' })
-    expect(screen.getByTestId('plan-activity-name')).toHaveTextContent('Running')
+    expect(screen.getByTestId('plan-activity-name')).toHaveValue('Running')
   })
 
   it('skipping optional steps still produces a valid plan summary', () => {

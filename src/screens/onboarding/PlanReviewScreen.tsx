@@ -11,7 +11,7 @@
  */
 
 import { useState } from 'react'
-import { ChevronLeft, ChevronDown, AlertTriangle, Check, X, Medal, Trophy, Rocket, Heart } from 'lucide-react'
+import { ChevronLeft, ChevronDown, AlertTriangle, Check, X, Medal, Trophy, Rocket, Heart, Pencil } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { OnboardingProgress } from '../../components/OnboardingProgress'
 import { ActivityIcon } from '../../components/ActivityIcon'
@@ -40,6 +40,10 @@ interface Props {
   motivation?: string
   /** Update the motivation on the draft. */
   onMotivationChange?: (motivation: string) => void
+  /** Update the activity name on the draft. */
+  onNameChange?: (name: string) => void
+  /** Update a measurement target on the draft. */
+  onMeasurementChange?: (index: number, target: number) => void
   onClose?: () => void
 }
 
@@ -99,6 +103,8 @@ export function PlanReviewScreen({
   onChallengeChange,
   motivation: motivationProp,
   onMotivationChange,
+  onNameChange,
+  onMeasurementChange,
   onClose,
 }: Props) {
   const { state } = useAppStore()
@@ -190,13 +196,16 @@ export function PlanReviewScreen({
           {/* Activity name + frequency */}
           <div className="flex items-center gap-3">
             <ActivityIcon name={activityName} size={32} className="mt-0.5" />
-            <div>
-              <p
+            <div className="flex-1 min-w-0">
+              <input
+                type="text"
                 data-testid="plan-activity-name"
-                className="text-lg font-semibold text-foreground"
-              >
-                {activityName}
-              </p>
+                value={activityName}
+                onChange={(e) => onNameChange?.(e.target.value)}
+                maxLength={60}
+                className="w-full text-lg font-semibold text-foreground bg-transparent border-0 border-b border-transparent focus:border-brand outline-none px-0 py-0 transition-colors placeholder:text-muted-foreground"
+                placeholder="Activity name"
+              />
               <p
                 data-testid="plan-frequency"
                 className="text-sm text-muted-foreground mt-0.5"
@@ -208,19 +217,28 @@ export function PlanReviewScreen({
 
           {/* Measurements (hidden when exercises are shown — they contain the same data) */}
           {measurements.length > 0 && !(draft.exercises?.length) && (
-            <div className="flex flex-col gap-1">
-              {measurements.map((m) => (
+            <div className="flex flex-col gap-2">
+              {measurements.map((m, i) => (
                 <div
                   key={m.type}
                   data-testid={`plan-measurement-${m.type}`}
-                  className="flex items-center gap-2 text-sm text-foreground"
+                  className="flex items-center gap-2 text-sm"
                 >
                   <span className="capitalize text-muted-foreground w-20">{m.type}</span>
-                  {m.target != null && (
-                    <span>
-                      {m.target}
-                      {m.unit ? ` ${m.unit}` : ''}
-                    </span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    data-testid={`plan-measurement-input-${m.type}`}
+                    value={m.target ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value ? Number(e.target.value) : 0
+                      onMeasurementChange?.(i, val)
+                    }}
+                    className="w-16 bg-transparent border-0 border-b border-transparent focus:border-brand outline-none text-sm text-foreground px-0 py-0 transition-colors text-right"
+                  />
+                  {m.unit && (
+                    <span className="text-muted-foreground">{m.unit}</span>
                   )}
                 </div>
               ))}
@@ -453,10 +471,10 @@ export function PlanReviewScreen({
           type="button"
           variant="ghost"
           data-testid="edit-button"
-          onClick={() => navigate(skippedConfigure ? 'choose-direction' : 'configure-activity')}
+          onClick={() => navigate('welcome')}
           className="w-full text-muted-foreground"
         >
-          Edit plan
+          Start over
         </Button>
       </div>
     </div>

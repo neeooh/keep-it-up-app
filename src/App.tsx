@@ -196,6 +196,19 @@ function renderScreen(
           onChallengeChange={(days) => setDraft({ challengeDurationDays: days })}
           motivation={draft.motivation}
           onMotivationChange={(m) => setDraft({ motivation: m })}
+          onNameChange={(name) => setDraft({ activityName: name })}
+          onMeasurementChange={(index, target) => {
+            // If measurements are empty (skipped configure), copy from template first.
+            const template = draft.templateId ? findTemplate(draft.templateId) : null
+            const base = draft.measurements.length > 0
+              ? draft.measurements
+              : template?.defaultMeasurements ?? []
+            const updated = [...base]
+            if (updated[index]) {
+              updated[index] = { ...updated[index], target }
+              setDraft({ measurements: updated })
+            }
+          }}
           onClose={onClose}
         />
       )
