@@ -100,6 +100,8 @@ interface ScreenProps {
   onEditRoutine: (routineId: string) => void
   /** When set, onboarding screens show a close (X) button that returns to dashboard. */
   onClose?: () => void
+  /** Install a persona preset routine by id. */
+  onInstallPreset: (presetId: string) => void
   sessionDate?: string
 }
 
@@ -114,6 +116,7 @@ function renderScreen(
     onStartSession,
     onEditRoutine,
     onClose,
+    onInstallPreset,
     sessionDate,
   }: ScreenProps,
 ) {
@@ -144,14 +147,7 @@ function renderScreen(
               skippedConfigure: skip,
             })
           }}
-          onInstallPreset={(presetId) => {
-            const preset = personaPresets.find((p) => p.id === presetId)
-            if (!preset) return
-            const routine = preset.buildRoutine()
-            addRoutine(routine)
-            setDraftState(EMPTY_DRAFT)
-            navigate('dashboard')
-          }}
+          onInstallPreset={onInstallPreset}
           onClose={onClose}
         />
       )
@@ -444,6 +440,12 @@ function AppShell({ initialScreen }: AppProps) {
             onStartSession,
             onEditRoutine,
             onClose: appState.routines.length > 0 ? () => navigate('dashboard') : undefined,
+            onInstallPreset: (presetId: string) => {
+              const preset = personaPresets.find((p) => p.id === presetId)
+              if (!preset) return
+              addRoutine(preset.buildRoutine())
+              navigate('dashboard')
+            },
             sessionDate,
           })}
         </main>
