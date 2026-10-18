@@ -235,3 +235,30 @@ Each iteration was a small, precise correction. The user knew what felt wrong be
 **Data model change:** Add `feelings?: string[]` to `ActivityResult` in the Session type.
 
 **Status:** Documented. Not yet implemented.
+
+### Celebrity / Influencer Routine Presets
+
+**Origin:** User feedback that the template list felt impersonal. Led to the idea of presets based on real people.
+
+**Concept:** Pre-built routine bundles inspired by famous people. The user picks a persona and gets a complete routine pre-configured — activities, frequencies, measurements, and a motivation quote attributed to the source.
+
+**Examples:**
+- **Marcus Aurelius** — Morning journaling (10 min daily), Evening reflection (10 min daily), Walking (30 min daily). Motivation: "You have power over your mind, not outside events."
+- **Arnold Schwarzenegger** — Strength workout (6×/week), Cardio (3×/week). Motivation: "The mind is the limit."
+- **Jordan Peterson** — Clean your room (daily), Reading (30 min daily), Journaling (daily). Motivation: "Compare yourself to who you were yesterday."
+- **Andrew Huberman** — Morning sunlight (10 min daily), Cold exposure (3×/week), Meditation (10 min daily).
+- **Stoic starter** — Journaling, Meditation, Walking, Reading. A philosophical daily practice.
+- **Couch to 5K** — Progressive running plan (3×/week, distance increases weekly).
+
+**Revenue potential:**
+- Free tier: 3-5 classic presets (Stoic, Minimalist, Basic fitness).
+- Premium tier: influencer-branded presets, unlocked via subscription or one-time purchase.
+- Partnership tier: official presets co-created with influencers (revenue share).
+
+**Implementation notes:**
+- Each preset is a complete Routine object (multiple activities, schedule, motivation).
+- New screen: "Browse presets" accessible from the activity selection screen.
+- Presets could be fetched from a backend (future) or bundled as JSON (MVP).
+- Requires careful IP/likeness handling — public-domain figures (philosophers) are safe. Modern influencers need licensing or careful attribution.
+
+**Status:** Backlog. Documented for future consideration. Requires backend for scalable delivery and potential monetisation.
