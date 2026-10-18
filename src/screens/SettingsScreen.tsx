@@ -2,14 +2,14 @@
  * SettingsScreen — user preferences and data export.
  *
  * Two sections:
- * 1. Profile — set a display name used in the dashboard greeting.
- * 2. Your Data — export all routines and sessions as JSON, CSV, or Markdown.
+ * 1. Profile — display name auto-saves as the user types (debounced).
+ * 2. Your Data — format dropdown + single export button.
  *
  * Accessible via the cog icon in the dashboard header.
  */
 
-import { useState } from 'react'
-import { FileJson, FileSpreadsheet, FileText, Download } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Download } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -27,38 +27,58 @@ interface Props {
   navigate: Navigate
 }
 
+// ─── Export format options ────────────────────────────────────────────────────
+
+type ExportFormat = 'json' | 'csv' | 'markdown'
+
+const FORMAT_OPTIONS: { value: ExportFormat; label: string; description: string }[] = [
+  { value: 'json', label: 'JSON', description: 'Full backup — all data included' },
+  { value: 'csv', label: 'CSV', description: 'Spreadsheet — Excel, Google Sheets' },
+  { value: 'markdown', label: 'Markdown', description: 'Readable summary for notes' },
+]
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export function SettingsScreen({ navigate }: Props) {
   const { preferences, updatePreferences } = usePreferences()
   const { state } = useAppStore()
   const [nameValue, setNameValue] = useState(preferences.userName)
-  const [saved, setSaved] = useState(false)
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('json')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  function handleSaveName() {
-    updatePreferences({ userName: nameValue.trim() })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
+  // Auto-save name with a 400ms debounce.
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    debounceRef.current = setTimeout(() => {
+      const trimmed = nameValue.trim()
+      if (trimmed !== preferences.userName) {
+        updatePreferences({ userName: trimmed })
+      }
+    }, 400)
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [nameValue, preferences.userName, updatePreferences])
 
   const sessionCount = state.sessions.length
   const routineCount = state.routines.length
   const hasData = sessionCount > 0 || routineCount > 0
   const dateStamp = new Date().toISOString().slice(0, 10)
 
-  function handleExportJSON() {
-    const content = exportJSON(state)
-    downloadFile(content, `keep-it-up-${dateStamp}.json`, 'application/json')
-  }
-
-  function handleExportCSV() {
-    const content = exportCSV(state)
-    downloadFile(content, `keep-it-up-${dateStamp}.csv`, 'text/csv')
-  }
-
-  function handleExportMarkdown() {
-    const content = exportMarkdown(state)
-    downloadFile(content, `keep-it-up-${dateStamp}.md`, 'text/markdown')
+  function handleExport() {
+    switch (exportFormat) {
+      case 'json':
+        downloadFile(exportJSON(state), `keep-it-up-${dateStamp}.json`, 'application/json')
+        break
+      case 'csv':
+        downloadFile(exportCSV(state), `keep-it-up-${dateStamp}.csv`, 'text/csv')
+        break
+      case 'markdown':
+        downloadFile(exportMarkdown(state), `keep-it-up-${dateStamp}.md`, 'text/markdown')
+        break
+    }
   }
 
   return (
@@ -73,47 +93,20 @@ export function SettingsScreen({ navigate }: Props) {
         {/* ── Profile section ──────────────────────────────────────────── */}
         <section>
           <SectionHeader title="Profile" />
-          <div className="flex flex-col gap-3 mt-2">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="user-name">Your name</Label>
-              <p className="text-sm text-muted-foreground">
-                Used in the dashboard greeting.
-              </p>
-              <div className="flex gap-2">
-                <Input
-                  id="user-name"
-                  data-testid="settings-name-input"
-                  type="text"
-                  placeholder="Enter your name"
-                  value={nameValue}
-                  onChange={(e) => {
-                    setNameValue(e.target.value)
-                    setSaved(false)
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveName()
-                  }}
-                  className="flex-1"
-                  maxLength={50}
-                />
-                <Button
-                  data-testid="settings-save-name"
-                  onClick={handleSaveName}
-                  disabled={nameValue.trim() === preferences.userName}
-                  className="bg-brand text-brand-foreground hover:bg-brand/90"
-                >
-                  Save
-                </Button>
-              </div>
-              {saved && (
-                <p
-                  data-testid="settings-name-saved"
-                  className="text-sm text-success font-medium"
-                >
-                  Name saved.
-                </p>
-              )}
-            </div>
+          <div className="flex flex-col gap-1.5 mt-2">
+            <Label htmlFor="user-name">Your name</Label>
+            <p className="text-sm text-muted-foreground">
+              Used in the dashboard greeting. Saves automatically.
+            </p>
+            <Input
+              id="user-name"
+              data-testid="settings-name-input"
+              type="text"
+              placeholder="Enter your name"
+              value={nameValue}
+              onChange={(e) => setNameValue(e.target.value)}
+              maxLength={50}
+            />
           </div>
         </section>
 
@@ -126,50 +119,29 @@ export function SettingsScreen({ navigate }: Props) {
               : 'No data to export yet. Complete some sessions first.'}
           </p>
 
-          <div className="flex flex-col gap-2">
-            <Button
-              data-testid="export-json"
-              variant="outline"
-              onClick={handleExportJSON}
-              disabled={!hasData}
-              className="justify-start gap-3 h-12"
+          <div className="flex gap-2">
+            <select
+              data-testid="export-format-select"
+              aria-label="Export format"
+              value={exportFormat}
+              onChange={(e) => setExportFormat(e.target.value as ExportFormat)}
+              className="flex-1 rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <FileJson size={18} className="text-brand shrink-0" aria-hidden="true" />
-              <div className="flex flex-col items-start">
-                <span className="text-sm font-medium">Export as JSON</span>
-                <span className="text-xs text-muted-foreground">Full backup. All data included.</span>
-              </div>
-              <Download size={14} className="ml-auto text-muted-foreground shrink-0" aria-hidden="true" />
-            </Button>
+              {FORMAT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label} — {opt.description}
+                </option>
+              ))}
+            </select>
 
             <Button
-              data-testid="export-csv"
-              variant="outline"
-              onClick={handleExportCSV}
+              data-testid="export-button"
+              onClick={handleExport}
               disabled={!hasData}
-              className="justify-start gap-3 h-12"
+              className="bg-brand text-brand-foreground hover:bg-brand/90 shrink-0"
             >
-              <FileSpreadsheet size={18} className="text-brand shrink-0" aria-hidden="true" />
-              <div className="flex flex-col items-start">
-                <span className="text-sm font-medium">Export as CSV</span>
-                <span className="text-xs text-muted-foreground">Open in Excel or Google Sheets.</span>
-              </div>
-              <Download size={14} className="ml-auto text-muted-foreground shrink-0" aria-hidden="true" />
-            </Button>
-
-            <Button
-              data-testid="export-markdown"
-              variant="outline"
-              onClick={handleExportMarkdown}
-              disabled={!hasData}
-              className="justify-start gap-3 h-12"
-            >
-              <FileText size={18} className="text-brand shrink-0" aria-hidden="true" />
-              <div className="flex flex-col items-start">
-                <span className="text-sm font-medium">Export as Markdown</span>
-                <span className="text-xs text-muted-foreground">Readable summary for notes and journals.</span>
-              </div>
-              <Download size={14} className="ml-auto text-muted-foreground shrink-0" aria-hidden="true" />
+              <Download size={16} className="mr-1.5" aria-hidden="true" />
+              Export
             </Button>
           </div>
         </section>
