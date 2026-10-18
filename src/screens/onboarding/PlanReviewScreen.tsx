@@ -17,7 +17,7 @@ import { OnboardingProgress } from '../../components/OnboardingProgress'
 import { ActivityIcon } from '../../components/ActivityIcon'
 import { useAppStore } from '../../store/useAppStore'
 import type { Navigate, OnboardingDraft } from '../../App'
-import { findTemplate, emotionalPlaceholder } from '../../domain/templates'
+import { findTemplate } from '../../domain/templates'
 import type { ChallengeDuration, DayOfWeek, Frequency } from '../../domain/types'
 
 interface Props {
@@ -300,12 +300,9 @@ export function PlanReviewScreen({
               What is really driving you?
             </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Optional. Say what you would tell yourself when no one is listening.
-          </p>
           <textarea
             data-testid="motivation-custom-input"
-            placeholder={emotionalPlaceholder(draft.templateId, activityName)}
+            placeholder="Why this matters to me..."
             value={motivation}
             onChange={(e) => onMotivationChange?.(e.target.value)}
             maxLength={300}

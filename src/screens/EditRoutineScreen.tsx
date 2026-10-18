@@ -2,8 +2,9 @@
  * EditRoutineScreen — edit an existing routine.
  *
  * Pre-populates all fields from the current routine and groups them into
- * clear sections: Routine, Schedule, Time, and Challenge. Supports save,
- * delete (with confirmation), and cancel.
+ * clear sections: Routine, Schedule, and Challenge. The Schedule section
+ * uses a unified day picker with preset shortcuts. Days are the source of
+ * truth; frequency is derived from the day count.
  *
  * Spec reference: mvp_product_spec.md — reachable from weekly review
  * and dashboard.
@@ -26,7 +27,6 @@ import { SectionHeader } from '../components/SectionHeader'
 import { useAppStore } from '../store/useAppStore'
 import type { Navigate } from '../App'
 import type { DayOfWeek, Frequency, Routine } from '../domain/types'
-import { emotionalPlaceholder } from '../domain/templates'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -35,32 +35,73 @@ interface Props {
   routineId: string | null
 }
 
-// ─── Frequency options ────────────────────────────────────────────────────────
+// ─── Preset definitions ───────────────────────────────────────────────────────
 
-interface FrequencyOption {
-  value: Frequency
+interface Preset {
   label: string
+  days: DayOfWeek[]
 }
 
-const FREQUENCY_OPTIONS: FrequencyOption[] = [
-  { value: 'daily', label: 'Every day' },
-  { value: '3x_week', label: '3× per week' },
-  { value: '2x_week', label: '2× per week' },
-  { value: '1x_week', label: 'Once a week' },
-  { value: 'flexible', label: "I'll decide each time" },
+const PRESETS: Preset[] = [
+  { label: 'Every day', days: [1, 2, 3, 4, 5, 6, 7] },
+  { label: '3×/week', days: [1, 3, 5] },
+  { label: '2×/week', days: [2, 4] },
+  { label: 'Weekdays', days: [1, 2, 3, 4, 5] },
+  { label: 'Weekend', days: [6, 7] },
 ]
 
-const DAY_OPTIONS: { value: DayOfWeek; short: string }[] = [
-  { value: 1, short: 'Mon' },
-  { value: 2, short: 'Tue' },
-  { value: 3, short: 'Wed' },
-  { value: 4, short: 'Thu' },
-  { value: 5, short: 'Fri' },
-  { value: 6, short: 'Sat' },
-  { value: 7, short: 'Sun' },
+const DAY_BUTTONS: { value: DayOfWeek; letter: string }[] = [
+  { value: 1, letter: 'Mon' },
+  { value: 2, letter: 'Tue' },
+  { value: 3, letter: 'Wed' },
+  { value: 4, letter: 'Thu' },
+  { value: 5, letter: 'Fri' },
+  { value: 6, letter: 'Sat' },
+  { value: 7, letter: 'Sun' },
 ]
 
 const TIME_OPTIONS = ['Morning', 'Afternoon', 'Evening', 'Anytime']
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Derive frequency from the number of selected days. */
+function deriveFrequency(dayCount: number): Frequency {
+  if (dayCount === 0) return 'flexible'
+  if (dayCount === 1) return '1x_week'
+  if (dayCount === 2) return '2x_week'
+  if (dayCount === 3) return '3x_week'
+  if (dayCount <= 5) return '3x_week'
+  // 6 or 7
+  return 'daily'
+}
+
+/** Check whether a preset matches the current day selection.
+ *  - "Every day": exactly 7 days selected.
+ *  - "Weekdays": exactly Mon-Fri selected.
+ *  - "Flexible": exactly 0 days selected.
+ *  - "3×/week", "2×/week": any selection with that day count.
+ */
+function presetMatches(preset: Preset, selectedDays: DayOfWeek[]): boolean {
+  const sorted = [...selectedDays].sort((a, b) => a - b)
+
+  // "Weekdays" must be exactly Mon-Fri
+  if (preset.label === 'Weekdays') {
+    return sorted.length === 5 && sorted.every((d, i) => d === [1, 2, 3, 4, 5][i])
+  }
+
+  // "Weekend" must be exactly Sat-Sun
+  if (preset.label === 'Weekend') {
+    return sorted.length === 2 && sorted[0] === 6 && sorted[1] === 7
+  }
+
+  // "Every day" must be exactly 7
+  if (preset.label === 'Every day') {
+    return sorted.length === 7
+  }
+
+  // Frequency presets match by count
+  return sorted.length === preset.days.length
+}
 
 // ─── Shared selectable-button styles ──────────────────────────────────────────
 
@@ -80,9 +121,6 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
 
   // Form state — initialised from the routine
   const [name, setName] = useState(routine?.name ?? '')
-  const [frequency, setFrequency] = useState<Frequency>(
-    routine?.activities[0]?.frequency ?? '3x_week',
-  )
   const [scheduledDays, setScheduledDays] = useState<DayOfWeek[]>(
     routine?.activities[0]?.scheduledDays ?? [],
   )
@@ -114,12 +152,19 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
     )
   }
 
+  // Derived frequency from current day selection
+  const frequency = deriveFrequency(scheduledDays.length)
+
   function toggleDay(day: DayOfWeek) {
     setScheduledDays((prev) =>
       prev.includes(day)
         ? prev.filter((d) => d !== day)
         : [...prev, day].sort((a, b) => a - b),
     )
+  }
+
+  function applyPreset(preset: Preset) {
+    setScheduledDays([...preset.days])
   }
 
   function handleSave() {
@@ -163,9 +208,8 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
       <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-6">
         {/* a. Routine */}
         <section>
-          <SectionHeader title="Routine" />
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="routine-name">Routine name</Label>
+            <Label htmlFor="routine-name">Name</Label>
             <Input
               id="routine-name"
               data-testid="edit-name"
@@ -178,12 +222,9 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
               <Heart size={16} className="text-brand shrink-0" aria-hidden="true" />
               <Label>What is really driving you?</Label>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Optional. Say what you would tell yourself when no one is listening.
-            </p>
             <textarea
               data-testid="edit-motivation-custom-input"
-              placeholder={emotionalPlaceholder(undefined, routine?.name)}
+              placeholder="Why this matters to me..."
               value={motivation}
               onChange={(e) => setMotivation(e.target.value)}
               maxLength={300}
@@ -193,49 +234,35 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
           </div>
         </section>
 
-        {/* b. Schedule */}
+        {/* b. Schedule — unified day picker with presets */}
         <section>
           <SectionHeader title="Schedule" />
 
-          {/* Frequency */}
-          <p className="text-sm font-medium text-foreground mb-2">Frequency</p>
-          <div
-            className="flex flex-col gap-2"
-            role="radiogroup"
-            aria-label="Frequency"
-          >
-            {FREQUENCY_OPTIONS.map(({ value, label }) => {
-              const isSelected = frequency === value
+          {/* Preset pills */}
+          <div className="flex gap-2 flex-wrap" data-testid="preset-pills">
+            {PRESETS.map((preset) => {
+              const isActive = presetMatches(preset, scheduledDays)
               return (
                 <button
-                  key={value}
+                  key={preset.label}
                   type="button"
-                  role="radio"
-                  aria-checked={isSelected}
-                  data-testid={`edit-frequency-${value}`}
-                  onClick={() => setFrequency(value)}
+                  data-testid={`edit-preset-${preset.label.toLowerCase().replace(/[×\/\s]+/g, '-')}`}
+                  onClick={() => applyPreset(preset)}
                   className={[
-                    'flex items-center justify-between w-full rounded-lg border px-4 py-3 text-left text-sm transition-colors',
-                    isSelected
-                      ? 'border-brand bg-brand-light text-foreground font-medium'
-                      : 'border-border bg-card hover:bg-surface-muted',
+                    'inline-flex items-center rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+                    isActive ? SELECTED_PILL : UNSELECTED_PILL,
                   ].join(' ')}
                 >
-                  <span>{label}</span>
-                  {isSelected && (
-                    <Check size={16} aria-hidden="true" className="text-brand" />
-                  )}
+                  {preset.label}
                 </button>
               )
             })}
           </div>
 
-          {/* Scheduled days */}
-          <p className="text-sm font-medium text-foreground mt-4 mb-2">
-            Preferred days (optional)
-          </p>
-          <div className="flex gap-2 flex-wrap">
-            {DAY_OPTIONS.map(({ value, short }) => {
+          {/* Day toggle buttons */}
+          <p className="text-xs font-medium text-muted-foreground mt-3 mb-2">Days</p>
+          <div className="flex gap-2">
+            {DAY_BUTTONS.map(({ value, letter }) => {
               const isSelected = scheduledDays.includes(value)
               return (
                 <button
@@ -245,23 +272,18 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                   data-testid={`edit-day-${value}`}
                   onClick={() => toggleDay(value)}
                   className={[
-                    'rounded-lg border px-3 py-2 text-sm font-medium transition-colors min-w-[3rem]',
+                    'flex-1 flex items-center justify-center rounded-lg border h-9 text-xs font-medium transition-colors',
                     isSelected ? SELECTED_PILL : UNSELECTED_PILL,
                   ].join(' ')}
                 >
-                  {short}
+                  {letter}
                 </button>
               )
             })}
           </div>
-        </section>
 
-        {/* c. Time */}
-        <section>
-          <SectionHeader title="Time" />
-          <p className="text-sm font-medium text-foreground mb-2">
-            Preferred time (optional)
-          </p>
+          {/* Time of day */}
+          <p className="text-xs font-medium text-muted-foreground mt-4 mb-2">Time of day</p>
           <div className="flex gap-2 flex-wrap">
             {TIME_OPTIONS.map((time) => {
               const isSelected = preferredTime === time
@@ -273,11 +295,11 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                   data-testid={`edit-time-${time.toLowerCase()}`}
                   onClick={() => setPreferredTime(isSelected ? '' : time)}
                   className={[
-                    'inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
+                    'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
                     isSelected ? SELECTED_PILL : UNSELECTED_PILL,
                   ].join(' ')}
                 >
-                  {isSelected && <Check size={14} aria-hidden="true" />}
+                  {isSelected && <Check size={12} aria-hidden="true" />}
                   {time}
                 </button>
               )
@@ -285,7 +307,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
           </div>
         </section>
 
-        {/* d. Challenge */}
+        {/* c. Challenge */}
         {routine.challengeDurationDays && (
           <section>
             <SectionHeader title="Challenge" />
@@ -320,8 +342,8 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
 
       </div>
 
-      {/* Actions */}
-      <div className="px-5 py-4 border-t border-border flex flex-col gap-2">
+      {/* Save */}
+      <div className="px-5 py-4 border-t border-border">
         <Button
           data-testid="save-button"
           onClick={handleSave}
@@ -329,19 +351,11 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
         >
           Save changes
         </Button>
-        <Button
-          data-testid="cancel-button"
-          variant="ghost"
-          onClick={handleCancel}
-          className="w-full text-muted-foreground"
-        >
-          Cancel
-        </Button>
         <button
           type="button"
           data-testid="delete-routine-button"
           onClick={() => setShowDeleteDialog(true)}
-          className="mt-2 text-sm text-destructive/70 hover:text-destructive transition-colors py-1"
+          className="w-full mt-4 text-xs text-muted-foreground/50 hover:text-destructive transition-colors py-1"
         >
           Delete this routine
         </button>

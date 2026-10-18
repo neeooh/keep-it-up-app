@@ -1,10 +1,12 @@
 /**
- * EditRoutineScreen tests.
+ * EditRoutineScreen tests — Approach C (unified day picker with presets).
  *
  * - Save persists updated values
  * - Delete removes routine
- * - Cancel leaves store unchanged
+ * - Cancel button removed (back arrow handles navigation)
  * - Pre-population of fields from existing routine
+ * - Preset pills select corresponding days
+ * - Frequency is derived from day count
  */
 
 import { render, screen } from '@testing-library/react'
@@ -52,15 +54,25 @@ describe('EditRoutineScreen — pre-population', () => {
     expect(input.value).toBe('Strength Training')
   })
 
-  it('pre-selects the current frequency', () => {
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+  it('pre-selects the scheduled days from the routine', () => {
+    const routineWithDays = {
+      ...STRENGTH_ROUTINE,
+      id: 'routine-with-days',
+      activities: STRENGTH_ROUTINE.activities.map((a) => ({
+        ...a,
+        scheduledDays: [1, 3, 5] as (1 | 2 | 3 | 4 | 5 | 6 | 7)[],
+      })),
+    }
+    seedStore({ routines: [routineWithDays], sessions: [] })
     render(
       <StoreWrapper>
-        <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />
+        <EditRoutineScreen navigate={vi.fn()} routineId="routine-with-days" />
       </StoreWrapper>,
     )
-    const radio = screen.getByTestId('edit-frequency-3x_week')
-    expect(radio).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByTestId('edit-day-1')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId('edit-day-3')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId('edit-day-5')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId('edit-day-2')).toHaveAttribute('aria-pressed', 'false')
   })
 })
 
@@ -89,7 +101,7 @@ describe('EditRoutineScreen — save', () => {
     expect(state.routines[0].activities[0].name).toBe('Bench Press')
   })
 
-  it('saves updated frequency', async () => {
+  it('derives frequency from selected days and saves it', async () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
     const user = userEvent.setup()
     render(
@@ -98,38 +110,26 @@ describe('EditRoutineScreen — save', () => {
       </StoreWrapper>,
     )
 
-    await user.click(screen.getByTestId('edit-frequency-2x_week'))
+    // Select Tue and Thu (2 days → 2x_week)
+    await user.click(screen.getByTestId('edit-day-2'))
+    await user.click(screen.getByTestId('edit-day-4'))
     await user.click(screen.getByTestId('save-button'))
 
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
     expect(state.routines[0].activities[0].frequency).toBe('2x_week')
+    expect(state.routines[0].activities[0].scheduledDays).toEqual([2, 4])
   })
 })
 
-describe('EditRoutineScreen — cancel', () => {
-  it('navigates to dashboard without saving changes', async () => {
+describe('EditRoutineScreen — cancel button removed', () => {
+  it('does not render a cancel button in the footer', () => {
     seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
-    const navigate = vi.fn()
-    const user = userEvent.setup()
     render(
       <StoreWrapper>
-        <EditRoutineScreen navigate={navigate} routineId={STRENGTH_ROUTINE.id} />
+        <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />
       </StoreWrapper>,
     )
-
-    // Make a change
-    const input = screen.getByTestId('edit-name') as HTMLInputElement
-    await user.clear(input)
-    await user.type(input, 'Changed Name')
-
-    // Cancel
-    await user.click(screen.getByTestId('cancel-button'))
-
-    expect(navigate).toHaveBeenCalledWith('dashboard')
-
-    // Store should still have original name
-    const state = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
-    expect(state.routines[0].name).toBe('Strength Training')
+    expect(screen.queryByTestId('cancel-button')).not.toBeInTheDocument()
   })
 })
 
@@ -282,5 +282,58 @@ describe('EditRoutineScreen — preferred time buttons', () => {
 
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
     expect(state.routines[0].activities[0].preferredTime).toBeUndefined()
+  })
+})
+
+describe('EditRoutineScreen — preset pills', () => {
+  it('tapping "Every day" preset selects all 7 days', async () => {
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    const user = userEvent.setup()
+    render(
+      <StoreWrapper>
+        <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />
+      </StoreWrapper>,
+    )
+
+    await user.click(screen.getByTestId('edit-preset-every-day'))
+
+    for (let d = 1; d <= 7; d++) {
+      expect(screen.getByTestId(`edit-day-${d}`)).toHaveAttribute('aria-pressed', 'true')
+    }
+  })
+
+  it('tapping "3×/week" preset selects Mon, Wed, Fri', async () => {
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    const user = userEvent.setup()
+    render(
+      <StoreWrapper>
+        <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />
+      </StoreWrapper>,
+    )
+
+    await user.click(screen.getByTestId('edit-preset-3-week'))
+
+    expect(screen.getByTestId('edit-day-1')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId('edit-day-3')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId('edit-day-5')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId('edit-day-2')).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('preset pill highlights when selection matches', async () => {
+    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    const user = userEvent.setup()
+    render(
+      <StoreWrapper>
+        <EditRoutineScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />
+      </StoreWrapper>,
+    )
+
+    // Select Mon, Wed, Fri manually
+    await user.click(screen.getByTestId('edit-day-1'))
+    await user.click(screen.getByTestId('edit-day-3'))
+    await user.click(screen.getByTestId('edit-day-5'))
+
+    const preset = screen.getByTestId('edit-preset-3-week')
+    expect(preset.className).toContain('bg-brand')
   })
 })
