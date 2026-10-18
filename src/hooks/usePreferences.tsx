@@ -24,6 +24,8 @@ import type { ReactNode } from 'react'
 export interface Preferences {
   /** The user's display name. Used in the dashboard greeting. */
   userName: string
+  /** The persona path the user chose (preset id). */
+  chosenPath?: string
 }
 
 export interface PreferencesContextValue {
