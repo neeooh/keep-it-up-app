@@ -10,7 +10,7 @@
  */
 
 import { useState, useMemo } from 'react'
-import { Plus, Trash2, Check, X, Info, ClipboardCheck, Flame } from 'lucide-react'
+import { Plus, Trash2, Check, X, Info, Flame, PartyPopper } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -90,7 +90,6 @@ function prefillSets(
       reps: s.reps?.toString() ?? '',
     }))
   }
-  // No previous session — pre-fill from activity targets
   const targetSets = activity.measurements.find((m) => m.type === 'sets')?.target ?? 3
   const targetReps = activity.measurements.find((m) => m.type === 'reps')?.target
   const targetWeight = activity.measurements.find((m) => m.type === 'weight')?.target
@@ -101,20 +100,13 @@ function prefillSets(
   }))
 }
 
-/**
- * Pre-fill scalar measurements from the last session result,
- * or fall back to the activity's measurement targets.
- */
 function prefillMeasurements(
   activity: Activity,
   lastResult: ActivityResult | undefined,
 ): Record<string, string> {
   const measurements: Record<string, string> = {}
-
   for (const m of activity.measurements) {
-    // Skip strength-specific types (handled by prefillSets)
     if (m.type === 'sets' || m.type === 'reps' || m.type === 'weight') continue
-
     const lastValue = lastResult?.measurements[m.type]
     if (lastValue !== undefined) {
       measurements[m.type] = lastValue.toString()
@@ -122,7 +114,6 @@ function prefillMeasurements(
       measurements[m.type] = m.target.toString()
     }
   }
-
   return measurements
 }
 
@@ -132,14 +123,11 @@ function isActivityComplete(activity: Activity, state: ActivityState): boolean {
   if (activity.direction === 'AVOID') {
     return state.stayedOnTrack !== null
   }
-
   if (isStrengthActivity(activity)) {
     return state.sets.some(
       (s) => s.weight.trim() !== '' || s.reps.trim() !== '',
     )
   }
-
-  // Metric: at least one measurement has a value
   const metricTypes = activity.measurements
     .filter((m) => m.type !== 'sets' && m.type !== 'reps' && m.type !== 'weight')
     .map((m) => m.type)
@@ -371,20 +359,36 @@ function AvoidInput({
 
 // ─── Session progress indicator ───────────────────────────────────────────────
 
-function SessionProgress({ total }: { total: number }) {
-  if (total <= 0) return null
+function SessionProgress({
+  activities,
+  activityStates,
+}: {
+  activities: Activity[]
+  activityStates: ActivityState[]
+}) {
+  if (activities.length <= 0) return null
+  const completedCount = activities.filter((a, i) =>
+    isActivityComplete(a, activityStates[i]!),
+  ).length
+
   return (
-    <div data-testid="session-progress" className="px-5 pb-4">
+    <div data-testid="session-progress" className="px-5 pb-3">
       <p className="mb-2 text-xs font-medium text-muted-foreground">
-        {total === 1 ? '1 activity' : `${total} activities`}
+        {completedCount} of {activities.length} done
       </p>
       <div className="flex gap-1.5" aria-hidden="true">
-        {Array.from({ length: total }, (_, i) => (
-          <div
-            key={i}
-            className="h-1.5 flex-1 rounded-full bg-brand"
-          />
-        ))}
+        {activities.map((activity, i) => {
+          const done = isActivityComplete(activity, activityStates[i]!)
+          return (
+            <div
+              key={activity.id}
+              className={[
+                'h-1.5 flex-1 rounded-full transition-colors',
+                done ? 'bg-brand' : 'bg-border',
+              ].join(' ')}
+            />
+          )
+        })}
       </div>
     </div>
   )
@@ -392,7 +396,6 @@ function SessionProgress({ total }: { total: number }) {
 
 // ─── Date selector helpers ────────────────────────────────────────────────────
 
-/** Generate the last 7 days as {label, value} pairs. */
 function lastSevenDays(): { label: string; value: string }[] {
   const days: { label: string; value: string }[] = []
   for (let i = 0; i < 7; i++) {
@@ -408,11 +411,30 @@ function lastSevenDays(): { label: string; value: string }[] {
   return days
 }
 
+// ─── Success overlay ──────────────────────────────────────────────────────────
+
+function SuccessOverlay() {
+  return (
+    <div
+      data-testid="success-overlay"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 animate-in fade-in duration-200"
+    >
+      <div className="flex flex-col items-center gap-3 animate-in zoom-in-50 duration-300">
+        <div className="flex items-center justify-center size-16 rounded-full bg-success/10">
+          <PartyPopper size={32} className="text-success" aria-hidden="true" />
+        </div>
+        <p className="text-xl font-semibold text-foreground">Session logged!</p>
+      </div>
+    </div>
+  )
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props) {
   const { state, addSession } = useAppStore()
   const [selectedDate, setSelectedDate] = useState(sessionDate ?? new Date().toISOString().slice(0, 10))
+  const [showSuccess, setShowSuccess] = useState(false)
   const dateOptions = useMemo(() => lastSevenDays(), [])
 
   const routine = routineId
@@ -438,7 +460,6 @@ export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props)
     const prev = sessionsForRoutine(state.sessions, routine.id)
     if (prev.length === 0) return null
     const last = prev[prev.length - 1]!
-    // Only show notice for strength activities (where pre-fill is meaningful)
     const hasStrength = routine.activities.some(isStrengthActivity)
     if (!hasStrength) return null
     return new Date(last.completedAt).toLocaleDateString('en-GB', {
@@ -548,25 +569,30 @@ export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props)
       results,
     })
 
-    navigate('dashboard')
+    // Show success overlay briefly, then navigate
+    setShowSuccess(true)
+    setTimeout(() => navigate('dashboard'), 1200)
   }
+
+  // Combine pre-fill and motivation into one compact line
+  const hasMotivation = !!routine.motivation
+  const hasPrefill = !!lastSessionDate
 
   return (
     <div data-testid="screen-active-session" className="flex flex-col min-h-full">
+      {showSuccess && <SuccessOverlay />}
+
       {/* Header */}
       <PageHeader title={routine.name} backAction={() => navigate('dashboard')} />
 
-      {/* Date selector */}
+      {/* Date selector — compact inline */}
       <div data-testid="date-selector" className="px-5 pb-2">
-        <Label htmlFor="session-date" className="text-sm font-medium text-muted-foreground mb-1.5 block">
-          Logging for
-        </Label>
         <select
           id="session-date"
           data-testid="session-date-select"
           value={selectedDate}
           onChange={(e) => setSelectedDate(e.target.value)}
-          className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         >
           {dateOptions.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -576,32 +602,37 @@ export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props)
         </select>
       </div>
 
-      {/* Session progress indicator */}
-      <SessionProgress total={routine.activities.length} />
+      {/* Session progress indicator — fills as activities are completed */}
+      <SessionProgress
+        activities={routine.activities}
+        activityStates={activityStates}
+      />
 
-      {/* Pre-fill notice */}
-      {lastSessionDate && (
-        <div
-          data-testid="prefill-notice"
-          className="mx-5 flex items-start gap-2 rounded-xl bg-surface-muted px-4 py-3"
-        >
-          <Info size={16} className="text-muted-foreground mt-0.5 shrink-0" aria-hidden="true" />
-          <p className="text-sm text-muted-foreground">
-            Pre-filled from your last session on {lastSessionDate}. Adjust any values before completing.
-          </p>
-        </div>
-      )}
-
-      {/* Motivation reminder */}
-      {routine.motivation && (
-        <div
-          data-testid="motivation-card"
-          className="mx-5 mt-2 flex items-start gap-2 rounded-xl bg-brand-light px-4 py-3"
-        >
-          <Flame size={16} className="text-brand mt-0.5 shrink-0" aria-hidden="true" />
-          <p className="text-sm text-foreground italic">
-            {routine.motivation}
-          </p>
+      {/* Info cards — compact, stacked in one area */}
+      {(hasPrefill || hasMotivation) && (
+        <div className="px-5 pb-2 flex flex-col gap-2">
+          {hasPrefill && (
+            <div
+              data-testid="prefill-notice"
+              className="flex items-center gap-2 rounded-lg bg-surface-muted px-3 py-2"
+            >
+              <Info size={14} className="text-muted-foreground shrink-0" aria-hidden="true" />
+              <p className="text-xs text-muted-foreground">
+                Pre-filled from {lastSessionDate}
+              </p>
+            </div>
+          )}
+          {hasMotivation && (
+            <div
+              data-testid="motivation-card"
+              className="flex items-center gap-2 rounded-lg bg-brand-light px-3 py-2"
+            >
+              <Flame size={14} className="text-brand shrink-0" aria-hidden="true" />
+              <p className="text-xs text-foreground italic">
+                {routine.motivation}
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -652,8 +683,8 @@ export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props)
           disabled={!allComplete}
           className="w-full bg-brand text-brand-foreground hover:bg-brand/90"
         >
-          <ClipboardCheck size={16} className="mr-2" aria-hidden="true" />
-          Log session
+          <Check size={16} className="mr-1.5" aria-hidden="true" />
+          Done!
         </Button>
       </div>
     </div>

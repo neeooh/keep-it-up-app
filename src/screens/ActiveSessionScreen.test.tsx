@@ -8,9 +8,9 @@
  * - Routine-not-found error state
  */
 
-import { render, screen } from '@testing-library/react'
+import { render, screen, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ActiveSessionScreen } from './ActiveSessionScreen'
 import {
@@ -27,6 +27,11 @@ import { STORAGE_KEY } from '../store/useAppStore'
 
 afterEach(() => {
   clearStore()
+  vi.useRealTimers()
+})
+
+beforeEach(() => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
 })
 
 describe('ActiveSessionScreen — routine not found', () => {
@@ -129,7 +134,8 @@ describe('ActiveSessionScreen — strength activity', () => {
 
     await user.click(btn)
 
-    // Should navigate to dashboard
+    // Success overlay shows, then navigates after 1200ms
+    act(() => { vi.advanceTimersByTime(1500) })
     expect(navigate).toHaveBeenCalledWith('dashboard')
 
     // Verify session was saved in localStorage
@@ -187,6 +193,7 @@ describe('ActiveSessionScreen — metric activity', () => {
     await user.type(distanceInput, '5.2')
 
     await user.click(screen.getByTestId('complete-session-button'))
+    act(() => { vi.advanceTimersByTime(1500) })
     expect(navigate).toHaveBeenCalledWith('dashboard')
 
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
