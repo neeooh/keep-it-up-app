@@ -126,6 +126,7 @@ function renderScreen(
         <WelcomeScreen
           navigate={navigate}
           onDirectionChoose={(d) => setDraft({ direction: d })}
+          onInstallPreset={onInstallPreset}
           onClose={onClose}
         />
       )

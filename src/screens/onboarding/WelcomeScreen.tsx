@@ -1,6 +1,7 @@
 import { Target, ShieldX, ArrowRight, X } from 'lucide-react'
 import type { Navigate } from '../../App'
 import type { Direction } from '../../domain/types'
+import { personaPresets } from '../../domain/templates'
 
 interface Props {
   navigate: Navigate
@@ -9,9 +10,11 @@ interface Props {
   /** When set, shows an X button to return to the dashboard.
    *  Also signals this is the "add routine" context, not first-use. */
   onClose?: () => void
+  /** Install a persona preset routine bundle by id. */
+  onInstallPreset?: (presetId: string) => void
 }
 
-export function WelcomeScreen({ navigate, onDirectionChoose, onClose }: Props) {
+export function WelcomeScreen({ navigate, onDirectionChoose, onClose, onInstallPreset }: Props) {
   const isAddRoutine = !!onClose
 
   function choose(direction: Direction) {
@@ -85,6 +88,35 @@ export function WelcomeScreen({ navigate, onDirectionChoose, onClose }: Props) {
           </div>
           <ArrowRight size={18} className="text-muted-foreground shrink-0" aria-hidden="true" />
         </button>
+      </div>
+
+      {/* ── Divider ────────────────────────────────────────────────────── */}
+      <div className="w-full max-w-xs mt-10 mb-8 flex items-center gap-4">
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-xs text-muted-foreground">or try a ready-made routine</span>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+
+      {/* ── Persona presets — horizontal scroll ────────────────────────── */}
+      <div className="w-full">
+        <p className="text-xs text-muted-foreground mb-3">
+          One tap setup — a complete routine in a second.
+        </p>
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-6 px-6 snap-x">
+          {personaPresets.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              data-testid={`welcome-preset-${preset.id}`}
+              onClick={() => onInstallPreset?.(preset.id)}
+              className="flex flex-col items-center justify-center shrink-0 w-28 h-28 rounded-xl border border-border bg-card shadow-sm transition-colors hover:bg-muted active:scale-[0.97] snap-start"
+            >
+              <span className="text-3xl mb-1.5" aria-hidden="true">{preset.emoji}</span>
+              <p className="text-xs font-medium text-foreground">{preset.name}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5 px-2 leading-tight">{preset.tagline}</p>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
