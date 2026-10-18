@@ -378,3 +378,51 @@ export function needsConfigureScreen(template: ActivityTemplate | null | undefin
   if (template.isCustom) return true
   return template.defaultMeasurements.some((m) => m.type === 'sets')
 }
+
+/**
+ * Return a contextual placeholder for the motivation text field,
+ * based on the template or activity name.
+ */
+export function motivationPlaceholder(templateId?: string | null, activityName?: string): string {
+  // Match by template ID first (most specific).
+  if (templateId) {
+    const placeholders: Record<string, string> = {
+      'strength-workout': 'e.g. I want to feel strong and confident in my body',
+      'running': 'e.g. I want to run a 10K and feel that sense of freedom',
+      'walking': 'e.g. I want to clear my head and move every day',
+      'cycling': 'e.g. I want to explore new places and stay active',
+      'swimming': 'e.g. I want a low-impact workout that clears my mind',
+      'yoga': 'e.g. I want to feel calm and flexible in my body',
+      'stretching': 'e.g. I want to start every day feeling loose and ready',
+      'reading': 'e.g. I want to learn more and unwind without a screen',
+      'learning': 'e.g. I want to grow my skills and invest in myself',
+      'practice-skill': 'e.g. I want to get noticeably better each week',
+      'meditation': 'e.g. I want a calmer mind and less stress',
+      'journaling': 'e.g. I want to understand myself better and process my thoughts',
+      'go-outside': 'e.g. I want fresh air and daylight every single day',
+      'no-smoking': 'e.g. I want to breathe freely and protect my health',
+      'no-fast-food': 'e.g. I want to feel better about what I put in my body',
+      'no-social-media': 'e.g. I want to reclaim my time and focus',
+      'no-alcohol': 'e.g. I want clearer mornings and sharper thinking',
+      'no-unnecessary-spending': 'e.g. I want to save for something that matters',
+    }
+    if (placeholders[templateId]) return placeholders[templateId]
+  }
+
+  // Fallback: match by activity name (for custom routines or edit screen).
+  const name = activityName?.toLowerCase() ?? ''
+  if (name.includes('meditat')) return 'e.g. I want a calmer mind and less stress'
+  if (name.includes('journal')) return 'e.g. I want to understand myself better'
+  if (name.includes('read')) return 'e.g. I want to learn more and unwind without a screen'
+  if (name.includes('yoga')) return 'e.g. I want to feel calm and flexible'
+  if (name.includes('run')) return 'e.g. I want to feel that runner\'s freedom'
+  if (name.includes('walk')) return 'e.g. I want to move and clear my head'
+  if (name.includes('swim')) return 'e.g. I want a workout that clears my mind'
+  if (name.includes('stretch')) return 'e.g. I want to start every day feeling ready'
+  if (name.includes('smok')) return 'e.g. I want to breathe freely again'
+  if (name.includes('alcohol') || name.includes('drink')) return 'e.g. I want clearer mornings'
+  if (name.includes('social media')) return 'e.g. I want to reclaim my time'
+
+  // Generic fallback
+  return 'e.g. What will keep you going when it gets hard?'
+}

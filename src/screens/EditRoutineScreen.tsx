@@ -26,6 +26,7 @@ import { SectionHeader } from '../components/SectionHeader'
 import { useAppStore } from '../store/useAppStore'
 import type { Navigate } from '../App'
 import type { DayOfWeek, Frequency, Routine } from '../domain/types'
+import { motivationPlaceholder } from '../domain/templates'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -180,7 +181,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
             <textarea
               id="edit-motivation"
               data-testid="edit-motivation"
-              placeholder="e.g. I want to feel strong and energetic again"
+              placeholder={motivationPlaceholder(undefined, routine?.name)}
               value={motivation}
               onChange={(e) => setMotivation(e.target.value)}
               maxLength={200}

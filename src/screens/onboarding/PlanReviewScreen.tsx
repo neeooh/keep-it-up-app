@@ -17,7 +17,7 @@ import { OnboardingProgress } from '../../components/OnboardingProgress'
 import { ActivityIcon } from '../../components/ActivityIcon'
 import { useAppStore } from '../../store/useAppStore'
 import type { Navigate, OnboardingDraft } from '../../App'
-import { findTemplate } from '../../domain/templates'
+import { findTemplate, motivationPlaceholder } from '../../domain/templates'
 import type { ChallengeDuration, DayOfWeek, Frequency } from '../../domain/types'
 
 interface Props {
@@ -295,7 +295,7 @@ export function PlanReviewScreen({
           <textarea
             id="motivation-input"
             data-testid="motivation-input"
-            placeholder="e.g. I want to feel strong and energetic again"
+            placeholder={motivationPlaceholder(draft.templateId, activityName)}
             value={motivation}
             onChange={(e) => onMotivationChange?.(e.target.value)}
             maxLength={200}
