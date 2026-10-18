@@ -444,7 +444,16 @@ function AppShell({ initialScreen }: AppProps) {
             onInstallPreset: (presetId: string) => {
               const preset = personaPresets.find((p) => p.id === presetId)
               if (!preset) return
+              // Collect existing activity names to avoid duplicates.
+              const existingNames = new Set(
+                appState.routines.flatMap((r) =>
+                  r.activities.map((a) => a.name.toLowerCase()),
+                ),
+              )
               for (const routine of preset.buildRoutines()) {
+                const activityName = routine.activities[0]?.name.toLowerCase() ?? ''
+                if (existingNames.has(activityName)) continue
+                existingNames.add(activityName)
                 addRoutine(routine)
               }
               navigate('dashboard')
