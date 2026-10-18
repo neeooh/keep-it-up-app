@@ -224,9 +224,6 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
               <Heart size={16} className="text-brand shrink-0" aria-hidden="true" />
               <Label>What is really driving you?</Label>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Optional. Shows up when you log a session.
-            </p>
             <textarea
               data-testid="edit-motivation-custom-input"
               placeholder={emotionalPlaceholder(undefined, routine?.name)}

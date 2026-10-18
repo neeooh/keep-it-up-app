@@ -300,9 +300,6 @@ export function PlanReviewScreen({
               What is really driving you?
             </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Optional. Shows up when you log a session.
-          </p>
           <textarea
             data-testid="motivation-custom-input"
             placeholder={emotionalPlaceholder(draft.templateId, activityName)}
