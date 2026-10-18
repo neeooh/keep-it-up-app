@@ -380,112 +380,36 @@ export function needsConfigureScreen(template: ActivityTemplate | null | undefin
 }
 
 /**
- * Return predefined motivation options for the given activity.
- * Each option starts with "I want to..." and is specific to the template
- * or activity name. The last option is always a custom free-text sentinel.
- *
- * Used as selectable badges on the PlanReview and EditRoutine screens.
+ * Return short positive-outcome badges for the given activity.
+ * Each badge is a concise outcome phrase (2–4 words).
+ * Used as inline selectable pills on PlanReview and EditRoutine screens.
  */
 export function motivationOptions(templateId?: string | null, activityName?: string): string[] {
-  // Match by template ID first (most specific).
   const byTemplate: Record<string, string[]> = {
-    'strength-workout': [
-      'I want to feel strong and confident',
-      'I want to build discipline through training',
-      'I want to look and feel my best',
-    ],
-    'running': [
-      'I want to run a 10K',
-      'I want to feel that runner\'s freedom',
-      'I want more energy throughout the day',
-    ],
-    'walking': [
-      'I want to clear my head every day',
-      'I want to move more and sit less',
-      'I want fresh air and daylight daily',
-    ],
-    'cycling': [
-      'I want to explore new places on two wheels',
-      'I want a fun way to stay active',
-      'I want to build endurance',
-    ],
-    'swimming': [
-      'I want a workout that clears my mind',
-      'I want to build full-body strength',
-      'I want to feel weightless and free',
-    ],
-    'yoga': [
-      'I want to feel calm and flexible',
-      'I want to reduce stress and tension',
-      'I want to start my day centered',
-    ],
-    'stretching': [
-      'I want to start every day feeling loose',
-      'I want to prevent stiffness and injury',
-      'I want to move better as I age',
-    ],
-    'reading': [
-      'I want to learn more and grow',
-      'I want to unwind without a screen',
-      'I want to finish more books this year',
-    ],
-    'learning': [
-      'I want to grow my skills',
-      'I want to invest in myself',
-      'I want to stay curious and sharp',
-    ],
-    'practice-skill': [
-      'I want to get noticeably better each week',
-      'I want to master something I care about',
-      'I want to prove to myself I can improve',
-    ],
-    'meditation': [
-      'I want a calmer mind',
-      'I want less stress and more clarity',
-      'I want to respond rather than react',
-    ],
-    'journaling': [
-      'I want to understand myself better',
-      'I want to process my thoughts on paper',
-      'I want to track my growth over time',
-    ],
-    'go-outside': [
-      'I want fresh air and daylight every day',
-      'I want to break the indoor cycle',
-      'I want to feel connected to the world',
-    ],
-    'no-smoking': [
-      'I want to breathe freely again',
-      'I want to protect my health',
-      'I want to prove I am in control',
-    ],
-    'no-fast-food': [
-      'I want to feel better about what I eat',
-      'I want more energy and less sluggishness',
-      'I want to save money and eat well',
-    ],
-    'no-social-media': [
-      'I want to reclaim my time',
-      'I want more focus and less distraction',
-      'I want to be present in real life',
-    ],
-    'no-alcohol': [
-      'I want clearer mornings',
-      'I want sharper thinking and better sleep',
-      'I want to prove I do not need it',
-    ],
-    'no-unnecessary-spending': [
-      'I want to save for something that matters',
-      'I want to be intentional with my money',
-      'I want financial peace of mind',
-    ],
+    'strength-workout': ['Feel strong', 'Build discipline', 'Look my best', 'Gain confidence'],
+    'running': ['Run a 10K', 'Feel free', 'More energy', 'Clear my head'],
+    'walking': ['Move more', 'Fresh air daily', 'Clear my head', 'Feel grounded'],
+    'cycling': ['Explore more', 'Stay active', 'Build endurance', 'Feel free'],
+    'swimming': ['Feel weightless', 'Full-body strength', 'Clear my mind', 'Stay fit'],
+    'yoga': ['Feel calm', 'Less stress', 'Stay flexible', 'Start centered'],
+    'stretching': ['Feel loose', 'Prevent injury', 'Move better', 'Morning ritual'],
+    'reading': ['Learn more', 'Screen-free time', 'Finish more books', 'Grow daily'],
+    'learning': ['Grow my skills', 'Stay sharp', 'Invest in myself', 'Stay curious'],
+    'practice-skill': ['Improve weekly', 'Master my craft', 'Stay dedicated', 'See progress'],
+    'meditation': ['Calm mind', 'Less stress', 'More clarity', 'Inner peace'],
+    'journaling': ['Know myself', 'Process thoughts', 'Track growth', 'Daily reflection'],
+    'go-outside': ['Fresh air', 'Feel alive', 'Break the cycle', 'Daylight daily'],
+    'no-smoking': ['Breathe free', 'Protect my health', 'Stay in control', 'Save money'],
+    'no-fast-food': ['Eat clean', 'More energy', 'Feel lighter', 'Save money'],
+    'no-social-media': ['Reclaim time', 'More focus', 'Be present', 'Less noise'],
+    'no-alcohol': ['Clear mornings', 'Better sleep', 'Sharp mind', 'Stay in control'],
+    'no-unnecessary-spending': ['Save more', 'Spend with purpose', 'Peace of mind', 'Stay intentional'],
   }
 
   if (templateId && byTemplate[templateId]) {
     return byTemplate[templateId]
   }
 
-  // Fallback: match by activity name keywords.
   const name = activityName?.toLowerCase() ?? ''
   if (name.includes('meditat')) return byTemplate['meditation']!
   if (name.includes('journal')) return byTemplate['journaling']!
@@ -499,10 +423,5 @@ export function motivationOptions(templateId?: string | null, activityName?: str
   if (name.includes('alcohol') || name.includes('drink')) return byTemplate['no-alcohol']!
   if (name.includes('social media')) return byTemplate['no-social-media']!
 
-  // Generic fallback
-  return [
-    'I want to build a better version of myself',
-    'I want to prove I can stay consistent',
-    'I want to feel proud of showing up',
-  ]
+  return ['Be consistent', 'Feel proud', 'Build discipline', 'Better myself']
 }

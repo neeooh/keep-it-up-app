@@ -290,30 +290,28 @@ export function PlanReviewScreen({
             Optional. This reminder shows up when you log a session.
           </p>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap gap-2">
             {motivationOptions(draft.templateId, activityName).map((option) => {
               const isSelected = motivation === option
               return (
                 <button
                   key={option}
                   type="button"
-                  data-testid={`motivation-option`}
+                  data-testid="motivation-option"
                   aria-pressed={isSelected}
                   onClick={() => onMotivationChange?.(isSelected ? '' : option)}
                   className={[
-                    'flex items-center gap-2 w-full rounded-lg border px-4 py-2.5 text-left text-sm transition-colors',
+                    'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors',
                     isSelected
                       ? 'border-brand bg-brand-light font-medium text-foreground'
                       : 'border-border bg-card text-foreground hover:bg-surface-muted',
                   ].join(' ')}
                 >
-                  {isSelected && <Check size={14} className="text-brand shrink-0" aria-hidden="true" />}
-                  <span>{option}</span>
+                  {isSelected && <Check size={12} className="text-brand shrink-0" aria-hidden="true" />}
+                  {option}
                 </button>
               )
             })}
-
-            {/* Custom option */}
             {(() => {
               const presets = motivationOptions(draft.templateId, activityName)
               const isCustomActive = motivation !== '' && !presets.includes(motivation)
@@ -323,22 +321,16 @@ export function PlanReviewScreen({
                     type="button"
                     data-testid="motivation-custom-toggle"
                     aria-pressed={isCustomActive}
-                    onClick={() => {
-                      if (isCustomActive) {
-                        onMotivationChange?.('')
-                      } else {
-                        onMotivationChange?.(' ')
-                      }
-                    }}
+                    onClick={() => onMotivationChange?.(isCustomActive ? '' : ' ')}
                     className={[
-                      'flex items-center gap-2 w-full rounded-lg border px-4 py-2.5 text-left text-sm transition-colors',
+                      'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors',
                       isCustomActive
                         ? 'border-brand bg-brand-light font-medium text-foreground'
                         : 'border-border bg-card text-foreground hover:bg-surface-muted',
                     ].join(' ')}
                   >
-                    <Pencil size={14} className={isCustomActive ? 'text-brand shrink-0' : 'text-muted-foreground shrink-0'} aria-hidden="true" />
-                    <span>Write my own</span>
+                    <Pencil size={12} className={isCustomActive ? 'text-brand shrink-0' : 'text-muted-foreground shrink-0'} aria-hidden="true" />
+                    Custom
                   </button>
                   {isCustomActive && (
                     <input
@@ -349,7 +341,7 @@ export function PlanReviewScreen({
                       onChange={(e) => onMotivationChange?.(e.target.value)}
                       maxLength={200}
                       autoFocus
-                      className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   )}
                 </>

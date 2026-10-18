@@ -178,7 +178,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
             <p className="text-xs text-muted-foreground">
               Why does this matter to you? Shows up when you log a session.
             </p>
-            <div className="flex flex-col gap-2 mt-1">
+            <div className="flex flex-wrap gap-2 mt-1">
               {motivationOptions(undefined, routine?.name).map((option) => {
                 const isSelected = motivation === option
                 return (
@@ -188,14 +188,14 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                     aria-pressed={isSelected}
                     onClick={() => setMotivation(isSelected ? '' : option)}
                     className={[
-                      'flex items-center gap-2 w-full rounded-lg border px-4 py-2.5 text-left text-sm transition-colors',
+                      'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors',
                       isSelected
                         ? 'border-brand bg-brand-light font-medium text-foreground'
                         : 'border-border bg-card text-foreground hover:bg-surface-muted',
                     ].join(' ')}
                   >
-                    {isSelected && <Check size={14} className="text-brand shrink-0" aria-hidden="true" />}
-                    <span>{option}</span>
+                    {isSelected && <Check size={12} className="text-brand shrink-0" aria-hidden="true" />}
+                    {option}
                   </button>
                 )
               })}
@@ -210,14 +210,14 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                       aria-pressed={isCustomActive}
                       onClick={() => setMotivation(isCustomActive ? '' : ' ')}
                       className={[
-                        'flex items-center gap-2 w-full rounded-lg border px-4 py-2.5 text-left text-sm transition-colors',
+                        'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors',
                         isCustomActive
                           ? 'border-brand bg-brand-light font-medium text-foreground'
                           : 'border-border bg-card text-foreground hover:bg-surface-muted',
                       ].join(' ')}
                     >
-                      <Pencil size={14} className={isCustomActive ? 'text-brand shrink-0' : 'text-muted-foreground shrink-0'} aria-hidden="true" />
-                      <span>Write my own</span>
+                      <Pencil size={12} className={isCustomActive ? 'text-brand shrink-0' : 'text-muted-foreground shrink-0'} aria-hidden="true" />
+                      Custom
                     </button>
                     {isCustomActive && (
                       <input
@@ -228,7 +228,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                         onChange={(e) => setMotivation(e.target.value)}
                         maxLength={200}
                         autoFocus
-                        className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring"
                       />
                     )}
                   </>
