@@ -345,10 +345,19 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
           </section>
         )}
 
+        {/* Delete — at the end of scroll area, away from Save */}
+        <button
+          type="button"
+          data-testid="delete-routine-button"
+          onClick={() => setShowDeleteDialog(true)}
+          className="mt-4 text-sm text-destructive/70 hover:text-destructive transition-colors py-1 self-center"
+        >
+          Delete this routine
+        </button>
       </div>
 
-      {/* Actions */}
-      <div className="px-5 py-4 border-t border-border flex flex-col gap-2">
+      {/* Save */}
+      <div className="px-5 py-4 border-t border-border">
         <Button
           data-testid="save-button"
           onClick={handleSave}
@@ -356,14 +365,6 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
         >
           Save changes
         </Button>
-        <button
-          type="button"
-          data-testid="delete-routine-button"
-          onClick={() => setShowDeleteDialog(true)}
-          className="mt-2 text-sm text-destructive/70 hover:text-destructive transition-colors py-1"
-        >
-          Delete this routine
-        </button>
       </div>
 
       {/* Delete confirmation dialog */}
