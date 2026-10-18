@@ -90,6 +90,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
   )
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [challengeRestarted, setChallengeRestarted] = useState(false)
+  const [motivation, setMotivation] = useState(routine?.motivation ?? '')
 
   // Not-found state
   if (!routine) {
@@ -126,6 +127,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
     const updated: Routine = {
       ...routine,
       name: name.trim() || routine.name,
+      motivation: motivation.trim() || undefined,
       activities: routine.activities.map((a) => ({
         ...a,
         frequency,
@@ -168,6 +170,22 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
               data-testid="edit-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5 mt-4">
+            <Label htmlFor="edit-motivation">Motivation</Label>
+            <p className="text-xs text-muted-foreground">
+              Why does this matter to you? Shows up when you log a session.
+            </p>
+            <textarea
+              id="edit-motivation"
+              data-testid="edit-motivation"
+              placeholder="e.g. I want to feel strong and energetic again"
+              value={motivation}
+              onChange={(e) => setMotivation(e.target.value)}
+              maxLength={200}
+              rows={2}
+              className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
         </section>

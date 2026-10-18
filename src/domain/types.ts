@@ -67,6 +67,8 @@ export interface Routine {
   challengeDurationDays?: ChallengeDuration
   /** ISO 8601 date string (YYYY-MM-DD) when the challenge started. */
   challengeStartDate?: string
+  /** Free-text motivation: why the user committed to this routine. */
+  motivation?: string
 }
 
 // ─── Session recording ────────────────────────────────────────────────────────

@@ -11,7 +11,7 @@
  */
 
 import { useState } from 'react'
-import { ChevronLeft, ChevronDown, AlertTriangle, Check, X, Medal, Trophy } from 'lucide-react'
+import { ChevronLeft, ChevronDown, AlertTriangle, Check, X, Medal, Trophy, Rocket } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { OnboardingProgress } from '../../components/OnboardingProgress'
 import { ActivityIcon } from '../../components/ActivityIcon'
@@ -36,6 +36,10 @@ interface Props {
   onScheduleChange?: (days: DayOfWeek[], time: string) => void
   /** Update the challenge duration on the draft. */
   onChallengeChange?: (days: ChallengeDuration | null) => void
+  /** Current motivation text from the draft. */
+  motivation?: string
+  /** Update the motivation on the draft. */
+  onMotivationChange?: (motivation: string) => void
   onClose?: () => void
 }
 
@@ -93,6 +97,8 @@ export function PlanReviewScreen({
   challengeDurationDays: challengeDurationDaysProp,
   onScheduleChange,
   onChallengeChange,
+  motivation: motivationProp,
+  onMotivationChange,
   onClose,
 }: Props) {
   const { state } = useAppStore()
@@ -109,6 +115,7 @@ export function PlanReviewScreen({
   const preferredTime = preferredTimeProp ?? draft.preferredTime
   const challengeDurationDays =
     challengeDurationDaysProp ?? draft.challengeDurationDays
+  const motivation = motivationProp ?? draft.motivation
 
   // Collapsible section state — both collapsed by default.
   const [daysOpen, setDaysOpen] = useState(false)
@@ -274,6 +281,29 @@ export function PlanReviewScreen({
           )}
         </div>
 
+        {/* Motivation */}
+        <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-2">
+          <label
+            htmlFor="motivation-input"
+            className="text-sm font-medium text-foreground"
+          >
+            Why does this matter to you?
+          </label>
+          <p className="text-xs text-muted-foreground">
+            Optional. This reminder shows up when you log a session.
+          </p>
+          <textarea
+            id="motivation-input"
+            data-testid="motivation-input"
+            placeholder="e.g. I want to feel strong and energetic again"
+            value={motivation}
+            onChange={(e) => onMotivationChange?.(e.target.value)}
+            maxLength={200}
+            rows={2}
+            className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
         {/* Collapsible: Set preferred days */}
         <div className="rounded-2xl border border-border bg-card">
           <button
@@ -417,7 +447,8 @@ export function PlanReviewScreen({
           onClick={onStart}
           className="w-full"
         >
-          Create my plan
+          <Rocket size={16} className="mr-1.5" aria-hidden="true" />
+          Commit!
         </Button>
         <Button
           type="button"
