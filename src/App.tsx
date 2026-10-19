@@ -230,6 +230,7 @@ function renderScreen(
           navigate={navigate}
           presetId={selectedPresetId}
           onConfirm={onConfirmPath}
+          onBack={previousScreen ? () => navigate(previousScreen) : undefined}
         />
       )
     case 'dashboard':
@@ -359,9 +360,13 @@ function AppShell({ initialScreen }: AppProps) {
   const [selectedRoutineId, setSelectedRoutineId] = useState<string | null>(null)
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
   const [sessionDate, setSessionDate] = useState<string | undefined>(undefined)
+  const [previousScreen, setPreviousScreen] = useState<Screen | null>(null)
 
   const navigate = useCallback((next: Screen) => {
-    setScreen(next)
+    setScreen((prev) => {
+      setPreviousScreen(prev)
+      return next
+    })
   }, [])
 
   const setDraft = useCallback((patch: Partial<OnboardingDraft>) => {

@@ -17,6 +17,7 @@ interface Props {
   navigate: Navigate
   presetId: string | null
   onConfirm: (presetId: string) => void
+  onBack?: () => void
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -86,7 +87,7 @@ function ActivityRow({ activity }: { activity: GroupedActivity }) {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export function PathPreviewScreen({ navigate, presetId, onConfirm }: Props) {
+export function PathPreviewScreen({ navigate, presetId, onConfirm, onBack }: Props) {
   const preset = presetId ? personaPresets.find((p) => p.id === presetId) : null
 
   if (!preset) {
@@ -111,7 +112,7 @@ export function PathPreviewScreen({ navigate, presetId, onConfirm }: Props) {
         <button
           type="button"
           aria-label="Back"
-          onClick={() => navigate('welcome')}
+          onClick={() => onBack ? onBack() : navigate('welcome')}
           className="-ml-2 flex items-center justify-center size-10 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors"
         >
           <ChevronLeft size={20} aria-hidden="true" />

@@ -863,16 +863,6 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                               )
                             })()
                           )}
-                          {/* Duration hint */}
-                          {(() => {
-                            const dur = estimatedDuration(primaryActivity)
-                            if (!dur) return null
-                            return (
-                              <p className="text-xs text-muted-foreground mt-1.5">
-                                {formatDuration(dur)}
-                              </p>
-                            )
-                          })()}
                         </div>
                         <div
                           className="relative shrink-0 -mr-2 -mt-1"
