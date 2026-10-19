@@ -237,6 +237,9 @@ function renderScreen(
         <DashboardScreen
           navigate={navigate}
           onStartSession={onStartSession}
+          onViewPath={(presetId: string) => {
+            onInstallPreset(presetId)
+          }}
           onEditRoutine={onEditRoutine}
         />
       )
@@ -245,6 +248,9 @@ function renderScreen(
         <PlanScreen
           navigate={navigate}
           onEditRoutine={onEditRoutine}
+          onViewPath={(presetId: string) => {
+            onInstallPreset(presetId)
+          }}
         />
       )
     case 'active-session':
@@ -274,7 +280,9 @@ function renderScreen(
         />
       )
     case 'settings':
-      return <SettingsScreen navigate={navigate} />
+      return <SettingsScreen navigate={navigate} onViewPath={(presetId: string) => {
+        onInstallPreset(presetId)
+      }} />
   }
 }
 
@@ -289,7 +297,7 @@ function BottomNav({ current, onNavigate }: BottomNavProps) {
   return (
     <nav
       aria-label="Main navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-md sm:max-w-lg border-t border-border bg-background"
+      className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-4xl border-t border-border bg-background"
     >
       <div className="flex items-center justify-around px-2 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
         {NAV_TABS.map(({ screen, label }) => {
@@ -441,7 +449,7 @@ function AppShell({ initialScreen }: AppProps) {
     <div className="min-h-svh bg-surface-muted">
       <div
         data-testid="app-shell"
-        className="relative mx-auto flex min-h-svh max-w-md sm:max-w-lg flex-col bg-background"
+        className="relative mx-auto flex min-h-svh max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-4xl flex-col bg-background"
       >
         <main
           className={[

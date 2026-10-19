@@ -26,6 +26,7 @@ import type { Navigate } from '../App'
 
 interface Props {
   navigate: Navigate
+  onViewPath?: (presetId: string) => void
 }
 
 // ─── Export format options ────────────────────────────────────────────────────
@@ -33,14 +34,14 @@ interface Props {
 type ExportFormat = 'json' | 'csv' | 'markdown'
 
 const FORMAT_OPTIONS: { value: ExportFormat; label: string; description: string }[] = [
-  { value: 'json', label: 'JSON', description: 'Full backup — all data included' },
-  { value: 'csv', label: 'CSV', description: 'Spreadsheet — Excel, Google Sheets' },
-  { value: 'markdown', label: 'Markdown', description: 'Readable summary for notes' },
+  { value: 'json', label: '.json', description: 'Full backup' },
+  { value: 'csv', label: '.csv', description: 'Spreadsheet' },
+  { value: 'markdown', label: '.md', description: 'Summary' },
 ]
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export function SettingsScreen({ navigate }: Props) {
+export function SettingsScreen({ navigate, onViewPath }: Props) {
   const { preferences, updatePreferences } = usePreferences()
   const { state } = useAppStore()
   const [nameValue, setNameValue] = useState(preferences.userName)
@@ -118,13 +119,18 @@ export function SettingsScreen({ navigate }: Props) {
           return (
             <section>
               <SectionHeader title="Your path" />
-              <div className="flex items-center gap-3 mt-2 rounded-xl border border-border bg-card px-4 py-3">
+              <button
+                type="button"
+                data-testid="path-card"
+                onClick={() => onViewPath?.(preset.id)}
+                className="flex items-center gap-3 mt-2 rounded-xl border border-border bg-card px-4 py-3 w-full text-left hover:bg-surface-muted active:scale-[0.98] transition-colors cursor-pointer"
+              >
                 <span className="text-2xl" aria-hidden="true">{preset.emoji}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground">{preset.name}</p>
                   <p className="text-xs text-muted-foreground">{preset.tagline}</p>
                 </div>
-              </div>
+              </button>
               <Button
                 data-testid="switch-path-button"
                 variant="ghost"

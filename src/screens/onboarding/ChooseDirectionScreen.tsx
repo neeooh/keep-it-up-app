@@ -130,7 +130,8 @@ export function ChooseDirectionScreen({
           ))}
         </div>
 
-        {/* Persona presets */}
+        {/* Persona presets — only for DO direction */}
+        {resolvedDirection === 'DO' && (
         <div className="mt-6">
           <p className="text-sm font-medium text-foreground mb-1">
             Ready-made routines
@@ -156,6 +157,7 @@ export function ChooseDirectionScreen({
             ))}
           </div>
         </div>
+        )}
       </div>
     </div>
   )

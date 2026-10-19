@@ -16,12 +16,15 @@ import { EmptyState } from '../components/EmptyState'
 import { ActivityIcon } from '../components/ActivityIcon'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { useAppStore } from '../store/useAppStore'
+import { usePreferences } from '../hooks/usePreferences'
+import { personaPresets } from '../domain/templates'
 import type { Navigate } from '../App'
 import type { Frequency, Routine, DayOfWeek } from '../domain/types'
 
 interface Props {
   navigate: Navigate
   onEditRoutine: (routineId: string) => void
+  onViewPath?: (presetId: string) => void
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -93,9 +96,10 @@ function challengeProgress(routine: Routine): { elapsed: number; total: number }
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function PlanScreen({ navigate, onEditRoutine }: Props) {
+export function PlanScreen({ navigate, onEditRoutine, onViewPath }: Props) {
   const { state } = useAppStore()
   const { routines } = state
+  const { preferences } = usePreferences()
 
   if (routines.length === 0) {
     return (
@@ -147,6 +151,29 @@ export function PlanScreen({ navigate, onEditRoutine }: Props) {
       />
 
       <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-6">
+        {/* Your Path */}
+        {preferences.chosenPath && (() => {
+          const preset = personaPresets.find((p) => p.id === preferences.chosenPath)
+          if (!preset) return null
+          return (
+            <div>
+              <SectionHeader title="Your path" />
+              <button
+                type="button"
+                data-testid="plan-path-card"
+                onClick={() => onViewPath?.(preset.id)}
+                className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 w-full text-left hover:bg-surface-muted active:scale-[0.98] transition-colors cursor-pointer"
+              >
+                <span className="text-2xl" aria-hidden="true">{preset.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">{preset.name}</p>
+                  <p className="text-xs text-muted-foreground">{preset.tagline}</p>
+                </div>
+              </button>
+            </div>
+          )
+        })()}
+
         {/* Summary stats */}
         <div data-testid="plan-summary" className="flex items-center gap-4">
           <span className="text-base font-medium text-foreground">
@@ -226,7 +253,7 @@ export function PlanScreen({ navigate, onEditRoutine }: Props) {
         {/* Routine list */}
         <div>
           <SectionHeader title="Routines" />
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 md:grid md:grid-cols-2">
             {routines.map((routine) => {
               const activity = routine.activities[0]
               const freq = activity ? frequencyLabel(activity.frequency) : 'Flexible'

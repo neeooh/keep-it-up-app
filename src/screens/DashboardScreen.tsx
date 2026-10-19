@@ -35,6 +35,7 @@ import type { Activity, DayOfWeek, MeasurementType, Routine, Session } from '../
 interface Props {
   navigate: Navigate
   onStartSession: (routineId: string, date?: string) => void
+  onViewPath?: (presetId: string) => void
 }
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
@@ -526,7 +527,7 @@ function CircularProgress({
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
-export function DashboardScreen({ navigate, onStartSession }: Props) {
+export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props) {
   const { state } = useAppStore()
   const { routines, sessions } = state
   const { preferences } = usePreferences()
@@ -720,9 +721,14 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
               const preset = personaPresets.find((p) => p.id === preferences.chosenPath)
               if (!preset) return null
               return (
-                <p data-testid="path-badge" className="text-sm text-brand font-medium">
-                  {preset.emoji} {preset.name}
-                </p>
+                <button
+                  type="button"
+                  data-testid="path-badge"
+                  onClick={() => onViewPath?.(preset.id)}
+                  className="text-sm text-brand font-medium text-left hover:underline transition-colors cursor-pointer"
+                >
+                  Your path: {preset.emoji} {preset.name}
+                </button>
               )
             })()}
           </div>
@@ -750,7 +756,7 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
                   {group.label}
                 </p>
               )}
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 md:grid md:grid-cols-2">
                 {group.cards.map(({ activities: cardActivities, routine, completedToday }) => {
                   const primaryActivity = cardActivities[0]!
                   const hasMultipleActivities = cardActivities.length > 1
@@ -763,11 +769,13 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
                         data-testid={`activity-card-${primaryActivity.id}`}
                         className="rounded-xl border border-success/30 bg-success-muted/30 p-4"
                       >
-                        <div className="flex items-start gap-2">
-                          <ActivityIcon name={routine.name} size={32} className="mt-0.5" />
+                        <div className="flex items-start gap-3">
+                          <div className="flex items-center justify-center size-10 rounded-lg bg-success/10 mt-0.5 shrink-0">
+                            <ActivityIcon name={routine.name} size={22} />
+                          </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <p className="font-semibold text-foreground">{routine.name}</p>
+                              <p className="font-semibold text-foreground leading-snug">{routine.name}</p>
                               <span
                                 data-testid={`completed-badge-${primaryActivity.id}`}
                                 className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success"
@@ -777,22 +785,22 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
                               </span>
                             </div>
                             {primaryActivity.description && !hasMultipleActivities && (
-                              <p className="text-xs text-muted-foreground italic mt-0.5">{primaryActivity.description}</p>
+                              <p className="text-xs text-muted-foreground italic mt-1">{primaryActivity.description}</p>
                             )}
                             {hasMultipleActivities && (
-                              <p className="text-sm text-muted-foreground mt-0.5">
+                              <p className="text-sm text-muted-foreground mt-1">
                                 {cardActivities.map((a) => a.name).join(', ')}
                               </p>
                             )}
                             {result && result.measurements.length > 0 && (
-                              <p className="text-sm text-muted-foreground mt-0.5">
+                              <p className="text-sm text-muted-foreground mt-1">
                                 {result.measurements.join(' \u00b7 ')}
                               </p>
                             )}
                             {result?.delta && (
                               <div
                                 data-testid={`activity-delta-${primaryActivity.id}`}
-                                className={`flex items-center gap-1 mt-1.5 text-sm font-medium ${
+                                className={`flex items-center gap-1 mt-2 text-sm font-medium ${
                                   result.delta.percent > 0 ? 'text-success' : 'text-destructive'
                                 }`}
                               >
@@ -830,15 +838,17 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onStartSession(routine.id) } }}
                       className="rounded-xl border border-border bg-card ring-1 ring-foreground/5 p-4 w-full text-left cursor-pointer hover:bg-surface-muted active:bg-surface-muted/80 transition-colors"
                     >
-                      <div className="flex items-start gap-2">
-                        <ActivityIcon name={routine.name} size={32} className="mt-0.5" />
+                      <div className="flex items-start gap-3">
+                        <div className="flex items-center justify-center size-10 rounded-lg bg-brand/10 mt-0.5 shrink-0">
+                          <ActivityIcon name={routine.name} size={22} />
+                        </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-foreground">{routine.name}</p>
+                          <p className="font-semibold text-foreground leading-snug">{routine.name}</p>
                           {primaryActivity.description && !hasMultipleActivities && (
-                            <p className="text-xs text-muted-foreground italic mt-0.5">{primaryActivity.description}</p>
+                            <p className="text-xs text-muted-foreground italic mt-1">{primaryActivity.description}</p>
                           )}
                           {hasMultipleActivities ? (
-                            <p className="text-sm text-muted-foreground mt-0.5">
+                            <p className="text-sm text-muted-foreground mt-1">
                               {cardActivities.map((a) => a.name).join(', ')}
                             </p>
                           ) : (
@@ -847,12 +857,22 @@ export function DashboardScreen({ navigate, onStartSession }: Props) {
                               const target = primaryTarget(primaryActivity)
                               if (!target) return null
                               return (
-                                <p className="text-sm text-muted-foreground mt-0.5">
+                                <p className="text-sm text-muted-foreground mt-1">
                                   {target}
                                 </p>
                               )
                             })()
                           )}
+                          {/* Duration hint */}
+                          {(() => {
+                            const dur = estimatedDuration(primaryActivity)
+                            if (!dur) return null
+                            return (
+                              <p className="text-xs text-muted-foreground mt-1.5">
+                                {formatDuration(dur)}
+                              </p>
+                            )
+                          })()}
                         </div>
                         <div
                           className="relative shrink-0 -mr-2 -mt-1"

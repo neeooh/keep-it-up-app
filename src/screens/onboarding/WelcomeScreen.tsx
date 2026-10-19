@@ -105,7 +105,9 @@ export function WelcomeScreen({ navigate, onDirectionChoose, onClose, onInstallP
         <p className="text-xs text-muted-foreground mb-3">
           {hasPath ? 'You are on a path. You can switch in settings.' : 'One tap setup — a complete routine in a second.'}
         </p>
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-6 px-6 snap-x">
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-6 snap-x scrollbar-none">
+          {/* Left spacer for edge padding */}
+          <div className="shrink-0 w-6" aria-hidden="true" />
           {personaPresets.map((preset) => {
             const isCurrent = preferences.chosenPath === preset.id
             const isDisabled = hasPath && !isCurrent
@@ -131,6 +133,8 @@ export function WelcomeScreen({ navigate, onDirectionChoose, onClose, onInstallP
               </button>
             )
           })}
+          {/* Right spacer for edge padding */}
+          <div className="shrink-0 w-6" aria-hidden="true" />
         </div>
       </div>
     </div>
