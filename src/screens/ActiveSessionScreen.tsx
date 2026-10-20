@@ -10,11 +10,12 @@
  */
 
 import { useState, useMemo } from 'react'
-import { Plus, Trash2, Check, X, Info, Flame, PartyPopper } from 'lucide-react'
+import { Plus, Trash2, Check, X, PartyPopper } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { PageHeader } from '../components/PageHeader'
+import { ActivityIcon } from '../components/ActivityIcon'
 import { useAppStore } from '../store/useAppStore'
 import { sessionsForRoutine } from '../domain/calculations'
 import type { Navigate } from '../App'
@@ -366,7 +367,7 @@ function SessionProgress({
   activities: Activity[]
   activityStates: ActivityState[]
 }) {
-  if (activities.length <= 0) return null
+  if (activities.length <= 1) return null
   const completedCount = activities.filter((a, i) =>
     isActivityComplete(a, activityStates[i]!),
   ).length
@@ -413,7 +414,7 @@ function lastSevenDays(): { label: string; value: string }[] {
 
 // ─── Success overlay ──────────────────────────────────────────────────────────
 
-function SuccessOverlay() {
+function SuccessOverlay({ motivation }: { motivation?: string }) {
   return (
     <div
       data-testid="success-overlay"
@@ -424,6 +425,11 @@ function SuccessOverlay() {
           <PartyPopper size={32} className="text-success" aria-hidden="true" />
         </div>
         <p className="text-xl font-semibold text-foreground">Session logged!</p>
+        {motivation && (
+          <p className="text-sm text-muted-foreground italic text-center max-w-xs mt-1">
+            "{motivation}"
+          </p>
+        )}
       </div>
     </div>
   )
@@ -574,13 +580,12 @@ export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props)
     setTimeout(() => navigate('dashboard'), 1200)
   }
 
-  // Combine pre-fill and motivation into one compact line
-  const hasMotivation = !!routine.motivation
+  // Pre-fill hint
   const hasPrefill = !!lastSessionDate
 
   return (
     <div data-testid="screen-active-session" className="flex flex-col min-h-full">
-      {showSuccess && <SuccessOverlay />}
+      {showSuccess && <SuccessOverlay motivation={routine.motivation} />}
 
       {/* Header */}
       <PageHeader title={routine.name} backAction={() => navigate('dashboard')} />
@@ -608,31 +613,12 @@ export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props)
         activityStates={activityStates}
       />
 
-      {/* Info cards — compact, stacked in one area */}
-      {(hasPrefill || hasMotivation) && (
-        <div className="px-5 pb-2 flex flex-col gap-2">
-          {hasPrefill && (
-            <div
-              data-testid="prefill-notice"
-              className="flex items-center gap-2 rounded-lg bg-surface-muted px-3 py-2"
-            >
-              <Info size={14} className="text-muted-foreground shrink-0" aria-hidden="true" />
-              <p className="text-xs text-muted-foreground">
-                Pre-filled from {lastSessionDate}
-              </p>
-            </div>
-          )}
-          {hasMotivation && (
-            <div
-              data-testid="motivation-card"
-              className="flex items-center gap-2 rounded-lg bg-brand-light px-3 py-2"
-            >
-              <Flame size={14} className="text-brand shrink-0" aria-hidden="true" />
-              <p className="text-xs text-foreground italic">
-                {routine.motivation}
-              </p>
-            </div>
-          )}
+      {/* Pre-fill hint — inline, minimal */}
+      {hasPrefill && (
+        <div className="px-5 pb-2">
+          <p className="text-xs text-muted-foreground">
+            Pre-filled from {lastSessionDate}
+          </p>
         </div>
       )}
 
@@ -644,9 +630,12 @@ export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props)
             data-testid={`activity-card-${activity.id}`}
             className="border-b border-border/50 py-5 first:pt-2 last:border-0"
           >
-            <h2 className="text-base font-semibold text-foreground">
-              {activity.name}
-            </h2>
+            <div className="flex items-center gap-2 mb-1">
+              <ActivityIcon name={activity.name} size={20} />
+              <h2 className="text-base font-semibold text-foreground">
+                {activity.name}
+              </h2>
+            </div>
             {activity.description && (
               <p className="text-xs text-muted-foreground italic mb-3">{activity.description}</p>
             )}
