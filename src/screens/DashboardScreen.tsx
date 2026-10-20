@@ -782,7 +782,7 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                             type="button"
                             data-testid={`log-session-button-${routine.id}`}
                             onClick={() => onStartSession(routine.id)}
-                            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground hover:bg-muted/80 transition-colors"
                           >
                             Redo
                           </button>
