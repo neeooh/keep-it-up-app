@@ -767,23 +767,33 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                       <div
                         key={routine.id}
                         data-testid={`activity-card-${primaryActivity.id}`}
-                        className="rounded-xl border border-success/30 bg-success-muted/30 p-4"
+                        className="relative rounded-xl border border-success/30 bg-success-muted/30 p-4"
                       >
-                        <div className="flex items-start gap-3">
+                        {/* Top-right: Done badge + Redo */}
+                        <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
+                          <span
+                            data-testid={`completed-badge-${primaryActivity.id}`}
+                            className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success"
+                          >
+                            <Check size={12} aria-hidden="true" />
+                            Done
+                          </span>
+                          <button
+                            type="button"
+                            data-testid={`log-session-button-${routine.id}`}
+                            onClick={() => onStartSession(routine.id)}
+                            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            Redo
+                          </button>
+                        </div>
+
+                        <div className="flex items-start gap-3 pr-20">
                           <div className="flex items-center justify-center size-10 rounded-lg bg-success/10 mt-0.5 shrink-0">
                             <ActivityIcon name={routine.name} size={22} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="font-semibold text-foreground leading-snug">{routine.name}</p>
-                              <span
-                                data-testid={`completed-badge-${primaryActivity.id}`}
-                                className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success"
-                              >
-                                <Check size={12} aria-hidden="true" />
-                                Done
-                              </span>
-                            </div>
+                            <p className="font-semibold text-foreground leading-snug">{routine.name}</p>
                             {primaryActivity.description && !hasMultipleActivities && (
                               <p className="text-xs text-muted-foreground italic mt-1">{primaryActivity.description}</p>
                             )}
@@ -816,14 +826,6 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                             )}
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          data-testid={`log-session-button-${routine.id}`}
-                          onClick={() => onStartSession(routine.id)}
-                          className="mt-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          Log again
-                        </button>
                       </div>
                     )
                   }
