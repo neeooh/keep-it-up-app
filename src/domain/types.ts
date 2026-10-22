@@ -19,7 +19,7 @@ export type Frequency = 'daily' | '3x_week' | '2x_week' | '1x_week' | 'flexible'
 export type DayOfWeek = 1 | 2 | 3 | 4 | 5 | 6 | 7
 
 /** Supported optional challenge durations (days). */
-export type ChallengeDuration = 30 | 60 | 90
+export type ChallengeDuration = 30 | 60 | 90 | 365
 
 // ─── Activity configuration ───────────────────────────────────────────────────
 
