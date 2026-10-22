@@ -53,7 +53,7 @@ function frequencyLabel(f: Frequency): string {
     case '3x_week':  return '3× per week'
     case '2x_week':  return '2× per week'
     case '1x_week':  return 'Once a week'
-    case 'flexible': return 'Flexible'
+    case 'flexible': return "I'll decide each day"
   }
 }
 
@@ -67,13 +67,13 @@ interface DayOption {
 }
 
 const DAY_OPTIONS: DayOption[] = [
-  { value: 1, short: 'M' },
-  { value: 2, short: 'T' },
-  { value: 3, short: 'W' },
-  { value: 4, short: 'T' },
-  { value: 5, short: 'F' },
-  { value: 6, short: 'S' },
-  { value: 7, short: 'S' },
+  { value: 1, short: 'Mon' },
+  { value: 2, short: 'Tue' },
+  { value: 3, short: 'Wed' },
+  { value: 4, short: 'Thu' },
+  { value: 5, short: 'Fri' },
+  { value: 6, short: 'Sat' },
+  { value: 7, short: 'Sun' },
 ]
 
 const TIME_OPTIONS = ['Morning', 'Afternoon', 'Evening', 'Anytime']
@@ -123,8 +123,8 @@ export function PlanReviewScreen({
     challengeDurationDaysProp ?? draft.challengeDurationDays
   const motivation = motivationProp ?? draft.motivation ?? ''
 
-  // Collapsible section state — both collapsed by default.
-  const [daysOpen, setDaysOpen] = useState(false)
+  // Collapsible section state — days auto-opens when pre-selected.
+  const [daysOpen, setDaysOpen] = useState(scheduledDays.length > 0)
   const [challengeOpen, setChallengeOpen] = useState(false)
 
   const isDuplicate = state.routines.some(
@@ -293,7 +293,7 @@ export function PlanReviewScreen({
         </div>
 
         {/* Motivation */}
-        <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <Heart size={16} className="text-brand shrink-0" aria-hidden="true" />
             <p className="text-sm font-medium text-foreground">
