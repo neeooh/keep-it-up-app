@@ -126,6 +126,7 @@ export function PlanReviewScreen({
   // Collapsible section state — days auto-opens when pre-selected.
   const [daysOpen, setDaysOpen] = useState(scheduledDays.length > 0)
   const [challengeOpen, setChallengeOpen] = useState(false)
+  const [nameEditing, setNameEditing] = useState(false)
 
   const isDuplicate = state.routines.some(
     (r) => r.name.toLowerCase() === activityName.toLowerCase(),
@@ -192,23 +193,45 @@ export function PlanReviewScreen({
           </div>
         )}
 
-        <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4">
+        <div className="rounded-2xl bg-brand p-5 flex flex-col gap-4 shadow-md">
           {/* Activity name + frequency */}
           <div className="flex items-center gap-3">
-            <ActivityIcon name={activityName} size={32} className="mt-0.5" />
+            <div className="flex items-center justify-center size-10 rounded-xl bg-white/20 mt-0.5 shrink-0">
+              <ActivityIcon name={activityName} size={24} className="text-brand-foreground" />
+            </div>
             <div className="flex-1 min-w-0">
-              <input
-                type="text"
-                data-testid="plan-activity-name"
-                value={activityName}
-                onChange={(e) => onNameChange?.(e.target.value)}
-                maxLength={60}
-                className="w-full text-lg font-semibold text-foreground bg-transparent border-0 border-b border-transparent focus:border-brand outline-none px-0 py-0 transition-colors placeholder:text-muted-foreground"
-                placeholder="Activity name"
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  data-testid="plan-activity-name"
+                  value={activityName}
+                  onChange={(e) => onNameChange?.(e.target.value)}
+                  onFocus={() => setNameEditing(true)}
+                  onBlur={() => setNameEditing(false)}
+                  maxLength={60}
+                  className="w-full text-lg font-semibold text-brand-foreground bg-transparent border-0 border-b border-transparent focus:border-white/40 outline-none px-0 py-0 transition-colors placeholder:text-white/50"
+                  placeholder="Activity name"
+                />
+                {!nameEditing && (
+                  <Pencil size={14} className="shrink-0 text-white/50" aria-hidden="true" />
+                )}
+                {nameEditing && activityName.length > 0 && (
+                  <button
+                    type="button"
+                    aria-label="Clear name"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      onNameChange?.('')
+                    }}
+                    className="shrink-0 text-white/50 hover:text-white transition-colors"
+                  >
+                    <X size={14} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
               <p
                 data-testid="plan-frequency"
-                className="text-sm text-muted-foreground mt-0.5"
+                className="text-sm text-white/70 mt-0.5"
               >
                 {frequencyLabel(draft.frequency)}
               </p>
@@ -224,7 +247,7 @@ export function PlanReviewScreen({
                   data-testid={`plan-measurement-${m.type}`}
                   className="flex items-center gap-2 text-sm"
                 >
-                  <span className="capitalize text-muted-foreground w-20">{m.type}</span>
+                  <span className="capitalize text-white/60 w-20">{m.type}</span>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -235,10 +258,10 @@ export function PlanReviewScreen({
                       const val = e.target.value ? Number(e.target.value) : 0
                       onMeasurementChange?.(i, val)
                     }}
-                    className="w-16 bg-transparent border-0 border-b border-transparent focus:border-brand outline-none text-sm text-foreground px-0 py-0 transition-colors text-right"
+                    className="w-16 bg-transparent border-0 border-b border-transparent focus:border-white/40 outline-none text-sm text-brand-foreground px-0 py-0 transition-colors text-right"
                   />
                   {m.unit && (
-                    <span className="text-muted-foreground">{m.unit}</span>
+                    <span className="text-white/60">{m.unit}</span>
                   )}
                 </div>
               ))}
@@ -248,15 +271,15 @@ export function PlanReviewScreen({
           {/* Exercises (strength workouts) */}
           {(draft.exercises?.length ?? 0) > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs text-muted-foreground">Exercises</p>
+              <p className="text-xs text-white/60">Exercises</p>
               {draft.exercises.map((ex, i) => (
                 <div
                   key={i}
                   data-testid={`plan-exercise-${i}`}
                   className="flex items-center justify-between text-sm"
                 >
-                  <span className="text-foreground font-medium">{ex.name}</span>
-                  <span className="text-muted-foreground">
+                  <span className="text-brand-foreground font-medium">{ex.name}</span>
+                  <span className="text-white/70">
                     {ex.sets} × {ex.reps}
                     {ex.weight > 0 && ` · ${ex.weight} kg`}
                   </span>
@@ -268,10 +291,10 @@ export function PlanReviewScreen({
           {/* Schedule summary (days + time on one line) */}
           {(scheduledDays.length > 0 || preferredTime) && (
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Schedule</p>
+              <p className="text-xs text-white/60 mb-1">Schedule</p>
               <p
                 data-testid="plan-scheduled-days"
-                className="text-sm text-foreground"
+                className="text-sm text-brand-foreground"
               >
                 {[
                   ...scheduledDays.map((d) => DAY_NAMES[d]),
@@ -285,7 +308,7 @@ export function PlanReviewScreen({
           {challengeDurationDays != null && (
             <div
               data-testid="plan-challenge"
-              className="rounded-xl bg-brand-light px-4 py-3 text-sm text-foreground"
+              className="rounded-xl bg-white/15 px-4 py-3 text-sm text-brand-foreground"
             >
               {challengeDurationDays}-day challenge
             </div>
