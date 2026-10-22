@@ -920,7 +920,7 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
         </div>
 
         {tomorrowNames.length > 0 && (
-          <div data-testid="tomorrow-preview">
+          <div data-testid="tomorrow-preview" className="mt-auto">
             <SectionHeader title="Tomorrow" />
             <p className="text-sm text-muted-foreground">
               {tomorrowNames.join(', ')} · {tomorrowNames.length} {tomorrowNames.length === 1 ? 'activity' : 'activities'}

@@ -506,6 +506,61 @@ export function ProgressScreen({ navigate, onEditRoutine }: Props) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-6">
+        {/* Weekly Review section — moved to top */}
+        <div>
+          <SectionHeader title="Weekly review" />
+          {hasReviewData && reviewSummary ? (
+            <div data-testid="review-card-ready" className="rounded-xl bg-surface p-4 ring-1 ring-foreground/5">
+              <div className="flex items-center gap-3 mb-3">
+                <CalendarCheck size={20} className="text-brand shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">{formatWeekRange(lastWeekStart)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {reviewSummary.entries.reduce((s, e) => s + e.completed, 0)} of{' '}
+                    {reviewSummary.entries.reduce((s, e) => s + e.planned, 0)} sessions completed
+                  </p>
+                </div>
+                <span className="ml-auto text-lg font-semibold text-brand">
+                  {reviewSummary.overallConsistency}%
+                </span>
+              </div>
+              <Button
+                data-testid="review-week-button"
+                onClick={() => navigate('weekly-review')}
+                className="w-full"
+              >
+                Review your week
+              </Button>
+            </div>
+          ) : (
+            <ReviewCountdownCard daysLogged={daysLogged} daysLeft={daysLeft} />
+          )}
+        </div>
+
+        {/* Past reviews */}
+        {pastWeeks.length > 0 && (
+          <div>
+            <SectionHeader title="Past reviews" />
+            <div className="flex flex-col gap-2">
+              {pastWeeks.map(({ weekStart: ws }) => {
+                const summary = calculateWeeklySummary(sessions, routines, ws)
+                return (
+                  <button
+                    key={ws}
+                    type="button"
+                    data-testid={`past-review-${ws}`}
+                    onClick={() => navigate('weekly-review')}
+                    className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-left ring-1 ring-foreground/5 hover:bg-surface-muted transition-colors w-full"
+                  >
+                    <span className="text-sm text-foreground">{formatWeekRange(ws)}</span>
+                    <span className="text-sm font-medium text-brand">{summary.overallConsistency}%</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Consistency per routine */}
         <div>
           <SectionHeader title={`Consistency (${rangeLabel})`} />
@@ -634,60 +689,6 @@ export function ProgressScreen({ navigate, onEditRoutine }: Props) {
           </div>
         )}
 
-        {/* Weekly Review section */}
-        <div>
-          <SectionHeader title="Weekly review" />
-          {hasReviewData && reviewSummary ? (
-            <div data-testid="review-card-ready" className="rounded-xl bg-surface p-4 ring-1 ring-foreground/5">
-              <div className="flex items-center gap-3 mb-3">
-                <CalendarCheck size={20} className="text-brand shrink-0" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-medium text-foreground">{formatWeekRange(lastWeekStart)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {reviewSummary.entries.reduce((s, e) => s + e.completed, 0)} of{' '}
-                    {reviewSummary.entries.reduce((s, e) => s + e.planned, 0)} sessions completed
-                  </p>
-                </div>
-                <span className="ml-auto text-lg font-semibold text-brand">
-                  {reviewSummary.overallConsistency}%
-                </span>
-              </div>
-              <Button
-                data-testid="review-week-button"
-                onClick={() => navigate('weekly-review')}
-                className="w-full"
-              >
-                Review your week
-              </Button>
-            </div>
-          ) : (
-            <ReviewCountdownCard daysLogged={daysLogged} daysLeft={daysLeft} />
-          )}
-        </div>
-
-        {/* Past reviews */}
-        {pastWeeks.length > 0 && (
-          <div>
-            <SectionHeader title="Past reviews" />
-            <div className="flex flex-col gap-2">
-              {pastWeeks.map(({ weekStart: ws }) => {
-                const summary = calculateWeeklySummary(sessions, routines, ws)
-                return (
-                  <button
-                    key={ws}
-                    type="button"
-                    data-testid={`past-review-${ws}`}
-                    onClick={() => navigate('weekly-review')}
-                    className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-left ring-1 ring-foreground/5 hover:bg-surface-muted transition-colors w-full"
-                  >
-                    <span className="text-sm text-foreground">{formatWeekRange(ws)}</span>
-                    <span className="text-sm font-medium text-brand">{summary.overallConsistency}%</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

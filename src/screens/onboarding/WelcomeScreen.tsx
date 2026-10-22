@@ -106,13 +106,11 @@ export function WelcomeScreen({ navigate, onDirectionChoose, onClose, onInstallP
           {hasPath ? 'You are on a path. You can switch in settings.' : 'One tap setup — a complete routine in a second.'}
         </p>
         <div
-          className="flex gap-3 overflow-x-auto pb-2 -mx-6 snap-x scrollbar-none"
+          className="flex gap-3 overflow-x-auto pb-2 -mx-6 px-6 snap-x scrollbar-none"
         >
-          {personaPresets.map((preset, i) => {
+          {personaPresets.map((preset) => {
             const isCurrent = preferences.chosenPath === preset.id
             const isDisabled = hasPath && !isCurrent
-            const isFirst = i === 0
-            const isLast = i === personaPresets.length - 1
             return (
               <button
                 key={preset.id}
@@ -122,8 +120,6 @@ export function WelcomeScreen({ navigate, onDirectionChoose, onClose, onInstallP
                 onClick={() => onInstallPreset?.(preset.id)}
                 className={[
                   'flex flex-col items-center justify-center shrink-0 w-28 h-28 rounded-xl border shadow-sm transition-colors snap-start',
-                  isFirst ? 'ml-6' : '',
-                  isLast ? 'mr-6' : '',
                   isCurrent
                     ? 'border-brand bg-brand-light'
                     : isDisabled
