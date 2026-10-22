@@ -369,6 +369,11 @@ export function ProgressScreen({ navigate, onEditRoutine }: Props) {
       <div data-testid="screen-progress" className="flex flex-col min-h-full">
         <PageHeader title="Progress" rightAction={<ThemeToggle />} />
         <div data-testid="progress-not-enough-data" className="flex flex-col px-5 pb-6">
+          {/* Review countdown first, even in empty state */}
+          <div className="mb-6">
+            <SectionHeader title="Weekly review" />
+            <ReviewCountdownCard daysLogged={daysLogged} daysLeft={daysLeft} />
+          </div>
           <EmptyState
             icon={<BarChart3 size={32} aria-hidden="true" />}
             title="Your progress charts will appear here"
@@ -376,11 +381,6 @@ export function ProgressScreen({ navigate, onEditRoutine }: Props) {
             actionLabel="Log a session"
             onAction={() => navigate('dashboard')}
           />
-          {/* Review countdown even in empty state */}
-          <div className="mt-6">
-            <SectionHeader title="Weekly review" />
-            <ReviewCountdownCard daysLogged={daysLogged} daysLeft={daysLeft} />
-          </div>
         </div>
       </div>
     )
