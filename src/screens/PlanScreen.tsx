@@ -55,7 +55,7 @@ function frequencyLabel(frequency: Frequency): string {
     case '3x_week': return '3× per week'
     case '2x_week': return '2× per week'
     case '1x_week': return 'Once a week'
-    case 'flexible': return 'Flexible'
+    case 'flexible': return "I'll decide each day"
   }
 }
 
@@ -256,7 +256,7 @@ export function PlanScreen({ navigate, onEditRoutine, onViewPath }: Props) {
           <div className="flex flex-col gap-3 md:grid md:grid-cols-2">
             {routines.map((routine) => {
               const activity = routine.activities[0]
-              const freq = activity ? frequencyLabel(activity.frequency) : 'Flexible'
+              const freq = activity ? frequencyLabel(activity.frequency) : "I'll decide each day"
               const days = activity?.scheduledDays && activity.scheduledDays.length > 0
                 ? formatDays(activity.scheduledDays)
                 : null

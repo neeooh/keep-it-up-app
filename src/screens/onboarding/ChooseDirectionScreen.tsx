@@ -145,7 +145,7 @@ function frequencyLabel(template: ActivityTemplate): string {
     case '1x_week':
       return 'Once a week'
     case 'flexible':
-      return 'Flexible'
+      return "I'll decide each day"
   }
 }
 

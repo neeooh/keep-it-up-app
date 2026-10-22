@@ -31,7 +31,7 @@ const FREQUENCY_OPTIONS: FrequencyOption[] = [
   { value: '3x_week',  label: '3× per week',      sublabel: 'e.g. Mon / Wed / Fri' },
   { value: '2x_week',  label: '2× per week',      sublabel: 'e.g. Tue / Thu' },
   { value: '1x_week',  label: 'Once a week',      sublabel: 'e.g. Saturday morning' },
-  { value: 'flexible', label: "I'll decide each time", sublabel: 'No fixed schedule' },
+  { value: 'flexible', label: "I'll decide each day", sublabel: 'No fixed schedule' },
 ]
 
 export function SetFrequencyScreen({ navigate, frequency, onFrequencyChange, skippedConfigure, onClose }: Props) {
