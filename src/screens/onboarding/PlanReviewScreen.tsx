@@ -193,7 +193,7 @@ export function PlanReviewScreen({
           </div>
         )}
 
-        <div className="rounded-2xl border border-brand/20 border-l-4 border-l-brand bg-brand-light/50 p-5 flex flex-col gap-4">
+        <div className="rounded-2xl border border-brand bg-brand-light p-5 flex flex-col gap-4">
           {/* Activity name + frequency */}
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center size-10 rounded-xl bg-brand/10 mt-0.5 shrink-0">
@@ -231,7 +231,7 @@ export function PlanReviewScreen({
               </div>
               <p
                 data-testid="plan-frequency"
-                className="text-sm text-brand mt-0.5 font-medium"
+                className="text-sm text-muted-foreground mt-0.5"
               >
                 {frequencyLabel(draft.frequency)}
               </p>
@@ -308,7 +308,7 @@ export function PlanReviewScreen({
           {challengeDurationDays != null && (
             <div
               data-testid="plan-challenge"
-              className="rounded-xl bg-brand/10 px-4 py-3 text-sm text-foreground font-medium"
+              className="rounded-xl bg-brand/10 px-4 py-3 text-sm text-foreground"
             >
               {challengeDurationDays}-day challenge
             </div>
