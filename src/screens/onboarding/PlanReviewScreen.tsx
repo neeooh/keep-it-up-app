@@ -252,6 +252,7 @@ export function PlanReviewScreen({
                     type="number"
                     inputMode="decimal"
                     min={0}
+                    aria-label={`${m.type} target`}
                     data-testid={`plan-measurement-input-${m.type}`}
                     value={m.target ?? ''}
                     onChange={(e) => {
