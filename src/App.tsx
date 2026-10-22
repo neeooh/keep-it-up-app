@@ -107,6 +107,8 @@ interface ScreenProps {
   onConfirmPath: (presetId: string) => void
   /** The currently previewed preset id. */
   selectedPresetId: string | null
+  /** The screen the user came from (for back navigation). */
+  previousScreen: Screen | null
   sessionDate?: string
 }
 
@@ -124,6 +126,7 @@ function renderScreen(
     onInstallPreset,
     onConfirmPath,
     selectedPresetId,
+    previousScreen,
     sessionDate,
   }: ScreenProps,
 ) {
@@ -155,7 +158,6 @@ function renderScreen(
               skippedConfigure: skip,
             })
           }}
-          onInstallPreset={onInstallPreset}
           onClose={onClose}
         />
       )
@@ -493,6 +495,7 @@ function AppShell({ initialScreen }: AppProps) {
               navigate('dashboard')
             },
             selectedPresetId,
+            previousScreen,
             sessionDate,
           })}
         </main>
