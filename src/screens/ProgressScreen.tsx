@@ -485,28 +485,8 @@ export function ProgressScreen({ navigate, onEditRoutine }: Props) {
     <div data-testid="screen-progress" className="flex flex-col min-h-full">
       <PageHeader title="Progress" rightAction={<ThemeToggle />} />
 
-      {/* Time range selector */}
-      <div className="flex gap-1 bg-surface-muted rounded-lg p-1 mx-5 mb-4">
-        {(['7d', '30d', '90d'] as const).map((r) => (
-          <button
-            key={r}
-            type="button"
-            data-testid={`range-${r}`}
-            onClick={() => setRange(r)}
-            aria-pressed={range === r}
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
-              range === r
-                ? 'bg-brand text-brand-foreground shadow-sm ring-1 ring-brand-dark/20'
-                : 'text-muted-foreground hover:text-foreground hover:bg-surface'
-            }`}
-          >
-            {r === '7d' ? '7 days' : r === '30d' ? '30 days' : '90 days'}
-          </button>
-        ))}
-      </div>
-
       <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-6">
-        {/* Weekly Review section — moved to top */}
+        {/* Weekly Review section — at the top */}
         <div>
           <SectionHeader title="Weekly review" />
           {hasReviewData && reviewSummary ? (
@@ -560,6 +540,26 @@ export function ProgressScreen({ navigate, onEditRoutine }: Props) {
             </div>
           </div>
         )}
+
+        {/* Time range selector */}
+        <div className="flex gap-1 bg-surface-muted rounded-lg p-1">
+          {(['7d', '30d', '90d'] as const).map((r) => (
+            <button
+              key={r}
+              type="button"
+              data-testid={`range-${r}`}
+              onClick={() => setRange(r)}
+              aria-pressed={range === r}
+              className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+                range === r
+                  ? 'bg-brand text-brand-foreground shadow-sm ring-1 ring-brand-dark/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-surface'
+              }`}
+            >
+              {r === '7d' ? '7 days' : r === '30d' ? '30 days' : '90 days'}
+            </button>
+          ))}
+        </div>
 
         {/* Consistency per routine */}
         <div>

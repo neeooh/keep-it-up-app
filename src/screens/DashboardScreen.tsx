@@ -624,7 +624,7 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
   }
 
   return (
-    <div data-testid="screen-dashboard" className="flex flex-col min-h-full">
+    <div data-testid="screen-dashboard" className="flex flex-1 flex-col min-h-0">
       <PageHeader
         title={formatToday()}
         rightAction={
@@ -652,7 +652,7 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
         }
       />
 
-      <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-6">
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-6 flex flex-col gap-6">
         {missedYesterday && (
           <div
             data-testid="missed-yesterday"

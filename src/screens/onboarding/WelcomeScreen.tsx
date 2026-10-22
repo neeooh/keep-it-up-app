@@ -28,7 +28,7 @@ export function WelcomeScreen({ navigate, onDirectionChoose, onClose, onInstallP
   return (
     <div
       data-testid="screen-welcome"
-      className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center"
+      className="flex flex-1 flex-col justify-center px-6 py-12 text-center"
     >
       {onClose && (
         <button
@@ -59,7 +59,7 @@ export function WelcomeScreen({ navigate, onDirectionChoose, onClose, onInstallP
       </p>
 
       {/* ── Choice cards ───────────────────────────────────────────────── */}
-      <div className="mt-10 flex flex-col gap-4 w-full max-w-xs">
+      <div className="mt-10 flex flex-col gap-4 w-full max-w-xs mx-auto">
         <button
           type="button"
           data-testid="direction-do"
@@ -94,7 +94,7 @@ export function WelcomeScreen({ navigate, onDirectionChoose, onClose, onInstallP
       </div>
 
       {/* ── Divider ────────────────────────────────────────────────────── */}
-      <div className="w-full max-w-xs mt-10 mb-8 flex items-center gap-4">
+      <div className="w-full max-w-xs mx-auto mt-10 mb-8 flex items-center gap-4">
         <div className="flex-1 h-px bg-border" />
         <span className="text-xs text-muted-foreground">or try a ready-made routine</span>
         <div className="flex-1 h-px bg-border" />
