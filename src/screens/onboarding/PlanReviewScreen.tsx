@@ -11,7 +11,7 @@
  */
 
 import { useState } from 'react'
-import { ChevronLeft, ChevronDown, AlertTriangle, Check, X, Medal, Trophy, Rocket, Heart, Pencil } from 'lucide-react'
+import { ChevronLeft, ChevronDown, AlertTriangle, Award, Check, X, Medal, Trophy, Rocket, Heart, Pencil } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { OnboardingProgress } from '../../components/OnboardingProgress'
 import { ActivityIcon } from '../../components/ActivityIcon'
@@ -88,7 +88,8 @@ interface ChallengeOption {
 const CHALLENGE_OPTIONS: ChallengeOption[] = [
   { value: 30, label: '30 days', icon: Medal, color: '#CD7F32' },
   { value: 60, label: '60 days', icon: Medal, color: '#A0A0A0' },
-  { value: 90, label: '90 days', icon: Trophy, color: '#D4A017' },
+  { value: 90, label: '90 days', icon: Medal, color: '#D4A017' },
+  { value: 365, label: '1 year', icon: Award, color: '#D4A017' },
 ]
 
 export function PlanReviewScreen({
@@ -196,8 +197,8 @@ export function PlanReviewScreen({
         <div className="rounded-2xl border border-brand bg-brand-light p-5 flex flex-col gap-4">
           {/* Activity name + frequency */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-10 rounded-xl bg-brand/10 mt-0.5 shrink-0">
-              <ActivityIcon name={activityName} size={24} className="text-brand" />
+            <div className="flex items-center justify-center size-10 rounded-xl bg-background/60 mt-0.5 shrink-0">
+              <ActivityIcon name={activityName} size={24} className="text-brand/70" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
@@ -247,7 +248,7 @@ export function PlanReviewScreen({
                   data-testid={`plan-measurement-${m.type}`}
                   className="flex items-center gap-2 text-sm"
                 >
-                  <span className="capitalize text-muted-foreground w-20">{m.type}</span>
+                  <span className="capitalize text-brand-dark/50 w-20">{m.type}</span>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -262,7 +263,7 @@ export function PlanReviewScreen({
                     className="w-16 bg-transparent border-0 border-b border-transparent focus:border-brand outline-none text-sm text-foreground px-0 py-0 transition-colors text-right"
                   />
                   {m.unit && (
-                    <span className="text-muted-foreground">{m.unit}</span>
+                    <span className="text-brand-dark/50">{m.unit}</span>
                   )}
                 </div>
               ))}
@@ -306,14 +307,21 @@ export function PlanReviewScreen({
           )}
 
           {/* Challenge summary */}
-          {challengeDurationDays != null && (
-            <div
-              data-testid="plan-challenge"
-              className="rounded-xl bg-brand/10 px-4 py-3 text-sm text-foreground"
-            >
-              {challengeDurationDays}-day challenge
-            </div>
-          )}
+          {challengeDurationDays != null && (() => {
+            const opt = CHALLENGE_OPTIONS.find((o) => o.value === challengeDurationDays)
+            const ChallengeIcon = opt?.icon ?? Medal
+            const challengeColor = opt?.color ?? '#CD7F32'
+            const challengeLabel = challengeDurationDays === 365 ? '1-year challenge' : `${challengeDurationDays}-day challenge`
+            return (
+              <div
+                data-testid="plan-challenge"
+                className="flex items-center gap-2 rounded-xl bg-brand/10 px-4 py-3 text-sm font-medium text-foreground"
+              >
+                <ChallengeIcon size={16} style={{ color: challengeColor }} aria-hidden="true" className="shrink-0" />
+                {challengeLabel}
+              </div>
+            )
+          })()}
         </div>
 
         {/* Motivation */}
