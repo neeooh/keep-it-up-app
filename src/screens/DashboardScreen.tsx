@@ -24,6 +24,7 @@ import { EmptyState } from '../components/EmptyState'
 import { ActivityIcon } from '../components/ActivityIcon'
 import { ConfettiCelebration } from '../components/ConfettiCelebration'
 import { UndoToast } from '../components/UndoToast'
+import { SwipeableCard } from '../components/SwipeableCard'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { useAppStore } from '../store/useAppStore'
 import { usePreferences } from '../hooks/usePreferences'
@@ -39,6 +40,7 @@ interface Props {
   navigate: Navigate
   onStartSession: (commitmentId: string, date?: string) => void
   onViewPath?: (presetId: string) => void
+  onEditCommitment?: (commitmentId: string) => void
 }
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
@@ -484,8 +486,8 @@ function CircularProgress({
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
-export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props) {
-  const { state, addSession, deleteSession } = useAppStore()
+export function DashboardScreen({ navigate, onStartSession, onViewPath, onEditCommitment }: Props) {
+  const { state, addSession, deleteSession, deleteCommitment } = useAppStore()
   const { commitments, sessions } = state
   const { preferences } = usePreferences()
   const { confirmation } = useNotification()
@@ -827,8 +829,13 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                   }
 
                   return (
-                    <div
+                    <SwipeableCard
                       key={commitment.id}
+                      commitmentName={commitment.name}
+                      onEdit={() => onEditCommitment?.(commitment.id)}
+                      onDelete={() => deleteCommitment(commitment.id)}
+                    >
+                    <div
                       data-testid={`activity-card-${primaryActivity.id}`}
                       className={[
                         'rounded-xl border border-border bg-card ring-1 ring-foreground/5 p-4 w-full transition-all duration-300',
@@ -906,6 +913,7 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                         </div>
                       </div>
                     </div>
+                    </SwipeableCard>
                   )
                 })}
               </div>

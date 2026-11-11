@@ -166,6 +166,7 @@ function AppShell({ initialScreen }: AppProps) {
             navigate={navigate}
             onStartSession={onStartSession}
             onViewPath={onInstallPath}
+            onEditCommitment={onEditCommitment}
           />
         )
       case 'plan':
