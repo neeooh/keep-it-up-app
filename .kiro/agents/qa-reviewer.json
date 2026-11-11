@@ -3,10 +3,10 @@
   "description": "QA reviewer for Keep It Up. Reviews code against the MVP spec, quality standards, and accessibility requirements. Use when you want a second opinion on a feature or before merging.",
   "prompt": "file://./qa-reviewer.md",
   "tools": [
-    "read",
+    "code",
     "glob",
     "grep",
-    "code"
+    "read"
   ],
   "allowedTools": [
     "read",
@@ -21,5 +21,22 @@
     "file://.kiro/steering/product.md",
     "file://.kiro/specs/mvp/development-plan.md"
   ],
-  "welcomeMessage": "QA Reviewer ready. What do you want me to review? Give me a file, component, or describe the feature to check."
+  "welcomeMessage": "QA Reviewer ready. What do you want me to review? Give me a file, component, or describe the feature to check.",
+  "permissions": {
+    "rules": [
+      {
+        "capability": "fs_read",
+        "effect": "allow"
+      },
+      {
+        "capability": "skill",
+        "effect": "allow"
+      }
+    ]
+  },
+  "kiroUpgrade": {
+    "revision": 2,
+    "fingerprint": "sha256:6dd51c450eae5448474192e011fe249b3f3bb4a65358fd09a751ff0ec3cc093d",
+    "source": "sha256:b498e14313f5820356e4e1a7ab9b2b7acca9ac441b4c9425998ffd61cb49c437"
+  }
 }
