@@ -1,469 +1,194 @@
 /**
- * Tests for src/domain/templates.ts
+ * Template catalogue tests.
  *
- * Verifies:
- * - All templates from spec sections 5 and 6 are present
- * - Each template has a valid ActivityTemplate shape
- * - Spec-defined defaults match exactly
- * - The custom sentinel is always included in every direction list
- * - findTemplate and templatesForDirection behave correctly
+ * Validates:
+ * - Every template has required fields (id, label, instruction, direction, frequency)
+ * - New categories have at least 2 templates each
+ * - templatesForMode returns the correct sets
+ * - templatesByCategory returns correct results
+ * - findTemplate looks up by id
+ * - Paths build valid commitments
+ * - BUILD_CATEGORIES and BREAK_CATEGORIES are consistent
  */
 
-import { beforeAll, describe, expect, it } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import {
   allTemplates,
-  avoidTemplates,
-  breakingHabitsTemplates,
-  customTemplate,
-  dailyLifeTemplates,
-  doTemplates,
-  exerciseTemplates,
   findTemplate,
-  personalDevelopmentTemplates,
-  templatesForDirection,
+  templatesForMode,
+  templatesByCategory,
+  BUILD_CATEGORIES,
+  BREAK_CATEGORIES,
+  paths,
+  customTemplate,
+  type ActivityTemplate,
 } from './templates'
-import type { ActivityTemplate } from './templates'
 
-// ─── Shape validator ──────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function isValidTemplate(t: ActivityTemplate): boolean {
   return (
-    typeof t.id === 'string' &&
     t.id.length > 0 &&
-    typeof t.label === 'string' &&
     t.label.length > 0 &&
-    typeof t.defaultName === 'string' &&
     (t.direction === 'DO' || t.direction === 'AVOID') &&
-    Array.isArray(t.defaultMeasurements) &&
     typeof t.defaultFrequency === 'string' &&
-    typeof t.category === 'string'
+    typeof t.defaultCompletionMethod === 'string'
   )
 }
 
-// ─── Catalogue completeness ───────────────────────────────────────────────────
-
-describe('exercise templates', () => {
-  const ids = exerciseTemplates.map((t) => t.id)
-
-  it('contains all 7 exercise templates from the spec', () => {
-    expect(ids).toContain('strength-workout')
-    expect(ids).toContain('running')
-    expect(ids).toContain('walking')
-    expect(ids).toContain('cycling')
-    expect(ids).toContain('swimming')
-    expect(ids).toContain('yoga')
-    expect(ids).toContain('stretching')
-    expect(exerciseTemplates).toHaveLength(7)
-  })
-
-  it('all exercise templates have direction DO', () => {
-    expect(exerciseTemplates.every((t) => t.direction === 'DO')).toBe(true)
-  })
-
-  it('all exercise templates have valid shapes', () => {
-    expect(exerciseTemplates.every(isValidTemplate)).toBe(true)
-  })
-})
-
-describe('personal development templates', () => {
-  const ids = personalDevelopmentTemplates.map((t) => t.id)
-
-  it('contains all 5 personal development templates from the spec', () => {
-    expect(ids).toContain('reading')
-    expect(ids).toContain('learning')
-    expect(ids).toContain('practice-skill')
-    expect(ids).toContain('meditation')
-    expect(ids).toContain('journaling')
-    expect(personalDevelopmentTemplates).toHaveLength(5)
-  })
-
-  it('all personal development templates have direction DO', () => {
-    expect(personalDevelopmentTemplates.every((t) => t.direction === 'DO')).toBe(true)
-  })
-
-  it('all personal development templates have valid shapes', () => {
-    expect(personalDevelopmentTemplates.every(isValidTemplate)).toBe(true)
-  })
-})
-
-describe('daily life templates', () => {
-  const ids = dailyLifeTemplates.map((t) => t.id)
-
-  it('contains 1 daily life template', () => {
-    expect(ids).toContain('go-outside')
-    expect(dailyLifeTemplates).toHaveLength(1)
-  })
-
-  it('all daily life templates have direction DO', () => {
-    expect(dailyLifeTemplates.every((t) => t.direction === 'DO')).toBe(true)
-  })
-
-  it('all daily life templates have valid shapes', () => {
-    expect(dailyLifeTemplates.every(isValidTemplate)).toBe(true)
-  })
-})
-
-describe('breaking habits templates', () => {
-  const ids = breakingHabitsTemplates.map((t) => t.id)
-
-  it('contains all 5 breaking habits templates from the spec', () => {
-    expect(ids).toContain('no-smoking')
-    expect(ids).toContain('no-fast-food')
-    expect(ids).toContain('no-social-media')
-    expect(ids).toContain('no-alcohol')
-    expect(ids).toContain('no-unnecessary-spending')
-    expect(breakingHabitsTemplates).toHaveLength(5)
-  })
-
-  it('all breaking habits templates have direction AVOID', () => {
-    expect(breakingHabitsTemplates.every((t) => t.direction === 'AVOID')).toBe(true)
-  })
-
-  it('all breaking habits templates have valid shapes', () => {
-    expect(breakingHabitsTemplates.every(isValidTemplate)).toBe(true)
-  })
-})
-
-// ─── Spec-defined defaults ────────────────────────────────────────────────────
-
-describe('Running defaults (spec section 6)', () => {
-  const running = findTemplate('running')!
-
-  it('direction is DO', () => {
-    expect(running.direction).toBe('DO')
-  })
-
-  it('has distance measurement with target 5 km', () => {
-    const dist = running.defaultMeasurements.find((m) => m.type === 'distance')
-    expect(dist).toBeDefined()
-    expect(dist!.target).toBe(5)
-    expect(dist!.unit).toBe('km')
-  })
-
-  it('has duration measurement', () => {
-    const dur = running.defaultMeasurements.find((m) => m.type === 'duration')
-    expect(dur).toBeDefined()
-  })
-
-  it('default frequency is 2x_week', () => {
-    expect(running.defaultFrequency).toBe('2x_week')
-  })
-})
-
-describe('Walking defaults (spec section 6)', () => {
-  const walking = findTemplate('walking')!
-
-  it('direction is DO', () => {
-    expect(walking.direction).toBe('DO')
-  })
-
-  it('has duration measurement with target 30 min', () => {
-    const dur = walking.defaultMeasurements.find((m) => m.type === 'duration')
-    expect(dur).toBeDefined()
-    expect(dur!.target).toBe(30)
-    expect(dur!.unit).toBe('min')
-  })
-
-  it('default frequency is 3x_week', () => {
-    expect(walking.defaultFrequency).toBe('3x_week')
-  })
-})
-
-describe('Strength workout defaults (spec section 6)', () => {
-  const strength = findTemplate('strength-workout')!
-
-  it('direction is DO', () => {
-    expect(strength.direction).toBe('DO')
-  })
-
-  it('has sets measurement with target 3', () => {
-    const sets = strength.defaultMeasurements.find((m) => m.type === 'sets')
-    expect(sets).toBeDefined()
-    expect(sets!.target).toBe(3)
-  })
-
-  it('has reps measurement with target 10', () => {
-    const reps = strength.defaultMeasurements.find((m) => m.type === 'reps')
-    expect(reps).toBeDefined()
-    expect(reps!.target).toBe(10)
-  })
-
-  it('has weight measurement', () => {
-    const weight = strength.defaultMeasurements.find((m) => m.type === 'weight')
-    expect(weight).toBeDefined()
-  })
-
-  it('default frequency is 3x_week', () => {
-    expect(strength.defaultFrequency).toBe('3x_week')
-  })
-})
-
-describe('Reading defaults (spec section 6)', () => {
-  const reading = findTemplate('reading')!
-
-  it('direction is DO', () => {
-    expect(reading.direction).toBe('DO')
-  })
-
-  it('has duration measurement with target 20 min', () => {
-    const dur = reading.defaultMeasurements.find((m) => m.type === 'duration')
-    expect(dur).toBeDefined()
-    expect(dur!.target).toBe(20)
-  })
-
-  it('default frequency is daily', () => {
-    expect(reading.defaultFrequency).toBe('daily')
-  })
-})
-
-describe('Meditation defaults (spec section 6)', () => {
-  const meditation = findTemplate('meditation')!
-
-  it('direction is DO', () => {
-    expect(meditation.direction).toBe('DO')
-  })
-
-  it('has duration measurement with target 10 min', () => {
-    const dur = meditation.defaultMeasurements.find((m) => m.type === 'duration')
-    expect(dur).toBeDefined()
-    expect(dur!.target).toBe(10)
-  })
-
-  it('default frequency is daily', () => {
-    expect(meditation.defaultFrequency).toBe('daily')
-  })
-})
-
-describe('No smoking defaults (spec section 6)', () => {
-  const noSmoking = findTemplate('no-smoking')!
-
-  it('direction is AVOID', () => {
-    expect(noSmoking.direction).toBe('AVOID')
-  })
-
-  it('default frequency is daily', () => {
-    expect(noSmoking.defaultFrequency).toBe('daily')
-  })
-
-  it('has a suggested challenge of 30 days', () => {
-    expect(noSmoking.suggestedChallengeDays).toBe(30)
-  })
-})
-
-describe('No fast food defaults (spec section 6)', () => {
-  const noFastFood = findTemplate('no-fast-food')!
-
-  it('direction is AVOID', () => {
-    expect(noFastFood.direction).toBe('AVOID')
-  })
-
-  it('default frequency is daily', () => {
-    expect(noFastFood.defaultFrequency).toBe('daily')
-  })
-
-  it('has a suggested challenge of 30 days', () => {
-    expect(noFastFood.suggestedChallengeDays).toBe(30)
-  })
-})
-
-// ─── Custom sentinel ──────────────────────────────────────────────────────────
-
-describe('custom template sentinel', () => {
-  it('has id "custom"', () => {
-    expect(customTemplate.id).toBe('custom')
-  })
-
-  it('has isCustom set to true', () => {
-    expect(customTemplate.isCustom).toBe(true)
-  })
-
-  it('is always the first item in doTemplates', () => {
-    expect(doTemplates[0]!.id).toBe('custom')
-  })
-
-  it('is always the first item in avoidTemplates', () => {
-    expect(avoidTemplates[0]!.id).toBe('custom')
-  })
-
-  it('is present in allTemplates', () => {
-    expect(allTemplates.some((t) => t.id === 'custom')).toBe(true)
-  })
-})
-
-// ─── allTemplates ─────────────────────────────────────────────────────────────
+// ── allTemplates ──────────────────────────────────────────────────────────────
 
 describe('allTemplates', () => {
-  it('contains exactly 19 entries (18 predefined + 1 custom)', () => {
-    // 7 exercise + 5 personal_development + 1 daily_life + 5 breaking_habits + 1 custom = 19
-    expect(allTemplates).toHaveLength(19)
-  })
-
-  it('all template ids are unique', () => {
+  it('contains no duplicate ids', () => {
     const ids = allTemplates.map((t) => t.id)
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('all templates have valid shapes', () => {
+  it('every template passes basic validation', () => {
     expect(allTemplates.every(isValidTemplate)).toBe(true)
   })
-})
 
-// ─── doTemplates ─────────────────────────────────────────────────────────────
-
-describe('doTemplates', () => {
-  it('contains only DO direction templates (plus the custom sentinel)', () => {
-    const nonDo = doTemplates.filter((t) => t.direction !== 'DO' && !t.isCustom)
-    expect(nonDo).toHaveLength(0)
-  })
-
-  it('always starts with the custom sentinel', () => {
-    expect(doTemplates[0]!.isCustom).toBe(true)
+  it('every non-custom template has a non-empty instruction', () => {
+    const withoutInstruction = allTemplates.filter(
+      (t) => !t.isCustom && t.instruction.length === 0,
+    )
+    expect(withoutInstruction).toHaveLength(0)
   })
 })
 
-// ─── avoidTemplates ───────────────────────────────────────────────────────────
+// ── Categories ────────────────────────────────────────────────────────────────
 
-describe('avoidTemplates', () => {
-  it('contains only AVOID direction templates (plus the custom sentinel)', () => {
-    const nonAvoid = avoidTemplates.filter((t) => t.direction !== 'AVOID' && !t.isCustom)
-    expect(nonAvoid).toHaveLength(0)
+describe('categories', () => {
+  it('every Build category has at least 2 templates', () => {
+    for (const { key } of BUILD_CATEGORIES) {
+      const templates = templatesByCategory(key)
+      expect(templates.length).toBeGreaterThanOrEqual(2)
+    }
   })
 
-  it('always starts with the custom sentinel', () => {
-    expect(avoidTemplates[0]!.isCustom).toBe(true)
+  it('every Break category has at least 2 templates', () => {
+    for (const { key } of BREAK_CATEGORIES) {
+      const templates = templatesByCategory(key)
+      expect(templates.length).toBeGreaterThanOrEqual(2)
+    }
+  })
+
+  it('Build categories contain only DO templates', () => {
+    for (const { key } of BUILD_CATEGORIES) {
+      const templates = templatesByCategory(key)
+      expect(templates.every((t) => t.direction === 'DO')).toBe(true)
+    }
+  })
+
+  it('Break categories contain only AVOID templates', () => {
+    for (const { key } of BREAK_CATEGORIES) {
+      const templates = templatesByCategory(key)
+      expect(templates.every((t) => t.direction === 'AVOID')).toBe(true)
+    }
   })
 })
 
-// ─── findTemplate ─────────────────────────────────────────────────────────────
+// ── templatesForMode ──────────────────────────────────────────────────────────
+
+describe('templatesForMode', () => {
+  it('returns only DO templates for build mode', () => {
+    const result = templatesForMode('build')
+    expect(result.every((t) => t.direction === 'DO')).toBe(true)
+    expect(result.length).toBeGreaterThan(0)
+  })
+
+  it('returns only AVOID templates for break mode', () => {
+    const result = templatesForMode('break')
+    expect(result.every((t) => t.direction === 'AVOID')).toBe(true)
+    expect(result.length).toBeGreaterThan(0)
+  })
+
+  it('does not include the custom sentinel', () => {
+    expect(templatesForMode('build').some((t) => t.isCustom)).toBe(false)
+    expect(templatesForMode('break').some((t) => t.isCustom)).toBe(false)
+  })
+})
+
+// ── templatesByCategory ───────────────────────────────────────────────────────
+
+describe('templatesByCategory', () => {
+  it('returns movement templates', () => {
+    const result = templatesByCategory('movement')
+    expect(result.length).toBeGreaterThanOrEqual(2)
+    expect(result.every((t) => t.category === 'movement')).toBe(true)
+  })
+
+  it('returns substances templates', () => {
+    const result = templatesByCategory('substances')
+    expect(result.length).toBeGreaterThanOrEqual(2)
+    expect(result.every((t) => t.category === 'substances')).toBe(true)
+  })
+
+  it('returns empty array for unknown category', () => {
+    const result = templatesByCategory('custom')
+    // Only the custom sentinel has category 'custom'
+    expect(result.every((t) => t.isCustom)).toBe(true)
+  })
+})
+
+// ── findTemplate ──────────────────────────────────────────────────────────────
 
 describe('findTemplate', () => {
-  it('returns the correct template by id', () => {
-    const t = findTemplate('running')
-    expect(t).toBeDefined()
-    expect(t!.id).toBe('running')
-    expect(t!.label).toBe('Running')
+  it('finds a template by id', () => {
+    expect(findTemplate('running')?.label).toBe('Running')
   })
 
-  it('returns the custom template by id', () => {
+  it('returns undefined for unknown id', () => {
+    expect(findTemplate('nonexistent')).toBeUndefined()
+  })
+
+  it('finds the custom sentinel', () => {
     expect(findTemplate('custom')?.isCustom).toBe(true)
   })
+})
 
-  it('returns undefined for an unknown id', () => {
-    expect(findTemplate('does-not-exist')).toBeUndefined()
+// ── customTemplate ────────────────────────────────────────────────────────────
+
+describe('customTemplate', () => {
+  it('has isCustom set to true', () => {
+    expect(customTemplate.isCustom).toBe(true)
+  })
+
+  it('has an empty defaultName', () => {
+    expect(customTemplate.defaultName).toBe('')
+  })
+
+  it('has binary completion method', () => {
+    expect(customTemplate.defaultCompletionMethod).toBe('binary')
   })
 })
 
-// ─── templatesForDirection ────────────────────────────────────────────────────
+// ── Paths ─────────────────────────────────────────────────────────────────────
 
-describe('templatesForDirection', () => {
-  it('returns doTemplates for DO', () => {
-    const result = templatesForDirection('DO')
-    expect(result).toEqual(doTemplates)
-  })
-
-  it('returns avoidTemplates for AVOID', () => {
-    const result = templatesForDirection('AVOID')
-    expect(result).toEqual(avoidTemplates)
+describe('paths', () => {
+  it('contains at least 2 paths', () => {
+    expect(paths.length).toBeGreaterThanOrEqual(2)
   })
 
-  it('always includes the custom sentinel for DO', () => {
-    expect(templatesForDirection('DO').some((t) => t.isCustom)).toBe(true)
+  it('each path has unique id', () => {
+    const ids = paths.map((p) => p.id)
+    expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('always includes the custom sentinel for AVOID', () => {
-    expect(templatesForDirection('AVOID').some((t) => t.isCustom)).toBe(true)
-  })
-})
-
-// ─── defaultPreferredTime ─────────────────────────────────────────────────────
-
-describe('defaultPreferredTime', () => {
-  it('meditation defaults to Morning', () => {
-    expect(findTemplate('meditation')!.defaultPreferredTime).toBe('Morning')
-  })
-  it('journaling defaults to Morning', () => {
-    expect(findTemplate('journaling')!.defaultPreferredTime).toBe('Morning')
-  })
-  it('stretching defaults to Morning', () => {
-    expect(findTemplate('stretching')!.defaultPreferredTime).toBe('Morning')
-  })
-  it('yoga defaults to Morning', () => {
-    expect(findTemplate('yoga')!.defaultPreferredTime).toBe('Morning')
-  })
-  it('go-outside defaults to Morning', () => {
-    expect(findTemplate('go-outside')!.defaultPreferredTime).toBe('Morning')
-  })
-  it('reading defaults to Evening', () => {
-    expect(findTemplate('reading')!.defaultPreferredTime).toBe('Evening')
-  })
-  it('running has no defaultPreferredTime', () => {
-    expect(findTemplate('running')!.defaultPreferredTime).toBeUndefined()
-  })
-})
-
-// ─── needsConfigureScreen ─────────────────────────────────────────────────────
-
-describe('needsConfigureScreen', () => {
-  // Import at the top of this block to keep tests self-contained
-  let needsConfigureScreen: typeof import('./templates').needsConfigureScreen
-
-  beforeAll(async () => {
-    const mod = await import('./templates')
-    needsConfigureScreen = mod.needsConfigureScreen
+  it('each path builds at least 2 commitments', () => {
+    for (const path of paths) {
+      const commitments = path.buildCommitments()
+      expect(commitments.length).toBeGreaterThanOrEqual(2)
+    }
   })
 
-  it('returns true for null (no template)', () => {
-    expect(needsConfigureScreen(null)).toBe(true)
-  })
-
-  it('returns true for undefined', () => {
-    expect(needsConfigureScreen(undefined)).toBe(true)
-  })
-
-  it('returns true for the custom template', () => {
-    expect(needsConfigureScreen(customTemplate)).toBe(true)
-  })
-
-  it('returns true for strength workout (has sets measurement)', () => {
-    const strength = findTemplate('strength-workout')!
-    expect(needsConfigureScreen(strength)).toBe(true)
-  })
-
-  it('returns false for running', () => {
-    expect(needsConfigureScreen(findTemplate('running')!)).toBe(false)
-  })
-
-  it('returns false for walking', () => {
-    expect(needsConfigureScreen(findTemplate('walking')!)).toBe(false)
-  })
-
-  it('returns false for reading', () => {
-    expect(needsConfigureScreen(findTemplate('reading')!)).toBe(false)
-  })
-
-  it('returns false for meditation', () => {
-    expect(needsConfigureScreen(findTemplate('meditation')!)).toBe(false)
-  })
-
-  it('returns false for no-smoking (AVOID)', () => {
-    expect(needsConfigureScreen(findTemplate('no-smoking')!)).toBe(false)
-  })
-
-  it('returns false for no-alcohol (AVOID)', () => {
-    expect(needsConfigureScreen(findTemplate('no-alcohol')!)).toBe(false)
-  })
-
-  it('returns false for yoga', () => {
-    expect(needsConfigureScreen(findTemplate('yoga')!)).toBe(false)
-  })
-
-  it('returns false for all non-strength, non-custom templates', () => {
-    const simple = allTemplates.filter(
-      (t) => !t.isCustom && !t.defaultMeasurements.some((m) => m.type === 'sets'),
-    )
-    expect(simple.length).toBeGreaterThan(0)
-    for (const t of simple) {
-      expect(needsConfigureScreen(t)).toBe(false)
+  it('each built commitment has a non-empty name and at least one activity', () => {
+    for (const path of paths) {
+      const commitments = path.buildCommitments()
+      for (const c of commitments) {
+        expect(c.name.length).toBeGreaterThan(0)
+        expect(c.activities.length).toBeGreaterThanOrEqual(1)
+      }
     }
   })
 })
