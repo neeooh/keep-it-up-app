@@ -15,12 +15,14 @@
  */
 
 import { Plus, Check, TrendingUp, TrendingDown, Settings } from 'lucide-react'
+import { useCallback, useState } from 'react'
 
 import { Button } from '../components/ui/button'
 import { PageHeader } from '../components/PageHeader'
 import { SectionHeader } from '../components/SectionHeader'
 import { EmptyState } from '../components/EmptyState'
 import { ActivityIcon } from '../components/ActivityIcon'
+import { ConfettiCelebration } from '../components/ConfettiCelebration'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { useAppStore } from '../store/useAppStore'
 import { usePreferences } from '../hooks/usePreferences'
@@ -28,7 +30,7 @@ import { paths } from '../domain/templates'
 import { useNotification } from '../hooks/useNotification'
 import { sessionsForCommitment, calculateVolume } from '../domain/calculations'
 import type { Navigate } from '../App'
-import type { Activity, DayOfWeek, MeasurementType, Commitment, Session } from '../domain/types'
+import type { Activity, Commitment, DayOfWeek, MeasurementType, Session } from '../domain/types'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -487,6 +489,42 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
   const { preferences } = usePreferences()
   const { confirmation } = useNotification()
 
+  // Confetti animation state
+  const [confettiOrigin, setConfettiOrigin] = useState<{ x: number; y: number } | null>(null)
+  const [completingId, setCompletingId] = useState<string | null>(null)
+
+  /** Complete a commitment with binary Done and trigger confetti. */
+  const handleComplete = useCallback((
+    commitmentId: string,
+    commitment: Commitment,
+    stayedOnTrack?: boolean,
+    event?: React.MouseEvent,
+  ) => {
+    // Trigger confetti from the button position
+    if (event) {
+      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+      setConfettiOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 })
+    }
+
+    // Start fade-out animation
+    setCompletingId(commitmentId)
+
+    // Create session after a short delay for the animation
+    setTimeout(() => {
+      addSession({
+        id: crypto.randomUUID(),
+        commitmentId,
+        completedAt: new Date().toISOString(),
+        results: commitment.activities.map((a) => ({
+          activityId: a.id,
+          measurements: {},
+          ...(a.direction === 'AVOID' ? { stayedOnTrack: stayedOnTrack ?? true } : {}),
+        })),
+      })
+      setCompletingId(null)
+    }, 400)
+  }, [addSession])
+
   if (commitments.length === 0) {
     return (
       <div data-testid="screen-dashboard" className="flex flex-col min-h-full">
@@ -775,7 +813,10 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                     <div
                       key={commitment.id}
                       data-testid={`activity-card-${primaryActivity.id}`}
-                      className="rounded-xl border border-border bg-card ring-1 ring-foreground/5 p-4 w-full"
+                      className={[
+                        'rounded-xl border border-border bg-card ring-1 ring-foreground/5 p-4 w-full transition-all duration-300',
+                        completingId === commitment.id ? 'opacity-0 translate-y-2 scale-95' : 'opacity-100',
+                      ].join(' ')}
                     >
                       <div className="flex items-start gap-3">
                         <div className="flex items-center justify-center size-10 rounded-lg bg-brand/10 mt-0.5 shrink-0">
@@ -814,18 +855,7 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                               <button
                                 type="button"
                                 data-testid={`done-button-${commitment.id}`}
-                                onClick={() => {
-                                  addSession({
-                                    id: crypto.randomUUID(),
-                                    commitmentId: commitment.id,
-                                    completedAt: new Date().toISOString(),
-                                    results: commitment.activities.map((a) => ({
-                                      activityId: a.id,
-                                      measurements: {},
-                                      stayedOnTrack: true,
-                                    })),
-                                  })
-                                }}
+                                onClick={(e) => handleComplete(commitment.id, commitment, true, e)}
                                 className="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-3 py-1.5 text-xs font-medium text-success hover:bg-success/25 transition-colors"
                               >
                                 <Check size={14} aria-hidden="true" />
@@ -834,18 +864,7 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                               <button
                                 type="button"
                                 data-testid={`slipped-button-${commitment.id}`}
-                                onClick={() => {
-                                  addSession({
-                                    id: crypto.randomUUID(),
-                                    commitmentId: commitment.id,
-                                    completedAt: new Date().toISOString(),
-                                    results: commitment.activities.map((a) => ({
-                                      activityId: a.id,
-                                      measurements: {},
-                                      stayedOnTrack: false,
-                                    })),
-                                  })
-                                }}
+                                onClick={(e) => handleComplete(commitment.id, commitment, false, e)}
                                 className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                               >
                                 Slipped
@@ -856,17 +875,7 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                               type="button"
                               data-testid={`done-button-${commitment.id}`}
                               aria-label={`Mark ${commitment.name} as done`}
-                              onClick={() => {
-                                addSession({
-                                  id: crypto.randomUUID(),
-                                  commitmentId: commitment.id,
-                                  completedAt: new Date().toISOString(),
-                                  results: commitment.activities.map((a) => ({
-                                    activityId: a.id,
-                                    measurements: {},
-                                  })),
-                                })
-                              }}
+                              onClick={(e) => handleComplete(commitment.id, commitment, undefined, e)}
                               className="flex items-center justify-center size-11 rounded-full border-2 border-brand text-brand hover:bg-brand hover:text-white transition-colors"
                             >
                               <Check size={20} aria-hidden="true" />
@@ -891,6 +900,14 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
           </div>
         )}
       </div>
+
+      {/* Confetti celebration */}
+      {confettiOrigin && (
+        <ConfettiCelebration
+          origin={confettiOrigin}
+          onComplete={() => setConfettiOrigin(null)}
+        />
+      )}
     </div>
   )
 }

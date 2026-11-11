@@ -138,8 +138,10 @@ describe('DashboardScreen — activity cards', () => {
     const user = userEvent.setup()
     setup()
     await user.click(screen.getByTestId(`done-button-${STRENGTH_COMMITMENT.id}`))
-    // Card should now show as completed
-    expect(screen.getByTestId('completed-badge-act-bench')).toBeInTheDocument()
+    // Session is created after a 400ms animation delay
+    await vi.waitFor(() => {
+      expect(screen.getByTestId('completed-badge-act-bench')).toBeInTheDocument()
+    }, { timeout: 1000 })
   })
 })
 

@@ -221,3 +221,27 @@
     -moz-appearance: textfield;
   }
 }
+
+/* ── Confetti burst animation ───────────────────────────────────────────────── */
+@keyframes confetti-burst {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0) rotate(0deg);
+  }
+  30% {
+    opacity: 1;
+    transform: translate(
+        calc(-50% + var(--tx) * 0.6),
+        calc(-50% + var(--ty) * 0.6)
+      )
+      scale(1.2) rotate(calc(var(--rot) * 0.5));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(
+        calc(-50% + var(--tx)),
+        calc(-50% + var(--ty) + 30px)
+      )
+      scale(0.6) rotate(var(--rot));
+  }
+}
