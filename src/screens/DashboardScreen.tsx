@@ -23,6 +23,7 @@ import { SectionHeader } from '../components/SectionHeader'
 import { EmptyState } from '../components/EmptyState'
 import { ActivityIcon } from '../components/ActivityIcon'
 import { ConfettiCelebration } from '../components/ConfettiCelebration'
+import { UndoToast } from '../components/UndoToast'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { useAppStore } from '../store/useAppStore'
 import { usePreferences } from '../hooks/usePreferences'
@@ -484,7 +485,7 @@ function CircularProgress({
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props) {
-  const { state, addSession } = useAppStore()
+  const { state, addSession, deleteSession } = useAppStore()
   const { commitments, sessions } = state
   const { preferences } = usePreferences()
   const { confirmation } = useNotification()
@@ -492,6 +493,9 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
   // Confetti animation state
   const [confettiOrigin, setConfettiOrigin] = useState<{ x: number; y: number } | null>(null)
   const [completingId, setCompletingId] = useState<string | null>(null)
+
+  // Undo toast state
+  const [undoable, setUndoable] = useState<{ sessionId: string; commitmentName: string } | null>(null)
 
   /** Complete a commitment with binary Done and trigger confetti. */
   const handleComplete = useCallback((
@@ -511,8 +515,9 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
 
     // Create session after a short delay for the animation
     setTimeout(() => {
+      const sessionId = crypto.randomUUID()
       addSession({
-        id: crypto.randomUUID(),
+        id: sessionId,
         commitmentId,
         completedAt: new Date().toISOString(),
         results: commitment.activities.map((a) => ({
@@ -522,8 +527,20 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
         })),
       })
       setCompletingId(null)
+      setUndoable({ sessionId, commitmentName: commitment.name })
     }, 400)
   }, [addSession])
+
+  const handleUndo = useCallback(() => {
+    if (undoable) {
+      deleteSession(undoable.sessionId)
+      setUndoable(null)
+    }
+  }, [undoable, deleteSession])
+
+  const handleDismissUndo = useCallback(() => {
+    setUndoable(null)
+  }, [])
 
   if (commitments.length === 0) {
     return (
@@ -906,6 +923,15 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
         <ConfettiCelebration
           origin={confettiOrigin}
           onComplete={() => setConfettiOrigin(null)}
+        />
+      )}
+
+      {/* Undo toast */}
+      {undoable && (
+        <UndoToast
+          commitmentName={undoable.commitmentName}
+          onUndo={handleUndo}
+          onDismiss={handleDismissUndo}
         />
       )}
     </div>

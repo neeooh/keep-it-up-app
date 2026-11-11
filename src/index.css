@@ -245,3 +245,13 @@
       scale(0.6) rotate(var(--rot));
   }
 }
+
+/* ── Undo toast progress bar ────────────────────────────────────────────────── */
+@keyframes shrink-bar {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
