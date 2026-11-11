@@ -256,9 +256,9 @@ function getCompletedResult(
   activity: Activity,
   todayStr: string,
 ): CompletedResult | null {
-  const routineSessions = sessionsForCommitment(sessions, commitment.id)
+  const commitmentSessions = sessionsForCommitment(sessions, commitment.id)
   // Find today's session
-  const todaySession = [...routineSessions]
+  const todaySession = [...commitmentSessions]
     .reverse()
     .find((s) => s.completedAt.slice(0, 10) === todayStr)
   if (!todaySession) return null
@@ -290,7 +290,7 @@ function getCompletedResult(
   }
 
   // Find previous session (before today) for comparison
-  const prevSession = [...routineSessions]
+  const prevSession = [...commitmentSessions]
     .reverse()
     .find((s) => s.completedAt.slice(0, 10) !== todayStr)
 

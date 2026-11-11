@@ -204,12 +204,12 @@ describe('calculateConsistency', () => {
   })
 
   it('returns 0 for flexible frequency', () => {
-    const flexRoutine = makeCommitment({
+    const flexCommitment = makeCommitment({
       activities: [makeActivity({ frequency: 'flexible' })],
     })
     const sessions = [makeSession('commitment-1', '2026-10-05T10:00:00.000Z')]
     expect(
-      calculateConsistency(sessions, flexRoutine, { start: '2026-10-05', end: '2026-10-11' }),
+      calculateConsistency(sessions, flexCommitment, { start: '2026-10-05', end: '2026-10-11' }),
     ).toBe(0)
   })
 
@@ -367,7 +367,7 @@ describe('calculateConsistency', () => {
 
   it('1-day range with 1 completed session for a daily commitment returns 100%', () => {
     // Simulates a commitment created today with 1 session completed today.
-    const dailyRoutine = makeCommitment({
+    const dailyCommitment = makeCommitment({
       activities: [makeActivity({ frequency: 'daily' })],
     })
     const sessions: Session[] = [
@@ -375,7 +375,7 @@ describe('calculateConsistency', () => {
     ]
     const result = calculateConsistency(
       sessions,
-      dailyRoutine,
+      dailyCommitment,
       { start: '2026-10-07', end: '2026-10-07' },
       '2026-10-07',
     )
@@ -453,8 +453,8 @@ describe('calculateWeeklySummary', () => {
   })
 
   it('handles multiple commitments', () => {
-    const routineA = makeCommitment({ id: 'r-a', activities: [makeActivity({ id: 'a1', frequency: '3x_week' })] })
-    const routineB = makeCommitment({ id: 'r-b', activities: [makeActivity({ id: 'a2', frequency: '2x_week' })] })
+    const commitmentA = makeCommitment({ id: 'r-a', activities: [makeActivity({ id: 'a1', frequency: '3x_week' })] })
+    const commitmentB = makeCommitment({ id: 'r-b', activities: [makeActivity({ id: 'a2', frequency: '2x_week' })] })
 
     const sessions = [
       makeSession('r-a', '2026-10-05T10:00:00.000Z', 'a1'),
@@ -463,7 +463,7 @@ describe('calculateWeeklySummary', () => {
       makeSession('r-b', '2026-10-06T10:00:00.000Z', 'a2'),
       makeSession('r-b', '2026-10-08T10:00:00.000Z', 'a2'),
     ]
-    const summary = calculateWeeklySummary(sessions, [routineA, routineB], '2026-10-05')
+    const summary = calculateWeeklySummary(sessions, [commitmentA, commitmentB], '2026-10-05')
     expect(summary.entries).toHaveLength(2)
     // 3/3 + 2/2 = 5/5 → 100%
     expect(summary.overallConsistency).toBe(100)
@@ -671,7 +671,7 @@ describe('calculateStreak', () => {
 // ─── calculateChallengeProgress ───────────────────────────────────────────────
 
 describe('calculateChallengeProgress', () => {
-  const challengeRoutine = makeCommitment({
+  const challengeCommitment = makeCommitment({
     challengeDurationDays: 30,
     challengeStartDate: '2026-10-01',
   })
@@ -683,23 +683,23 @@ describe('calculateChallengeProgress', () => {
       date.setUTCDate(date.getUTCDate() + i)
       return makeSession('commitment-1', date.toISOString())
     })
-    const progress = calculateChallengeProgress(challengeRoutine, sessions, '2026-11-10')
+    const progress = calculateChallengeProgress(challengeCommitment, sessions, '2026-11-10')
     expect(progress.completionRate).toBeLessThanOrEqual(1)
     expect(progress.elapsedDays).toBeLessThanOrEqual(30)
   })
 
   it('calculates elapsed days correctly', () => {
-    const progress = calculateChallengeProgress(challengeRoutine, [], '2026-10-11')
+    const progress = calculateChallengeProgress(challengeCommitment, [], '2026-10-11')
     expect(progress.elapsedDays).toBe(11) // Oct 1 → Oct 11 inclusive
   })
 
   it('marks as complete when end date is reached', () => {
-    const progress = calculateChallengeProgress(challengeRoutine, [], '2026-10-31')
+    const progress = calculateChallengeProgress(challengeCommitment, [], '2026-10-31')
     expect(progress.isComplete).toBe(true)
   })
 
   it('is not complete before the end date', () => {
-    const progress = calculateChallengeProgress(challengeRoutine, [], '2026-10-15')
+    const progress = calculateChallengeProgress(challengeCommitment, [], '2026-10-15')
     expect(progress.isComplete).toBe(false)
   })
 
@@ -709,17 +709,17 @@ describe('calculateChallengeProgress', () => {
       makeSession('commitment-1', '2026-10-05T10:00:00.000Z'), // within
       makeSession('commitment-1', '2026-11-02T10:00:00.000Z'), // after challenge end (Oct 30)
     ]
-    const progress = calculateChallengeProgress(challengeRoutine, sessions, '2026-10-10')
+    const progress = calculateChallengeProgress(challengeCommitment, sessions, '2026-10-10')
     expect(progress.completedSessions).toBe(1)
   })
 
   it('elapsedDays is clamped to 0 from below', () => {
-    const progress = calculateChallengeProgress(challengeRoutine, [], '2026-09-15')
+    const progress = calculateChallengeProgress(challengeCommitment, [], '2026-09-15')
     expect(progress.elapsedDays).toBe(0)
   })
 
   it('elapsedDays is clamped to totalDays from above', () => {
-    const progress = calculateChallengeProgress(challengeRoutine, [], '2026-12-31')
+    const progress = calculateChallengeProgress(challengeCommitment, [], '2026-12-31')
     expect(progress.elapsedDays).toBe(30)
   })
 })

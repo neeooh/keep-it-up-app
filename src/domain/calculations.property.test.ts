@@ -69,7 +69,7 @@ const activityArb: fc.Arbitrary<Activity> = fc.record({
   frequency: frequencyArb,
 })
 
-const routineArb: fc.Arbitrary<Commitment> = fc.record({
+const commitmentArb: fc.Arbitrary<Commitment> = fc.record({
   id: fc.uuid(),
   name: fc.string({ minLength: 1, maxLength: 30 }),
   activities: fc.array(activityArb, { minLength: 1, maxLength: 3 }),
@@ -85,7 +85,7 @@ function sessionArb(commitmentId: string): fc.Arbitrary<Session> {
   })
 }
 
-function sessionWithRoutineIdArb(): fc.Arbitrary<Session> {
+function sessionWithCommitmentIdArb(): fc.Arbitrary<Session> {
   return fc.record({
     id: fc.uuid(),
     commitmentId: fc.uuid(),
@@ -107,8 +107,8 @@ describe('Property-based tests — domain calculations', () => {
   it('consistency is always between 0 and 100', () => {
     fc.assert(
       fc.property(
-        routineArb,
-        fc.array(sessionWithRoutineIdArb(), { maxLength: 20 }),
+        commitmentArb,
+        fc.array(sessionWithCommitmentIdArb(), { maxLength: 20 }),
         (commitment, sessions) => {
           const result = calculateConsistency(sessions, commitment, {
             start: '2026-06-01',
@@ -126,7 +126,7 @@ describe('Property-based tests — domain calculations', () => {
     fc.assert(
       fc.property(
         fc.uuid(),
-        fc.array(sessionWithRoutineIdArb(), { maxLength: 30 }),
+        fc.array(sessionWithCommitmentIdArb(), { maxLength: 30 }),
         (commitmentId, sessions) => {
           const filtered = sessionsForCommitment(sessions, commitmentId)
           for (const s of filtered) {
@@ -211,7 +211,7 @@ describe('Property-based tests — domain calculations', () => {
   it('completion rate completed count is between 0 and total sessions for the commitment', () => {
     fc.assert(
       fc.property(
-        routineArb,
+        commitmentArb,
         fc.array(
           fc.record({
             id: fc.uuid(),
@@ -279,7 +279,7 @@ describe('Property-based tests — domain calculations', () => {
   it('consistency is 0 when no sessions belong to the commitment', () => {
     fc.assert(
       fc.property(
-        routineArb,
+        commitmentArb,
         fc.array(
           fc.record({
             id: fc.uuid(),
@@ -304,7 +304,7 @@ describe('Property-based tests — domain calculations', () => {
   it('adding a session for a commitment never decreases consistency', () => {
     fc.assert(
       fc.property(
-        routineArb,
+        commitmentArb,
         fc.array(sessionArb('fixed-commitment'), { minLength: 0, maxLength: 5 }),
         sessionArb('fixed-commitment'),
         (commitment, baseSessions, extraSession) => {

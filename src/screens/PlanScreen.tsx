@@ -252,7 +252,7 @@ export function PlanScreen({ navigate, onEditCommitment, onViewPath }: Props) {
 
         {/* Commitment list */}
         <div>
-          <SectionHeader title="Routines" />
+          <SectionHeader title="Commitments" />
           <div className="flex flex-col gap-3 md:grid md:grid-cols-2">
             {commitments.map((commitment) => {
               const activity = commitment.activities[0]

@@ -194,7 +194,7 @@ export function WeeklyReviewScreen({ navigate, onEditCommitment }: Props) {
   const positiveProgress = progressEntries.filter((e) => e.deltaPercent > 0)
 
   // A commitment that hit 100% last week.
-  const perfectRoutine = summary.entries.find(
+  const perfectCommitment = summary.entries.find(
     (e) => e.planned > 0 && e.completed >= e.planned,
   )
 
@@ -217,8 +217,8 @@ export function WeeklyReviewScreen({ navigate, onEditCommitment }: Props) {
   if (consistency >= 80) {
     wentWell.push(`Strong week. You completed ${completed} of ${planned} sessions.`)
   }
-  if (perfectRoutine) {
-    wentWell.push(`You hit every ${perfectRoutine.commitmentName} session.`)
+  if (perfectCommitment) {
+    wentWell.push(`You hit every ${perfectCommitment.commitmentName} session.`)
   }
   for (const entry of positiveProgress.slice(0, 2)) {
     wentWell.push(

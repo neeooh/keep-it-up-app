@@ -7,7 +7,7 @@ import { useTheme } from '../hooks/useTheme'
  *
  * Shows a Moon icon in light mode ("switch to dark") and a Sun icon in dark
  * mode ("switch to light"). Matches the ghost icon-button pattern used by
- * the "+" add-routine buttons in PageHeader.
+ * the "+" add-commitment buttons in PageHeader.
  */
 export function ThemeToggle() {
   const { resolvedTheme, toggleTheme } = useTheme()
