@@ -214,7 +214,7 @@ describe('PlanReviewScreen', () => {
   it('clicking a day calls onScheduleChange with the day added', async () => {
     const user = userEvent.setup()
     const { onScheduleChange } = setup({ scheduledDays: [1] })
-    await user.click(screen.getByTestId('toggle-schedule'))
+    // Section is already open because scheduledDays is not empty
     await user.click(screen.getByTestId('day-option-3'))
     expect(onScheduleChange).toHaveBeenCalledWith([1, 3], '')
   })
