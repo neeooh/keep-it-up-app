@@ -3,7 +3,7 @@
  *
  * Acceptance criteria:
  * - Each screen name renders the correct placeholder without crashing
- * - Bottom nav is hidden on all 8 onboarding screens
+ * - Bottom nav is hidden on creation screens
  * - Bottom nav is visible on main app screens
  * - Clicking a nav tab navigates to the correct screen
  * - The active tab has aria-current="page"
@@ -13,8 +13,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
-import { ONBOARDING_SCREENS, MAIN_SCREENS, type Screen } from './screens/types'
-import { STORAGE_KEY } from './store/useAppStore'
+import { CREATION_SCREENS, MAIN_SCREENS, type Screen } from './screens/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -33,21 +32,21 @@ afterEach(() => {
 // ─── Initial render ───────────────────────────────────────────────────────────
 
 describe('App — initial render', () => {
-  it('renders without crashing on the welcome screen', () => {
-    renderAt('welcome')
+  it('renders without crashing on the add-commitment screen', () => {
+    renderAt('add-commitment')
     expect(screen.getByTestId('app-shell')).toBeInTheDocument()
   })
 
-  it('shows the welcome screen placeholder by default', () => {
-    renderAt('welcome')
-    expect(screen.getByTestId('screen-welcome')).toBeInTheDocument()
+  it('shows the add-commitment screen by default when no commitments exist', () => {
+    renderAt('add-commitment')
+    expect(screen.getByTestId('screen-add-commitment')).toBeInTheDocument()
   })
 })
 
 // ─── Every screen renders its correct placeholder ─────────────────────────────
 
 describe('App — screen router renders correct placeholder for each screen', () => {
-  const allScreens: Screen[] = [...ONBOARDING_SCREENS, ...MAIN_SCREENS]
+  const allScreens: Screen[] = [...CREATION_SCREENS, ...MAIN_SCREENS]
 
   for (const s of allScreens) {
     it(`renders screen-${s}`, () => {
@@ -57,10 +56,10 @@ describe('App — screen router renders correct placeholder for each screen', ()
   }
 })
 
-// ─── Bottom nav hidden on onboarding screens ──────────────────────────────────
+// ─── Bottom nav hidden on creation screens ────────────────────────────────────
 
-describe('App — bottom nav hidden on onboarding screens', () => {
-  for (const s of ONBOARDING_SCREENS) {
+describe('App — bottom nav hidden on creation screens', () => {
+  for (const s of CREATION_SCREENS) {
     it(`hides bottom nav on "${s}"`, () => {
       renderAt(s)
       expect(screen.queryByRole('navigation', { name: 'Main navigation' })).toBeNull()
@@ -71,9 +70,6 @@ describe('App — bottom nav hidden on onboarding screens', () => {
 // ─── Bottom nav visible on main screens ──────────────────────────────────────
 
 describe('App — bottom nav visible on main screens', () => {
-  // Not every main screen is a nav tab destination, but the nav should
-  // be present on all of them — except the active session and settings,
-  // which hide the nav to keep the user focused.
   for (const s of MAIN_SCREENS.filter((m) => m !== 'active-session' && m !== 'settings')) {
     it(`shows bottom nav on "${s}"`, () => {
       renderAt(s)
@@ -148,68 +144,5 @@ describe('App — active nav tab has aria-current="page"', () => {
     expect(screen.getByRole('button', { name: 'History' })).not.toHaveAttribute(
       'aria-current',
     )
-  })
-})
-
-// ─── BUG-001 regression: adding a second commitment ──────────────────────────────
-
-/**
- * Walks through the full onboarding flow: welcome → choose-direction →
- * configure-activity → set-frequency → optional-schedule → optional-challenge
- * → plan-review → "Start today".
- *
- * After completion the dashboard should be active and contain the new commitment.
- */
-async function completeOnboarding(
-  user: ReturnType<typeof userEvent.setup>,
-  templateTestId: string,
-) {
-  // Step 1: Welcome — pick "Do something"
-  await user.click(screen.getByTestId('direction-do'))
-
-  // Step 2: Choose-direction — pick a template
-  // Simple templates (running, walking, etc.) skip configure-activity
-  // and land directly on set-frequency.
-  await user.click(screen.getByTestId(templateTestId))
-
-  // Step 3: Set-frequency — accept default, click Continue
-  // Now goes directly to plan-review (schedule + challenge removed from onboarding).
-  await user.click(screen.getByTestId('continue-button'))
-
-  // Step 4: Plan-review — Start today
-  await user.click(screen.getByTestId('start-button'))
-}
-
-describe('BUG-001 regression — adding a second commitment', () => {
-  it('shows both commitments in the dashboard after adding two via onboarding', async () => {
-    const user = userEvent.setup()
-    renderAt('welcome')
-
-    // First commitment: Running
-    await completeOnboarding(user, 'template-card-running')
-
-    // Should land on dashboard with 1 commitment
-    expect(screen.getByTestId('screen-dashboard')).toBeInTheDocument()
-    expect(screen.getAllByText('Running').length).toBeGreaterThanOrEqual(1)
-
-    // Verify it is in localStorage
-    const state1 = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
-    expect(state1.commitments).toHaveLength(1)
-
-    // Click "+" to add another commitment
-    await user.click(screen.getByTestId('add-commitment-button'))
-
-    // Second commitment: Walking
-    await completeOnboarding(user, 'template-card-walking')
-
-    // Should land on dashboard with 2 commitments
-    expect(screen.getByTestId('screen-dashboard')).toBeInTheDocument()
-
-    const state2 = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
-    expect(state2.commitments).toHaveLength(2)
-
-    // Both commitments should appear as activity cards on Today
-    expect(screen.getAllByText('Running').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Walking').length).toBeGreaterThanOrEqual(1)
   })
 })

@@ -190,7 +190,7 @@ export function EditCommitmentScreen({ navigate, commitmentId }: Props) {
     deleteCommitment(commitment.id)
     // Navigate to dashboard or welcome if no commitments remain
     if (state.commitments.length <= 1) {
-      navigate('welcome')
+      navigate('add-commitment')
     } else {
       navigate('dashboard')
     }

@@ -2,28 +2,14 @@ import { useCallback, useState } from 'react'
 import { LayoutGrid, Clock, TrendingUp, ClipboardList } from 'lucide-react'
 
 import type { Screen } from './screens/types'
-import { ONBOARDING_SCREENS, NAV_TABS } from './screens/types'
-import type {
-  ChallengeDuration,
-  DayOfWeek,
-  Direction,
-  Frequency,
-  MeasurementConfig,
-} from './domain/types'
+import { CREATION_SCREENS, NAV_TABS } from './screens/types'
 import { useAppStore, AppStoreProvider } from './store/useAppStore'
 import { ThemeProvider } from './hooks/useTheme'
 import { PreferencesProvider, usePreferences } from './hooks/usePreferences'
-import { findTemplate, needsConfigureScreen, paths } from './domain/templates'
+import { paths } from './domain/templates'
 
-// ── Onboarding screens ────────────────────────────────────────────────────────
-import { WelcomeScreen } from './screens/onboarding/WelcomeScreen'
-import { ChooseDirectionScreen } from './screens/onboarding/ChooseDirectionScreen'
-import { ConfigureActivityScreen } from './screens/onboarding/ConfigureActivityScreen'
-import { SetFrequencyScreen } from './screens/onboarding/SetFrequencyScreen'
-import { PlanReviewScreen } from './screens/onboarding/PlanReviewScreen'
-import { PathPreviewScreen } from './screens/onboarding/PathPreviewScreen'
-
-// ── Main app screens ──────────────────────────────────────────────────────────
+// ── Screens ───────────────────────────────────────────────────────────────────
+import { AddCommitmentScreen } from './screens/AddCommitmentScreen'
 import { DashboardScreen } from './screens/DashboardScreen'
 import { ActiveSessionScreen } from './screens/ActiveSessionScreen'
 import { HistoryScreen } from './screens/HistoryScreen'
@@ -42,251 +28,9 @@ const NAV_ICONS = {
   progress: TrendingUp,
 } as const
 
-// ── Onboarding draft ──────────────────────────────────────────────────────────
-
-/**
- * All state accumulated while the user walks through the onboarding flow.
- * Passed to PlanReviewScreen to assemble the final Commitment.
- */
-export interface OnboardingDraft {
-  direction: Direction | null
-  /** The id of the selected ActivityTemplate, or 'custom'. */
-  templateId: string | null
-  /** Activity name as typed on the configure screen. */
-  activityName: string
-  /** Measurement values as configured on the configure screen. */
-  measurements: MeasurementConfig[]
-  /** For strength workouts: individual exercises with name, sets, reps, weight. */
-  exercises: { name: string; sets: number; reps: number; weight: number }[]
-  frequency: Frequency
-  /** Optional preferred days (ISO day-of-week). */
-  scheduledDays: DayOfWeek[]
-  /** Optional preferred time label. */
-  preferredTime: string
-  /** null = no challenge. */
-  challengeDurationDays: ChallengeDuration | null
-  /** True when the configure-activity screen was skipped (simple templates). */
-  skippedConfigure: boolean
-  /** Free-text motivation: why the user wants to do this routine. */
-  motivation: string
-}
-
-const EMPTY_DRAFT: OnboardingDraft = {
-  direction: null,
-  templateId: null,
-  activityName: '',
-  measurements: [],
-  exercises: [],
-  frequency: '3x_week',
-  scheduledDays: [],
-  preferredTime: '',
-  challengeDurationDays: null,
-  skippedConfigure: false,
-  motivation: '',
-}
-
 // ── Navigate type ─────────────────────────────────────────────────────────────
 
 export type Navigate = (screen: Screen) => void
-
-// ── Screen renderer ───────────────────────────────────────────────────────────
-
-interface ScreenProps {
-  navigate: Navigate
-  draft: OnboardingDraft
-  setDraft: (patch: Partial<OnboardingDraft>) => void
-  onStartCommitment: () => void
-  selectedCommitmentId: string | null
-  onStartSession: (commitmentId: string, date?: string) => void
-  onEditCommitment: (commitmentId: string) => void
-  /** When set, onboarding screens show a close (X) button that returns to dashboard. */
-  onClose?: () => void
-  /** Install a persona preset routine by id. */
-  onInstallPreset: (presetId: string) => void
-  /** Confirm the previewed path — install and navigate to dashboard. */
-  onConfirmPath: (presetId: string) => void
-  /** The currently previewed preset id. */
-  selectedPresetId: string | null
-  /** The screen the user came from (for back navigation). */
-  previousScreen: Screen | null
-  sessionDate?: string
-}
-
-function renderScreen(
-  screen: Screen,
-  {
-    navigate,
-    draft,
-    setDraft,
-    onStartCommitment,
-    selectedCommitmentId,
-    onStartSession,
-    onEditCommitment,
-    onClose,
-    onInstallPreset,
-    onConfirmPath,
-    selectedPresetId,
-    previousScreen,
-    sessionDate,
-  }: ScreenProps,
-) {
-  switch (screen) {
-    case 'welcome':
-      return (
-        <WelcomeScreen
-          navigate={navigate}
-          onDirectionChoose={(d) => setDraft({ direction: d })}
-          onInstallPreset={onInstallPreset}
-          onClose={onClose}
-        />
-      )
-    case 'choose-direction':
-      return (
-        <ChooseDirectionScreen
-          navigate={navigate}
-          direction={draft.direction}
-          onDirectionChange={(d) => setDraft({ direction: d })}
-          onTemplateSelect={(id) => {
-            const tmpl = id ? findTemplate(id) : null
-            const skip = tmpl ? !needsConfigureScreen(tmpl) : false
-            setDraft({
-              templateId: id,
-              frequency: tmpl?.defaultFrequency ?? EMPTY_DRAFT.frequency,
-              activityName: skip ? (tmpl?.defaultName ?? '') : EMPTY_DRAFT.activityName,
-              measurements: skip ? (tmpl?.defaultMeasurements ?? []) : EMPTY_DRAFT.measurements,
-              preferredTime: tmpl?.defaultPreferredTime ?? EMPTY_DRAFT.preferredTime,
-              skippedConfigure: skip,
-            })
-          }}
-          onClose={onClose}
-        />
-      )
-    case 'configure-activity':
-      return (
-        <ConfigureActivityScreen
-          navigate={navigate}
-          templateId={draft.templateId}
-          direction={draft.direction}
-          onActivityChange={(name, measurements) =>
-            setDraft({ activityName: name, measurements })
-          }
-          onExercisesChange={(exercises) => setDraft({ exercises })}
-          initialExercises={draft.exercises}
-          onClose={onClose}
-        />
-      )
-    case 'set-frequency':
-      return (
-        <SetFrequencyScreen
-          navigate={navigate}
-          frequency={draft.frequency}
-          onFrequencyChange={(f) => {
-            const defaultDays: Record<string, DayOfWeek[]> = {
-              daily: [1, 2, 3, 4, 5, 6, 7],
-              '3x_week': [1, 3, 5],
-              '2x_week': [2, 4],
-              '1x_week': [6],
-              flexible: [],
-            }
-            setDraft({ frequency: f, scheduledDays: defaultDays[f] ?? [] })
-          }}
-          skippedConfigure={draft.skippedConfigure}
-          onClose={onClose}
-        />
-      )
-    case 'plan-review':
-      return (
-        <PlanReviewScreen
-          navigate={navigate}
-          draft={draft}
-          onStart={onStartCommitment}
-          skippedConfigure={draft.skippedConfigure}
-          scheduledDays={draft.scheduledDays}
-          preferredTime={draft.preferredTime}
-          challengeDurationDays={draft.challengeDurationDays}
-          onScheduleChange={(days, time) =>
-            setDraft({ scheduledDays: days, preferredTime: time })
-          }
-          onChallengeChange={(days) => setDraft({ challengeDurationDays: days })}
-          motivation={draft.motivation}
-          onMotivationChange={(m) => setDraft({ motivation: m })}
-          onNameChange={(name) => setDraft({ activityName: name })}
-          onMeasurementChange={(index, target) => {
-            // If measurements are empty (skipped configure), copy from template first.
-            const template = draft.templateId ? findTemplate(draft.templateId) : null
-            const base = draft.measurements.length > 0
-              ? draft.measurements
-              : template?.defaultMeasurements ?? []
-            const updated = [...base]
-            if (updated[index]) {
-              updated[index] = { ...updated[index], target }
-              setDraft({ measurements: updated })
-            }
-          }}
-          onClose={onClose}
-        />
-      )
-    case 'path-preview':
-      return (
-        <PathPreviewScreen
-          navigate={navigate}
-          presetId={selectedPresetId}
-          onConfirm={onConfirmPath}
-          onBack={previousScreen ? () => navigate(previousScreen) : undefined}
-        />
-      )
-    case 'dashboard':
-      return (
-        <DashboardScreen
-          navigate={navigate}
-          onStartSession={onStartSession}
-          onViewPath={(presetId: string) => {
-            onInstallPreset(presetId)
-          }}
-        />
-      )
-    case 'plan':
-      return (
-        <PlanScreen
-          navigate={navigate}
-          onEditCommitment={onEditCommitment}
-          onViewPath={(presetId: string) => {
-            onInstallPreset(presetId)
-          }}
-        />
-      )
-    case 'active-session':
-      return (
-        <ActiveSessionScreen
-          navigate={navigate}
-          commitmentId={selectedCommitmentId}
-          sessionDate={sessionDate}
-        />
-      )
-    case 'history':
-      return <HistoryScreen navigate={navigate} />
-    case 'progress':
-      return <ProgressScreen navigate={navigate} onEditCommitment={onEditCommitment} />
-    case 'weekly-review':
-      return (
-        <WeeklyReviewScreen
-          navigate={navigate}
-          onEditCommitment={onEditCommitment}
-        />
-      )
-    case 'edit-commitment':
-      return (
-        <EditCommitmentScreen
-          navigate={navigate}
-          commitmentId={selectedCommitmentId}
-        />
-      )
-    case 'settings':
-      return <SettingsScreen navigate={navigate} onViewPath={(presetId: string) => {
-        onInstallPreset(presetId)
-      }} />
-  }
-}
 
 // ── Bottom navigation ─────────────────────────────────────────────────────────
 
@@ -352,84 +96,17 @@ function AppShell({ initialScreen }: AppProps) {
   const { addCommitment, state: appState } = useAppStore()
   const { updatePreferences } = usePreferences()
 
-  // Route to dashboard when routines already exist, unless explicitly overridden.
+  // Route to dashboard when commitments exist, unless explicitly overridden.
   const resolvedInitial =
-    initialScreen ?? (appState.commitments.length > 0 ? 'dashboard' : 'welcome')
+    initialScreen ?? (appState.commitments.length > 0 ? 'dashboard' : 'add-commitment')
 
   const [screen, setScreen] = useState<Screen>(resolvedInitial)
-  const [draft, setDraftState] = useState<OnboardingDraft>(EMPTY_DRAFT)
   const [selectedCommitmentId, setSelectedCommitmentId] = useState<string | null>(null)
-  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
   const [sessionDate, setSessionDate] = useState<string | undefined>(undefined)
-  const [previousScreen, setPreviousScreen] = useState<Screen | null>(null)
 
   const navigate = useCallback((next: Screen) => {
-    setScreen((prev) => {
-      setPreviousScreen(prev)
-      return next
-    })
+    setScreen(next)
   }, [])
-
-  const setDraft = useCallback((patch: Partial<OnboardingDraft>) => {
-    setDraftState((prev) => ({ ...prev, ...patch }))
-  }, [])
-
-  const onStartCommitment = useCallback(() => {
-    const template = draft.templateId ? findTemplate(draft.templateId) : null
-    const activityName =
-      draft.activityName || template?.defaultName || 'My activity'
-    const direction = draft.direction ?? template?.direction ?? 'DO'
-    const measurements =
-      draft.measurements.length > 0
-        ? draft.measurements
-        : template?.defaultMeasurements ?? []
-
-    // For strength workouts with exercises, create one Activity per exercise.
-    // Otherwise create a single Activity.
-    const activities =
-      draft.exercises.length > 0
-        ? draft.exercises.map((ex) => ({
-            id: crypto.randomUUID(),
-            name: ex.name,
-            direction,
-            measurements: [
-              { type: 'sets' as const, target: ex.sets },
-              { type: 'reps' as const, target: ex.reps },
-              { type: 'weight' as const, unit: 'kg' as const },
-            ],
-            frequency: draft.frequency,
-            scheduledDays:
-              draft.scheduledDays.length > 0 ? draft.scheduledDays : undefined,
-            preferredTime: draft.preferredTime || undefined,
-          }))
-        : [
-            {
-              id: crypto.randomUUID(),
-              name: activityName,
-              direction,
-              measurements,
-              frequency: draft.frequency,
-              scheduledDays:
-                draft.scheduledDays.length > 0 ? draft.scheduledDays : undefined,
-              preferredTime: draft.preferredTime || undefined,
-            },
-          ]
-
-    addCommitment({
-      id: crypto.randomUUID(),
-      name: activityName,
-      createdAt: new Date().toISOString(),
-      challengeDurationDays: draft.challengeDurationDays ?? undefined,
-      challengeStartDate: draft.challengeDurationDays
-        ? new Date().toISOString().slice(0, 10)
-        : undefined,
-      motivation: draft.motivation.trim() || undefined,
-      activities,
-    })
-
-    setDraftState(EMPTY_DRAFT)
-    navigate('dashboard')
-  }, [draft, addCommitment, navigate])
 
   const onStartSession = useCallback(
     (commitmentId: string, date?: string) => {
@@ -448,8 +125,87 @@ function AppShell({ initialScreen }: AppProps) {
     [navigate],
   )
 
-  const isOnboarding = ONBOARDING_SCREENS.includes(screen)
-  const hideBottomNav = isOnboarding || screen === 'active-session' || screen === 'settings'
+  const onInstallPath = useCallback(
+    (presetId: string) => {
+      const preset = paths.find((p) => p.id === presetId)
+      if (!preset) return
+      const existingNames = new Set(
+        appState.commitments.flatMap((c) =>
+          c.activities.map((a) => a.name.toLowerCase()),
+        ),
+      )
+      for (const commitment of preset.buildCommitments()) {
+        const activityName = commitment.activities[0]?.name.toLowerCase() ?? ''
+        if (existingNames.has(activityName)) continue
+        existingNames.add(activityName)
+        addCommitment(commitment)
+      }
+      updatePreferences({ chosenPath: presetId })
+      navigate('dashboard')
+    },
+    [appState.commitments, addCommitment, updatePreferences, navigate],
+  )
+
+  const isCreation = CREATION_SCREENS.includes(screen)
+  const hideBottomNav = isCreation || screen === 'active-session' || screen === 'settings'
+  const canClose = appState.commitments.length > 0
+
+  // ── Screen renderer ─────────────────────────────────────────────────────
+  function renderScreen() {
+    switch (screen) {
+      case 'add-commitment':
+        return (
+          <AddCommitmentScreen
+            navigate={navigate}
+            onClose={canClose ? () => navigate('dashboard') : undefined}
+          />
+        )
+      case 'dashboard':
+        return (
+          <DashboardScreen
+            navigate={navigate}
+            onStartSession={onStartSession}
+            onViewPath={onInstallPath}
+          />
+        )
+      case 'plan':
+        return (
+          <PlanScreen
+            navigate={navigate}
+            onEditCommitment={onEditCommitment}
+            onViewPath={onInstallPath}
+          />
+        )
+      case 'active-session':
+        return (
+          <ActiveSessionScreen
+            navigate={navigate}
+            commitmentId={selectedCommitmentId}
+            sessionDate={sessionDate}
+          />
+        )
+      case 'history':
+        return <HistoryScreen navigate={navigate} />
+      case 'progress':
+        return <ProgressScreen navigate={navigate} onEditCommitment={onEditCommitment} />
+      case 'weekly-review':
+        return (
+          <WeeklyReviewScreen
+            navigate={navigate}
+            onEditCommitment={onEditCommitment}
+          />
+        )
+      case 'edit-commitment':
+        return (
+          <EditCommitmentScreen
+            navigate={navigate}
+            commitmentId={selectedCommitmentId}
+          />
+        )
+      case 'settings':
+        return <SettingsScreen navigate={navigate} onViewPath={onInstallPath} />
+    }
+  }
 
   return (
     <div className="min-h-svh bg-surface-muted">
@@ -463,40 +219,7 @@ function AppShell({ initialScreen }: AppProps) {
             hideBottomNav ? '' : 'pb-20',
           ].join(' ')}
         >
-          {renderScreen(screen, {
-            navigate,
-            draft,
-            setDraft,
-            onStartCommitment,
-            selectedCommitmentId,
-            onStartSession,
-            onEditCommitment,
-            onClose: appState.commitments.length > 0 ? () => navigate('dashboard') : undefined,
-            onInstallPreset: (presetId: string) => {
-              setSelectedPresetId(presetId)
-              navigate('path-preview')
-            },
-            onConfirmPath: (presetId: string) => {
-              const preset = paths.find((p) => p.id === presetId)
-              if (!preset) return
-              const existingNames = new Set(
-                appState.commitments.flatMap((r) =>
-                  r.activities.map((a) => a.name.toLowerCase()),
-                ),
-              )
-              for (const commitment of preset.buildCommitments()) {
-                const activityName = commitment.activities[0]?.name.toLowerCase() ?? ''
-                if (existingNames.has(activityName)) continue
-                existingNames.add(activityName)
-                addCommitment(commitment)
-              }
-              updatePreferences({ chosenPath: presetId })
-              navigate('dashboard')
-            },
-            selectedPresetId,
-            previousScreen,
-            sessionDate,
-          })}
+          {renderScreen()}
         </main>
 
         {!hideBottomNav && (

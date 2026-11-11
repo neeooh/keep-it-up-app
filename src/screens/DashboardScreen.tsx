@@ -548,12 +548,12 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
             title="No commitments yet"
             description="Create your first commitment to start tracking."
             actionLabel="Create a commitment"
-            onAction={() => navigate('welcome')}
+            onAction={() => navigate('add-commitment')}
           />
           <button
             type="button"
             data-testid="create-commitment-button"
-            onClick={() => navigate('welcome')}
+            onClick={() => navigate('add-commitment')}
             className="sr-only"
           >
             Create a commitment
@@ -596,7 +596,7 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                 size="icon"
                 data-testid="add-commitment-button"
                 aria-label="Add commitment"
-                onClick={() => navigate('welcome')}
+                onClick={() => navigate('add-commitment')}
               >
                 <Plus size={20} aria-hidden="true" />
               </Button>
@@ -609,7 +609,7 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
             title="No activities planned for today"
             description="Enjoy the day, or add an activity to your plan."
             actionLabel="Add an activity"
-            onAction={() => navigate('welcome')}
+            onAction={() => navigate('add-commitment')}
           />
         </div>
       </div>
@@ -637,7 +637,7 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
               size="icon"
               data-testid="add-commitment-button"
               aria-label="Add commitment"
-              onClick={() => navigate('welcome')}
+              onClick={() => navigate('add-commitment')}
             >
               <Plus size={20} aria-hidden="true" />
             </Button>

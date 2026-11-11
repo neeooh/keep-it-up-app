@@ -137,7 +137,7 @@ export function SettingsScreen({ navigate, onViewPath }: Props) {
                 size="sm"
                 onClick={() => {
                   updatePreferences({ chosenPath: undefined })
-                  navigate('welcome')
+                  navigate('add-commitment')
                 }}
                 className="mt-2 text-muted-foreground"
               >

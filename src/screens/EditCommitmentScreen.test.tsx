@@ -173,7 +173,7 @@ describe('EditCommitmentScreen — delete', () => {
     expect(state.sessions).toHaveLength(0)
 
     // Navigates to welcome (no commitments left)
-    expect(navigate).toHaveBeenCalledWith('welcome')
+    expect(navigate).toHaveBeenCalledWith('add-commitment')
   })
 
   it('cancels deletion when cancel is clicked in dialog', async () => {

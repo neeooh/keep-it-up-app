@@ -111,7 +111,7 @@ export function PlanScreen({ navigate, onEditCommitment, onViewPath }: Props) {
             title="No commitments yet"
             description="Create your first commitment to build your plan."
             actionLabel="Create a commitment"
-            onAction={() => navigate('welcome')}
+            onAction={() => navigate('add-commitment')}
           />
         </div>
       </div>
@@ -142,7 +142,7 @@ export function PlanScreen({ navigate, onEditCommitment, onViewPath }: Props) {
               size="icon"
               data-testid="plan-add-commitment-button"
               aria-label="Add commitment"
-              onClick={() => navigate('welcome')}
+              onClick={() => navigate('add-commitment')}
             >
               <Plus size={20} aria-hidden="true" />
             </Button>
@@ -305,7 +305,7 @@ export function PlanScreen({ navigate, onEditCommitment, onViewPath }: Props) {
         <Button
           data-testid="plan-add-commitment-bottom"
           variant="outline"
-          onClick={() => navigate('welcome')}
+          onClick={() => navigate('add-commitment')}
           className="w-full"
         >
           <Plus size={16} className="mr-2" aria-hidden="true" />

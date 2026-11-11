@@ -60,7 +60,7 @@ describe('DashboardScreen — empty state', () => {
       </StoreWrapper>,
     )
     await user.click(screen.getByTestId('create-commitment-button'))
-    expect(navigate).toHaveBeenCalledWith('welcome')
+    expect(navigate).toHaveBeenCalledWith('add-commitment')
   })
 })
 

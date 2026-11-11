@@ -71,7 +71,7 @@ describe('PlanScreen — empty state', () => {
     const user = userEvent.setup()
     const { navigate } = setup({ commitments: [], sessions: [] })
     await user.click(screen.getByRole('button', { name: /create a commitment/i }))
-    expect(navigate).toHaveBeenCalledWith('welcome')
+    expect(navigate).toHaveBeenCalledWith('add-commitment')
   })
 })
 
@@ -201,7 +201,7 @@ describe('PlanScreen — add commitment buttons', () => {
     const { navigate } = setup({ commitments, sessions: [] })
 
     await user.click(screen.getByTestId('plan-add-commitment-button'))
-    expect(navigate).toHaveBeenCalledWith('welcome')
+    expect(navigate).toHaveBeenCalledWith('add-commitment')
   })
 
   it('bottom add button navigates to welcome', async () => {
@@ -210,6 +210,6 @@ describe('PlanScreen — add commitment buttons', () => {
     const { navigate } = setup({ commitments, sessions: [] })
 
     await user.click(screen.getByTestId('plan-add-commitment-bottom'))
-    expect(navigate).toHaveBeenCalledWith('welcome')
+    expect(navigate).toHaveBeenCalledWith('add-commitment')
   })
 })

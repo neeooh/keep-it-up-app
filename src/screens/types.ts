@@ -4,18 +4,13 @@
  * The router in App.tsx uses this discriminated union to determine which
  * screen component to render.
  *
- * Onboarding screens (welcome → plan-review) hide the bottom navigation.
+ * The add-commitment screen hides the bottom navigation.
  * Main screens (dashboard → edit-commitment) show it.
  */
 
 export type Screen =
-  // ── Onboarding flow ──────────────────────────────────────────────────────
-  | 'welcome'
-  | 'choose-direction'
-  | 'configure-activity'
-  | 'set-frequency'
-  | 'plan-review'
-  | 'path-preview'
+  // ── Creation flow ────────────────────────────────────────────────────────
+  | 'add-commitment'
   // ── Main app ─────────────────────────────────────────────────────────────
   | 'dashboard'
   | 'plan'
@@ -26,14 +21,9 @@ export type Screen =
   | 'edit-commitment'
   | 'settings'
 
-/** Screens that belong to the onboarding flow (no bottom nav). */
-export const ONBOARDING_SCREENS: Screen[] = [
-  'welcome',
-  'choose-direction',
-  'configure-activity',
-  'set-frequency',
-  'plan-review',
-  'path-preview',
+/** Screens that hide the bottom navigation bar. */
+export const CREATION_SCREENS: Screen[] = [
+  'add-commitment',
 ]
 
 /** Screens that show the persistent bottom navigation bar. */
