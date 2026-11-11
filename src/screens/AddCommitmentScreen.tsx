@@ -9,7 +9,10 @@
  */
 
 import { X } from 'lucide-react'
+import { useState } from 'react'
 import { PageHeader } from '../components/PageHeader'
+import { CommitmentComposer, EMPTY_COMPOSER } from '../components/CommitmentComposer'
+import type { ComposerState } from '../components/CommitmentComposer'
 import type { Navigate } from '../App'
 
 interface Props {
@@ -19,6 +22,8 @@ interface Props {
 }
 
 export function AddCommitmentScreen({ onClose }: Props) {
+  const [_composer, setComposer] = useState<ComposerState>(EMPTY_COMPOSER)
+
   return (
     <div data-testid="screen-add-commitment" className="flex flex-col min-h-full">
       <PageHeader
@@ -38,9 +43,16 @@ export function AddCommitmentScreen({ onClose }: Props) {
         }
       />
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
-        <p className="text-muted-foreground text-sm">
-          Commitment creation screen — coming next.
+      <div className="flex-1 flex flex-col px-5 py-4 gap-4 overflow-y-auto">
+        {/* Composer card */}
+        <CommitmentComposer
+          value={_composer}
+          onChange={(patch) => setComposer((prev) => ({ ...prev, ...patch }))}
+        />
+
+        {/* Category filter and suggestions will go here in Tasks 5 and 6 */}
+        <p className="text-muted-foreground text-sm text-center py-8">
+          Suggestions and categories coming next.
         </p>
       </div>
     </div>
