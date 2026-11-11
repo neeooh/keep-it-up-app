@@ -14,8 +14,20 @@
  * Spec reference: docs/uiux-audits/v1.1-ui-ux-audit.md sections 1-7.
  */
 
-import { Plus, MoreHorizontal, Check, TrendingUp, TrendingDown, Settings } from 'lucide-react'
-import { useState } from 'react'
+import { Plus, MoreHorizontal, Check, TrendingUp, TrendingDown, Settings, GripVertical, ChevronDown } from 'lucide-react'
+import React, { useState } from 'react'
+import {
+  DndContext,
+  DragOverlay,
+  useDraggable,
+  useDroppable,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragStartEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core'
 import { Button } from '../components/ui/button'
 import { PageHeader } from '../components/PageHeader'
 import { SectionHeader } from '../components/SectionHeader'
@@ -413,6 +425,85 @@ function groupByTime(cards: TodayCard[]): TimeGroup[] {
   return nonEmpty
 }
 
+// ─── Collapse persistence ─────────────────────────────────────────────────────
+
+const COLLAPSED_KEY = 'keep-it-up:collapsed-sections'
+
+const ALL_TIME_LABELS = ['Morning', 'Afternoon', 'Evening', 'Anytime'] as const
+
+function loadCollapsed(): Set<string> {
+  try {
+    const raw = localStorage.getItem(COLLAPSED_KEY)
+    if (!raw) return new Set()
+    return new Set(JSON.parse(raw) as string[])
+  } catch {
+    return new Set()
+  }
+}
+
+function saveCollapsed(collapsed: Set<string>): void {
+  localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsed]))
+}
+
+// ─── Drag-and-drop wrappers ──────────────────────────────────────────────────
+
+function DraggableCard({
+  id,
+  groupLabel,
+  children,
+}: {
+  id: string
+  groupLabel: string
+  children: (dragHandle: React.ReactNode) => React.ReactNode
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id,
+    data: { group: groupLabel },
+  })
+
+  const handle = (
+    <button
+      type="button"
+      className="self-center text-muted-foreground/30 hover:text-muted-foreground cursor-grab active:cursor-grabbing touch-none shrink-0 -ml-1 p-1"
+      aria-label="Drag to move"
+      {...listeners}
+      {...attributes}
+    >
+      <GripVertical size={16} aria-hidden="true" />
+    </button>
+  )
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined}
+      className={isDragging ? 'opacity-25' : ''}
+    >
+      {children(handle)}
+    </div>
+  )
+}
+
+function DroppableSection({
+  id,
+  children,
+}: {
+  id: string
+  children: React.ReactNode
+}) {
+  const { isOver, setNodeRef } = useDroppable({ id })
+
+  return (
+    <div
+      ref={setNodeRef}
+      data-testid={`drop-zone-${id.toLowerCase()}`}
+      className={`rounded-xl transition-all duration-150 ${isOver ? 'bg-brand/5 ring-2 ring-brand/20 p-2 -m-2' : ''}`}
+    >
+      {children}
+    </div>
+  )
+}
+
 // ─── Greeting ─────────────────────────────────────────────────────────────────
 
 function greeting(userName?: string): string {
@@ -528,11 +619,226 @@ function CircularProgress({
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props) {
-  const { state } = useAppStore()
+  const { state, updateRoutine } = useAppStore()
   const { routines, sessions } = state
   const { preferences } = usePreferences()
   const { permission, requestPermission, scheduleReminder, confirmation } = useNotification()
   const [openSnooze, setOpenSnooze] = useState<string | null>(null)
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(loadCollapsed)
+  const [activeId, setActiveId] = useState<string | null>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  )
+
+  function toggleSection(label: string) {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev)
+      if (next.has(label)) next.delete(label)
+      else next.add(label)
+      saveCollapsed(next)
+      return next
+    })
+  }
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(event.active.id as string)
+    setOpenSnooze(null)
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    setActiveId(null)
+    if (!over) return
+
+    const routineId = active.id as string
+    const sourceGroup = (active.data.current as { group: string } | undefined)?.group
+    const targetGroup = over.id as string
+
+    if (sourceGroup === targetGroup) return
+
+    const routine = routines.find((r) => r.id === routineId)
+    if (!routine) return
+
+    const newTime = targetGroup === 'Anytime' ? undefined : targetGroup
+
+    updateRoutine({
+      ...routine,
+      activities: routine.activities.map((a) => ({
+        ...a,
+        preferredTime: newTime,
+      })),
+    })
+  }
+
+  // ── Card render helpers (capture component closure) ───────────────────────
+
+  function renderCompletedCard(
+    routine: Routine,
+    primaryActivity: Activity,
+    cardActivities: Activity[],
+    hasMultipleActivities: boolean,
+    dragHandle: React.ReactNode | null,
+  ) {
+    const result = getCompletedResult(sessions, routine, primaryActivity, todayStr)
+    return (
+      <div
+        data-testid={`activity-card-${primaryActivity.id}`}
+        className="relative rounded-xl border border-success/30 bg-success-muted/30 p-4"
+      >
+        <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
+          <span
+            data-testid={`completed-badge-${primaryActivity.id}`}
+            className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success"
+          >
+            <Check size={12} aria-hidden="true" />
+            Done
+          </span>
+          <button
+            type="button"
+            data-testid={`log-session-button-${routine.id}`}
+            onClick={() => onStartSession(routine.id)}
+            className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground hover:bg-muted/80 transition-colors"
+          >
+            Log again
+          </button>
+        </div>
+
+        <div className="flex items-start gap-3 pr-20">
+          {dragHandle}
+          <div className="flex items-center justify-center size-10 rounded-lg bg-success/10 mt-0.5 shrink-0">
+            <ActivityIcon name={routine.name} size={22} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-foreground leading-snug">{routine.name}</p>
+            {primaryActivity.description && !hasMultipleActivities && (
+              <p className="text-xs text-muted-foreground italic mt-1">{primaryActivity.description}</p>
+            )}
+            {hasMultipleActivities && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {cardActivities.map((a) => a.name).join(', ')}
+              </p>
+            )}
+            {result && result.measurements.length > 0 && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {result.measurements.join(' \u00b7 ')}
+              </p>
+            )}
+            {result?.delta && (
+              <div
+                data-testid={`activity-delta-${primaryActivity.id}`}
+                className={`flex items-center gap-1 mt-2 text-sm font-medium ${
+                  result.delta.percent > 0 ? 'text-success' : 'text-destructive'
+                }`}
+              >
+                {result.delta.percent > 0
+                  ? <TrendingUp size={14} aria-hidden="true" />
+                  : <TrendingDown size={14} aria-hidden="true" />
+                }
+                <span>
+                  {result.delta.percent > 0 ? '+' : ''}{result.delta.percent}%{' '}
+                  {result.delta.label} vs last session
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  function renderIncompleteCard(
+    routine: Routine,
+    primaryActivity: Activity,
+    cardActivities: Activity[],
+    hasMultipleActivities: boolean,
+    dragHandle: React.ReactNode | null,
+  ) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        data-testid={`activity-card-${primaryActivity.id}`}
+        onClick={() => onStartSession(routine.id)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onStartSession(routine.id) } }}
+        className="rounded-xl border border-border bg-card ring-1 ring-foreground/5 p-4 w-full text-left cursor-pointer hover:bg-surface-muted active:bg-surface-muted/80 transition-colors"
+      >
+        <div className="flex items-start gap-3">
+          {dragHandle}
+          <div className="flex items-center justify-center size-10 rounded-lg bg-brand/10 mt-0.5 shrink-0">
+            <ActivityIcon name={routine.name} size={22} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-foreground leading-snug">{routine.name}</p>
+            {primaryActivity.description && !hasMultipleActivities && (
+              <p className="text-xs text-muted-foreground italic mt-1">{primaryActivity.description}</p>
+            )}
+            {hasMultipleActivities ? (
+              <p className="text-sm text-muted-foreground mt-1">
+                {cardActivities.map((a) => a.name).join(', ')}
+              </p>
+            ) : (
+              (() => {
+                if (primaryActivity.direction === 'AVOID') return null
+                const target = primaryTarget(primaryActivity)
+                if (!target) return null
+                return (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {target}
+                  </p>
+                )
+              })()
+            )}
+          </div>
+          <div
+            className="relative shrink-0 -mr-2 -mt-1"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation() }}
+          >
+            <button
+              type="button"
+              data-testid={`remind-button-${routine.id}`}
+              aria-label={`Options for ${routine.name}`}
+              onClick={() => setOpenSnooze(openSnooze === routine.id ? null : routine.id)}
+              className="flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors"
+            >
+              <MoreHorizontal size={18} aria-hidden="true" />
+            </button>
+            {openSnooze === routine.id && (
+              <div
+                data-testid={`remind-menu-${routine.id}`}
+                className="absolute right-0 top-full mt-1 z-10 w-44 rounded-lg border border-border bg-card p-1 shadow-lg ring-1 ring-foreground/5"
+              >
+                <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground">Remind me</p>
+                {SNOOZE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.label}
+                    type="button"
+                    data-testid={`remind-option-${opt.minutes}`}
+                    onClick={() => handleSnooze(routine.name, routine.id, opt.minutes)}
+                    className="flex w-full items-center rounded-md px-3 py-2 text-sm text-foreground hover:bg-surface-muted transition-colors"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+                {permission === 'denied' && (
+                  <p className="px-3 py-2 text-xs text-destructive">
+                    Notifications are blocked. Enable them in your browser settings.
+                  </p>
+                )}
+                {permission === 'unsupported' && (
+                  <p className="px-3 py-2 text-xs text-muted-foreground">
+                    Notifications are not supported in this browser.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   async function handleSnooze(activityName: string, activityId: string, minutes: number) {
     let perm = permission
@@ -744,180 +1050,107 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
           </div>
         )}
 
-        <div>
-          <SectionHeader title="Today's activities" />
-          {groupByTime(todayCards).map((group) => (
-            <div key={group.label || 'all'} className="mb-4 last:mb-0">
-              {group.label && (
-                <p
-                  data-testid={`time-group-${group.label.toLowerCase()}`}
-                  className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-3 first:mt-0"
-                >
-                  {group.label}
-                </p>
-              )}
-              <div className="flex flex-col gap-3 md:grid md:grid-cols-2">
-                {group.cards.map(({ activities: cardActivities, routine, completedToday }) => {
-                  const primaryActivity = cardActivities[0]!
-                  const hasMultipleActivities = cardActivities.length > 1
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <div>
+            <SectionHeader title="Today's activities" />
+            {(() => {
+              const baseGroups = groupByTime(todayCards)
+              const hasLabels = baseGroups.some((g) => g.label !== '')
 
-                  if (completedToday) {
-                    const result = getCompletedResult(sessions, routine, primaryActivity, todayStr)
-                    return (
-                      <div
-                        key={routine.id}
-                        data-testid={`activity-card-${primaryActivity.id}`}
-                        className="relative rounded-xl border border-success/30 bg-success-muted/30 p-4"
-                      >
-                        {/* Top-right: Done badge + Redo */}
-                        <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
-                          <span
-                            data-testid={`completed-badge-${primaryActivity.id}`}
-                            className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success"
-                          >
-                            <Check size={12} aria-hidden="true" />
-                            Done
-                          </span>
+              // During drag show all four sections as drop targets
+              const displayGroups: TimeGroup[] = activeId && hasLabels
+                ? ALL_TIME_LABELS.map((label) => ({
+                    label,
+                    cards: baseGroups.find((g) => g.label === label)?.cards ?? [],
+                  }))
+                : baseGroups
+
+              const activeCard = activeId
+                ? todayCards.find((c) => c.routine.id === activeId) ?? null
+                : null
+
+              return (
+                <>
+                  {displayGroups.map((group) => {
+                    const groupId = group.label || 'Anytime'
+                    const isCollapsed = collapsedSections.has(groupId)
+
+                    const sectionContent = (
+                      <div key={groupId} className="mb-4 last:mb-0">
+                        {group.label && (
                           <button
                             type="button"
-                            data-testid={`log-session-button-${routine.id}`}
-                            onClick={() => onStartSession(routine.id)}
-                            className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground hover:bg-muted/80 transition-colors"
+                            data-testid={`time-group-${group.label.toLowerCase()}`}
+                            onClick={() => toggleSection(groupId)}
+                            className="flex items-center gap-1.5 w-full text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-3 first:mt-0 hover:text-foreground transition-colors"
+                            aria-expanded={!isCollapsed}
                           >
-                            Log again
+                            <ChevronDown
+                              size={14}
+                              aria-hidden="true"
+                              className={`shrink-0 transition-transform duration-150 ${isCollapsed ? '-rotate-90' : ''}`}
+                            />
+                            {group.label}
+                            {isCollapsed && group.cards.length > 0 && (
+                              <span className="text-muted-foreground/50 font-normal normal-case tracking-normal ml-0.5">
+                                ({group.cards.length})
+                              </span>
+                            )}
                           </button>
-                        </div>
+                        )}
 
-                        <div className="flex items-start gap-3 pr-20">
-                          <div className="flex items-center justify-center size-10 rounded-lg bg-success/10 mt-0.5 shrink-0">
-                            <ActivityIcon name={routine.name} size={22} />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-foreground leading-snug">{routine.name}</p>
-                            {primaryActivity.description && !hasMultipleActivities && (
-                              <p className="text-xs text-muted-foreground italic mt-1">{primaryActivity.description}</p>
-                            )}
-                            {hasMultipleActivities && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {cardActivities.map((a) => a.name).join(', ')}
-                              </p>
-                            )}
-                            {result && result.measurements.length > 0 && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {result.measurements.join(' \u00b7 ')}
-                              </p>
-                            )}
-                            {result?.delta && (
-                              <div
-                                data-testid={`activity-delta-${primaryActivity.id}`}
-                                className={`flex items-center gap-1 mt-2 text-sm font-medium ${
-                                  result.delta.percent > 0 ? 'text-success' : 'text-destructive'
-                                }`}
-                              >
-                                {result.delta.percent > 0
-                                  ? <TrendingUp size={14} aria-hidden="true" />
-                                  : <TrendingDown size={14} aria-hidden="true" />
+                        {!isCollapsed && (
+                          <div className="flex flex-col gap-3 md:grid md:grid-cols-2">
+                            {group.cards.length > 0 ? (
+                              group.cards.map(({ activities: cardActivities, routine, completedToday }) => {
+                                const primaryActivity = cardActivities[0]!
+                                const hasMultipleActivities = cardActivities.length > 1
+
+                                if (hasLabels) {
+                                  return (
+                                    <DraggableCard key={routine.id} id={routine.id} groupLabel={groupId}>
+                                      {(dragHandle) => completedToday
+                                        ? renderCompletedCard(routine, primaryActivity, cardActivities, hasMultipleActivities, dragHandle)
+                                        : renderIncompleteCard(routine, primaryActivity, cardActivities, hasMultipleActivities, dragHandle)
+                                      }
+                                    </DraggableCard>
+                                  )
                                 }
-                                <span>
-                                  {result.delta.percent > 0 ? '+' : ''}{result.delta.percent}%{' '}
-                                  {result.delta.label} vs last session
-                                </span>
+
+                                return completedToday
+                                  ? <React.Fragment key={routine.id}>{renderCompletedCard(routine, primaryActivity, cardActivities, hasMultipleActivities, null)}</React.Fragment>
+                                  : <React.Fragment key={routine.id}>{renderIncompleteCard(routine, primaryActivity, cardActivities, hasMultipleActivities, null)}</React.Fragment>
+                              })
+                            ) : activeId && (
+                              <div className="rounded-xl border-2 border-dashed border-muted-foreground/20 p-6 text-center text-sm text-muted-foreground">
+                                Drop here
                               </div>
                             )}
                           </div>
-                        </div>
+                        )}
                       </div>
                     )
-                  }
 
-                  return (
-                    <div
-                      key={routine.id}
-                      role="button"
-                      tabIndex={0}
-                      data-testid={`activity-card-${primaryActivity.id}`}
-                      onClick={() => onStartSession(routine.id)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onStartSession(routine.id) } }}
-                      className="rounded-xl border border-border bg-card ring-1 ring-foreground/5 p-4 w-full text-left cursor-pointer hover:bg-surface-muted active:bg-surface-muted/80 transition-colors"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex items-center justify-center size-10 rounded-lg bg-brand/10 mt-0.5 shrink-0">
-                          <ActivityIcon name={routine.name} size={22} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-foreground leading-snug">{routine.name}</p>
-                          {primaryActivity.description && !hasMultipleActivities && (
-                            <p className="text-xs text-muted-foreground italic mt-1">{primaryActivity.description}</p>
-                          )}
-                          {hasMultipleActivities ? (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {cardActivities.map((a) => a.name).join(', ')}
-                            </p>
-                          ) : (
-                            (() => {
-                              if (primaryActivity.direction === 'AVOID') return null
-                              const target = primaryTarget(primaryActivity)
-                              if (!target) return null
-                              return (
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  {target}
-                                </p>
-                              )
-                            })()
-                          )}
-                        </div>
-                        <div
-                          className="relative shrink-0 -mr-2 -mt-1"
-                          onClick={(e) => e.stopPropagation()}
-                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation() }}
-                        >
-                          <button
-                            type="button"
-                            data-testid={`remind-button-${routine.id}`}
-                            aria-label={`Options for ${routine.name}`}
-                            onClick={() => setOpenSnooze(openSnooze === routine.id ? null : routine.id)}
-                            className="flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors"
-                          >
-                            <MoreHorizontal size={18} aria-hidden="true" />
-                          </button>
-                          {openSnooze === routine.id && (
-                            <div
-                              data-testid={`remind-menu-${routine.id}`}
-                              className="absolute right-0 top-full mt-1 z-10 w-44 rounded-lg border border-border bg-card p-1 shadow-lg ring-1 ring-foreground/5"
-                            >
-                              <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground">Remind me</p>
-                              {SNOOZE_OPTIONS.map((opt) => (
-                                <button
-                                  key={opt.label}
-                                  type="button"
-                                  data-testid={`remind-option-${opt.minutes}`}
-                                  onClick={() => handleSnooze(routine.name, routine.id, opt.minutes)}
-                                  className="flex w-full items-center rounded-md px-3 py-2 text-sm text-foreground hover:bg-surface-muted transition-colors"
-                                >
-                                  {opt.label}
-                                </button>
-                              ))}
-                              {permission === 'denied' && (
-                                <p className="px-3 py-2 text-xs text-destructive">
-                                  Notifications are blocked. Enable them in your browser settings.
-                                </p>
-                              )}
-                              {permission === 'unsupported' && (
-                                <p className="px-3 py-2 text-xs text-muted-foreground">
-                                  Notifications are not supported in this browser.
-                                </p>
-                              )}
-                            </div>
-                          )}
+                    return hasLabels
+                      ? <DroppableSection key={groupId} id={groupId}>{sectionContent}</DroppableSection>
+                      : <React.Fragment key={groupId}>{sectionContent}</React.Fragment>
+                  })}
+
+                  <DragOverlay dropAnimation={null}>
+                    {activeCard && (
+                      <div className="rounded-xl border border-brand bg-card p-3 shadow-lg max-w-[280px] opacity-90">
+                        <div className="flex items-center gap-2">
+                          <ActivityIcon name={activeCard.routine.name} size={18} />
+                          <span className="font-medium text-sm text-foreground">{activeCard.routine.name}</span>
                         </div>
                       </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
+                    )}
+                  </DragOverlay>
+                </>
+              )
+            })()}
+          </div>
+        </DndContext>
 
         {tomorrowNames.length > 0 && (
           <div data-testid="tomorrow-preview" className="mt-auto">
