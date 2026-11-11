@@ -24,6 +24,7 @@ import type { ActivityTemplate, Path } from '../domain/templates'
 import type { DayOfWeek } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { usePreferences } from '../hooks/usePreferences'
+import { useNotification } from '../hooks/useNotification'
 import type { Navigate } from '../App'
 
 interface Props {
@@ -47,6 +48,7 @@ function defaultDaysForFrequency(freq: string): DayOfWeek[] {
 export function AddCommitmentScreen({ navigate, onClose }: Props) {
   const { addCommitment } = useAppStore()
   const { updatePreferences } = usePreferences()
+  const { scheduleAtTime, requestPermission, permission } = useNotification()
 
   const [composer, setComposer] = useState<ComposerState>(EMPTY_COMPOSER)
   const [mode, setMode] = useState<Mode>('build')
@@ -86,7 +88,7 @@ export function AddCommitmentScreen({ navigate, onClose }: Props) {
 
   const canSave = composer.name.trim().length > 0
 
-  function handleSave() {
+  async function handleSave() {
     if (!canSave) return
 
     const direction = mode === 'build' ? 'DO' as const : 'AVOID' as const
@@ -111,6 +113,17 @@ export function AddCommitmentScreen({ navigate, onClose }: Props) {
         },
       ],
     })
+
+    // Schedule notification if a reminder was set
+    if (composer.reminderTime && composer.reminderType !== 'none') {
+      let perm = permission
+      if (perm === 'default') {
+        perm = await requestPermission()
+      }
+      if (perm === 'granted') {
+        scheduleAtTime(composer.name.trim(), composer.reminderTime, composer.reminderType)
+      }
+    }
 
     navigate('dashboard')
   }

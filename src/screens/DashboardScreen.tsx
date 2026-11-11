@@ -14,7 +14,7 @@
  * Spec reference: docs/uiux-audits/v1.1-ui-ux-audit.md sections 1-7.
  */
 
-import { Plus, Check, TrendingUp, TrendingDown, Settings } from 'lucide-react'
+import { Plus, Check, TrendingUp, TrendingDown, Settings, Bell } from 'lucide-react'
 import { useCallback, useState } from 'react'
 
 import { Button } from '../components/ui/button'
@@ -840,7 +840,12 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                           <ActivityIcon name={commitment.name} size={22} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-foreground leading-snug">{commitment.name}</p>
+                          <p className="font-semibold text-foreground leading-snug">
+                            {commitment.name}
+                            {primaryActivity.reminderTime && (
+                              <Bell size={12} className="inline-block ml-1.5 text-muted-foreground align-middle" aria-label={`Reminder at ${primaryActivity.reminderTime}`} />
+                            )}
+                          </p>
                           {primaryActivity.instruction && !hasMultipleActivities && (
                             <p className="text-xs text-muted-foreground mt-1">{primaryActivity.instruction}</p>
                           )}
