@@ -4,10 +4,10 @@ import type { AppState } from './types'
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
-const EMPTY_STATE: AppState = { routines: [], sessions: [] }
+const EMPTY_STATE: AppState = { commitments: [], sessions: [] }
 
 const STATE_WITH_DATA: AppState = {
-  routines: [
+  commitments: [
     {
       id: 'r1',
       name: 'Strength Training',
@@ -61,7 +61,7 @@ const STATE_WITH_DATA: AppState = {
   sessions: [
     {
       id: 's1',
-      routineId: 'r1',
+      commitmentId: 'r1',
       completedAt: '2024-01-10T08:00:00.000Z',
       results: [
         {
@@ -77,7 +77,7 @@ const STATE_WITH_DATA: AppState = {
     },
     {
       id: 's2',
-      routineId: 'r2',
+      commitmentId: 'r2',
       completedAt: '2024-01-10T20:00:00.000Z',
       results: [
         {
@@ -89,7 +89,7 @@ const STATE_WITH_DATA: AppState = {
     },
     {
       id: 's3',
-      routineId: 'r3',
+      commitmentId: 'r3',
       completedAt: '2024-01-11T07:00:00.000Z',
       results: [
         {
@@ -107,15 +107,15 @@ describe('exportJSON', () => {
   it('returns valid JSON matching the input state', () => {
     const json = exportJSON(STATE_WITH_DATA)
     const parsed = JSON.parse(json)
-    expect(parsed.routines).toHaveLength(3)
+    expect(parsed.commitments).toHaveLength(3)
     expect(parsed.sessions).toHaveLength(3)
-    expect(parsed.routines[0].name).toBe('Strength Training')
+    expect(parsed.commitments[0].name).toBe('Strength Training')
   })
 
   it('handles empty state', () => {
     const json = exportJSON(EMPTY_STATE)
     const parsed = JSON.parse(json)
-    expect(parsed.routines).toHaveLength(0)
+    expect(parsed.commitments).toHaveLength(0)
     expect(parsed.sessions).toHaveLength(0)
   })
 })
@@ -128,7 +128,7 @@ describe('exportCSV', () => {
     const lines = csv.split('\n')
     // Header + 3 result rows (one per session result)
     expect(lines).toHaveLength(4)
-    expect(lines[0]).toContain('Date,Routine,Activity,Direction')
+    expect(lines[0]).toContain('Date,Commitment,Activity,Direction')
   })
 
   it('includes strength set data', () => {
@@ -158,9 +158,9 @@ describe('exportCSV', () => {
 
   it('escapes values with commas', () => {
     const state: AppState = {
-      routines: [{
+      commitments: [{
         id: 'r1',
-        name: 'My routine, with commas',
+        name: 'My commitment, with commas',
         createdAt: '2024-01-01T00:00:00Z',
         activities: [{
           id: 'a1',
@@ -172,13 +172,13 @@ describe('exportCSV', () => {
       }],
       sessions: [{
         id: 's1',
-        routineId: 'r1',
+        commitmentId: 'r1',
         completedAt: '2024-01-02T00:00:00Z',
         results: [{ activityId: 'a1', measurements: { duration: 30 } }],
       }],
     }
     const csv = exportCSV(state)
-    expect(csv).toContain('"My routine, with commas"')
+    expect(csv).toContain('"My commitment, with commas"')
   })
 })
 
@@ -191,7 +191,7 @@ describe('exportMarkdown', () => {
     expect(md).toContain('Exported on')
   })
 
-  it('lists routines', () => {
+  it('lists commitments', () => {
     const md = exportMarkdown(STATE_WITH_DATA)
     expect(md).toContain('### Strength Training')
     expect(md).toContain('### No Fast Food')
@@ -223,7 +223,7 @@ describe('exportMarkdown', () => {
 
   it('handles empty state', () => {
     const md = exportMarkdown(EMPTY_STATE)
-    expect(md).toContain('No routines.')
+    expect(md).toContain('No commitments.')
     expect(md).toContain('No sessions recorded.')
   })
 })

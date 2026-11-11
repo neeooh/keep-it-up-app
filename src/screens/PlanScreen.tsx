@@ -1,8 +1,8 @@
 /**
- * PlanScreen — the user's routine management hub.
+ * PlanScreen — the user's commitment management hub.
  *
- * Shows summary stats, a weekly schedule grid, and a list of all routines.
- * Each routine card taps into the Edit Routine screen.
+ * Shows summary stats, a weekly schedule grid, and a list of all commitments.
+ * Each commitment card taps into the Edit Commitment screen.
  *
  * Answers: "What am I committed to, and how is it going at a glance?"
  */
@@ -17,13 +17,13 @@ import { ActivityIcon } from '../components/ActivityIcon'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { useAppStore } from '../store/useAppStore'
 import { usePreferences } from '../hooks/usePreferences'
-import { personaPresets } from '../domain/templates'
+import { paths } from '../domain/templates'
 import type { Navigate } from '../App'
-import type { Frequency, Routine, DayOfWeek } from '../domain/types'
+import type { Frequency, Commitment, DayOfWeek } from '../domain/types'
 
 interface Props {
   navigate: Navigate
-  onEditRoutine: (routineId: string) => void
+  onEditCommitment: (commitmentId: string) => void
   onViewPath?: (presetId: string) => void
 }
 
@@ -64,9 +64,9 @@ function formatDays(days: DayOfWeek[]): string {
   return days.map((d) => map[d]).join(', ')
 }
 
-/** Is the routine scheduled for a specific day? */
-function isScheduledOn(routine: Routine, dow: DayOfWeek): boolean {
-  const activity = routine.activities[0]
+/** Is the commitment scheduled for a specific day? */
+function isScheduledOn(commitment: Commitment, dow: DayOfWeek): boolean {
+  const activity = commitment.activities[0]
   if (!activity) return false
   if (activity.frequency === 'daily') return true
   if (activity.scheduledDays && activity.scheduledDays.length > 0) {
@@ -75,42 +75,42 @@ function isScheduledOn(routine: Routine, dow: DayOfWeek): boolean {
   return false
 }
 
-/** Does the routine have any assigned days (daily counts as assigned)? */
-function hasAssignedDays(routine: Routine): boolean {
-  const activity = routine.activities[0]
+/** Does the commitment have any assigned days (daily counts as assigned)? */
+function hasAssignedDays(commitment: Commitment): boolean {
+  const activity = commitment.activities[0]
   if (!activity) return false
   if (activity.frequency === 'daily') return true
   return !!(activity.scheduledDays && activity.scheduledDays.length > 0)
 }
 
-/** Challenge progress for a routine, if it has an active challenge. */
-function challengeProgress(routine: Routine): { elapsed: number; total: number } | null {
-  if (!routine.challengeDurationDays || !routine.challengeStartDate) return null
-  const start = new Date(routine.challengeStartDate + 'T00:00:00Z')
+/** Challenge progress for a commitment, if it has an active challenge. */
+function challengeProgress(commitment: Commitment): { elapsed: number; total: number } | null {
+  if (!commitment.challengeDurationDays || !commitment.challengeStartDate) return null
+  const start = new Date(commitment.challengeStartDate + 'T00:00:00Z')
   const now = new Date()
   const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
   const diffMs = todayUTC.getTime() - start.getTime()
-  const elapsed = Math.max(0, Math.min(routine.challengeDurationDays, Math.floor(diffMs / 86_400_000)))
-  return { elapsed, total: routine.challengeDurationDays }
+  const elapsed = Math.max(0, Math.min(commitment.challengeDurationDays, Math.floor(diffMs / 86_400_000)))
+  return { elapsed, total: commitment.challengeDurationDays }
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function PlanScreen({ navigate, onEditRoutine, onViewPath }: Props) {
+export function PlanScreen({ navigate, onEditCommitment, onViewPath }: Props) {
   const { state } = useAppStore()
-  const { routines } = state
+  const { commitments } = state
   const { preferences } = usePreferences()
 
-  if (routines.length === 0) {
+  if (commitments.length === 0) {
     return (
       <div data-testid="screen-plan" className="flex flex-col min-h-full">
         <PageHeader title="Plan" rightAction={<ThemeToggle />} />
         <div data-testid="plan-empty" className="flex flex-1 flex-col">
           <EmptyState
             icon={<Plus size={32} aria-hidden="true" />}
-            title="No routines yet"
-            description="Create your first routine to build your plan."
-            actionLabel="Create a routine"
+            title="No commitments yet"
+            description="Create your first commitment to build your plan."
+            actionLabel="Create a commitment"
             onAction={() => navigate('welcome')}
           />
         </div>
@@ -119,15 +119,15 @@ export function PlanScreen({ navigate, onEditRoutine, onViewPath }: Props) {
   }
 
   // Summary stats
-  const totalRoutines = routines.length
-  const totalWeeklySessions = routines.reduce((sum, r) => {
+  const totalCommitments = commitments.length
+  const totalWeeklySessions = commitments.reduce((sum, r) => {
     const freq = r.activities[0]?.frequency ?? 'flexible'
     return sum + sessionsPerWeek(freq)
   }, 0)
 
-  // Day totals for the grid (only count routines with assigned days)
+  // Day totals for the grid (only count commitments with assigned days)
   const dayTotals = DAY_LABELS.map(({ dow }) =>
-    routines.filter((r) => hasAssignedDays(r) && isScheduledOn(r, dow)).length
+    commitments.filter((r) => hasAssignedDays(r) && isScheduledOn(r, dow)).length
   )
 
   return (
@@ -140,8 +140,8 @@ export function PlanScreen({ navigate, onEditRoutine, onViewPath }: Props) {
             <Button
               variant="ghost"
               size="icon"
-              data-testid="plan-add-routine-button"
-              aria-label="Add routine"
+              data-testid="plan-add-commitment-button"
+              aria-label="Add commitment"
               onClick={() => navigate('welcome')}
             >
               <Plus size={20} aria-hidden="true" />
@@ -153,7 +153,7 @@ export function PlanScreen({ navigate, onEditRoutine, onViewPath }: Props) {
       <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-6">
         {/* Your Path */}
         {preferences.chosenPath && (() => {
-          const preset = personaPresets.find((p) => p.id === preferences.chosenPath)
+          const preset = paths.find((p) => p.id === preferences.chosenPath)
           if (!preset) return null
           return (
             <div>
@@ -177,7 +177,7 @@ export function PlanScreen({ navigate, onEditRoutine, onViewPath }: Props) {
         {/* Summary stats */}
         <div data-testid="plan-summary" className="flex items-center gap-4">
           <span className="text-base font-medium text-foreground">
-            {totalRoutines} {totalRoutines === 1 ? 'routine' : 'routines'}
+            {totalCommitments} {totalCommitments === 1 ? 'commitment' : 'commitments'}
           </span>
           <span className="text-sm text-muted-foreground">·</span>
           <span className="text-base font-medium text-foreground">
@@ -193,7 +193,7 @@ export function PlanScreen({ navigate, onEditRoutine, onViewPath }: Props) {
               <thead>
                 <tr>
                   <th className="text-left font-medium text-muted-foreground pr-2 py-1 min-w-[6rem]" scope="col">
-                    <span className="sr-only">Routine</span>
+                    <span className="sr-only">Commitment</span>
                   </th>
                   {DAY_LABELS.map(({ dow, short }) => (
                     <th
@@ -207,17 +207,17 @@ export function PlanScreen({ navigate, onEditRoutine, onViewPath }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {routines.map((routine) => {
-                  const assigned = hasAssignedDays(routine)
+                {commitments.map((commitment) => {
+                  const assigned = hasAssignedDays(commitment)
                   return (
-                    <tr key={routine.id} data-testid={`grid-row-${routine.id}`}>
+                    <tr key={commitment.id} data-testid={`grid-row-${commitment.id}`}>
                       <td className="text-left text-foreground truncate pr-2 py-1.5 max-w-[6rem]">
-                        {routine.name}
+                        {commitment.name}
                       </td>
                       {assigned ? (
                         DAY_LABELS.map(({ dow }) => (
                           <td key={dow} className="text-center py-1.5">
-                            {isScheduledOn(routine, dow) ? (
+                            {isScheduledOn(commitment, dow) ? (
                               <span className="inline-block w-2.5 h-2.5 rounded-full bg-brand" aria-label="scheduled" />
                             ) : (
                               <span className="inline-block w-2.5 h-2.5" aria-hidden="true" />
@@ -250,34 +250,34 @@ export function PlanScreen({ navigate, onEditRoutine, onViewPath }: Props) {
           </div>
         </div>
 
-        {/* Routine list */}
+        {/* Commitment list */}
         <div>
           <SectionHeader title="Routines" />
           <div className="flex flex-col gap-3 md:grid md:grid-cols-2">
-            {routines.map((routine) => {
-              const activity = routine.activities[0]
+            {commitments.map((commitment) => {
+              const activity = commitment.activities[0]
               const freq = activity ? frequencyLabel(activity.frequency) : "I'll decide each day"
               const days = activity?.scheduledDays && activity.scheduledDays.length > 0
                 ? formatDays(activity.scheduledDays)
                 : null
               const time = activity?.preferredTime ?? null
-              const challenge = challengeProgress(routine)
-              const hasMultipleActivities = routine.activities.length > 1
+              const challenge = challengeProgress(commitment)
+              const hasMultipleActivities = commitment.activities.length > 1
 
               return (
                 <button
-                  key={routine.id}
+                  key={commitment.id}
                   type="button"
-                  data-testid={`plan-routine-${routine.id}`}
-                  onClick={() => onEditRoutine(routine.id)}
+                  data-testid={`plan-commitment-${commitment.id}`}
+                  onClick={() => onEditCommitment(commitment.id)}
                   className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 text-left ring-1 ring-foreground/5 hover:bg-surface-muted transition-colors w-full"
                 >
-                  <ActivityIcon name={routine.name} size={32} className="mt-0.5 shrink-0" />
+                  <ActivityIcon name={commitment.name} size={32} className="mt-0.5 shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-foreground">{routine.name}</p>
+                    <p className="font-semibold text-foreground">{commitment.name}</p>
                     {hasMultipleActivities && (
                       <p className="text-sm text-muted-foreground mt-0.5">
-                        {routine.activities.map((a) => a.name).join(', ')}
+                        {commitment.activities.map((a) => a.name).join(', ')}
                       </p>
                     )}
                     <p className="text-sm text-muted-foreground mt-0.5">
@@ -286,7 +286,7 @@ export function PlanScreen({ navigate, onEditRoutine, onViewPath }: Props) {
                     {challenge && (
                       <div className="mt-2">
                         <p className="text-xs text-muted-foreground mb-1">
-                          {routine.challengeDurationDays}-day challenge · Day {challenge.elapsed} of {challenge.total}
+                          {commitment.challengeDurationDays}-day challenge · Day {challenge.elapsed} of {challenge.total}
                         </p>
                         <ProgressBar
                           value={(challenge.elapsed / challenge.total) * 100}
@@ -301,15 +301,15 @@ export function PlanScreen({ navigate, onEditRoutine, onViewPath }: Props) {
           </div>
         </div>
 
-        {/* Add routine */}
+        {/* Add commitment */}
         <Button
-          data-testid="plan-add-routine-bottom"
+          data-testid="plan-add-commitment-bottom"
           variant="outline"
           onClick={() => navigate('welcome')}
           className="w-full"
         >
           <Plus size={16} className="mr-2" aria-hidden="true" />
-          Add routine
+          Add commitment
         </Button>
       </div>
     </div>

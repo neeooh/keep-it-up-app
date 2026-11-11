@@ -12,8 +12,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ProgressScreen } from './ProgressScreen'
 import {
-  RUNNING_ROUTINE,
-  STRENGTH_ROUTINE,
+  RUNNING_COMMITMENT,
+  STRENGTH_COMMITMENT,
   makeRunningSession,
   makeStrengthSession,
   daysAgo,
@@ -28,28 +28,28 @@ afterEach(() => {
 
 describe('ProgressScreen — not enough data', () => {
   it('shows "Not enough data yet" with no sessions', () => {
-    seedStore({ routines: [RUNNING_ROUTINE], sessions: [] })
-    render(<StoreWrapper><ProgressScreen navigate={vi.fn()} onEditRoutine={vi.fn()} /></StoreWrapper>)
+    seedStore({ commitments: [RUNNING_COMMITMENT], sessions: [] })
+    render(<StoreWrapper><ProgressScreen navigate={vi.fn()} onEditCommitment={vi.fn()} /></StoreWrapper>)
     expect(screen.getByTestId('progress-not-enough-data')).toBeInTheDocument()
     expect(screen.getByText(/your progress charts will appear here/i)).toBeInTheDocument()
   })
 
   it('shows "Not enough data yet" with only 1 session', () => {
     const session = makeRunningSession(
-      RUNNING_ROUTINE.id,
+      RUNNING_COMMITMENT.id,
       'act-run',
       daysAgo(1),
       5,
       30,
     )
-    seedStore({ routines: [RUNNING_ROUTINE], sessions: [session] })
-    render(<StoreWrapper><ProgressScreen navigate={vi.fn()} onEditRoutine={vi.fn()} /></StoreWrapper>)
+    seedStore({ commitments: [RUNNING_COMMITMENT], sessions: [session] })
+    render(<StoreWrapper><ProgressScreen navigate={vi.fn()} onEditCommitment={vi.fn()} /></StoreWrapper>)
     expect(screen.getByTestId('progress-not-enough-data')).toBeInTheDocument()
   })
 
-  it('shows "Not enough data yet" with no routines', () => {
-    seedStore({ routines: [], sessions: [] })
-    render(<StoreWrapper><ProgressScreen navigate={vi.fn()} onEditRoutine={vi.fn()} /></StoreWrapper>)
+  it('shows "Not enough data yet" with no commitments', () => {
+    seedStore({ commitments: [], sessions: [] })
+    render(<StoreWrapper><ProgressScreen navigate={vi.fn()} onEditCommitment={vi.fn()} /></StoreWrapper>)
     expect(screen.getByTestId('progress-not-enough-data')).toBeInTheDocument()
   })
 })
@@ -57,12 +57,12 @@ describe('ProgressScreen — not enough data', () => {
 describe('ProgressScreen — with data', () => {
   function setup() {
     const sessions = [
-      makeRunningSession(RUNNING_ROUTINE.id, 'act-run', daysAgo(14), 4.5, 28),
-      makeRunningSession(RUNNING_ROUTINE.id, 'act-run', daysAgo(7), 5.0, 30),
-      makeRunningSession(RUNNING_ROUTINE.id, 'act-run', daysAgo(1), 5.5, 29),
+      makeRunningSession(RUNNING_COMMITMENT.id, 'act-run', daysAgo(14), 4.5, 28),
+      makeRunningSession(RUNNING_COMMITMENT.id, 'act-run', daysAgo(7), 5.0, 30),
+      makeRunningSession(RUNNING_COMMITMENT.id, 'act-run', daysAgo(1), 5.5, 29),
     ]
-    seedStore({ routines: [RUNNING_ROUTINE], sessions })
-    render(<StoreWrapper><ProgressScreen navigate={vi.fn()} onEditRoutine={vi.fn()} /></StoreWrapper>)
+    seedStore({ commitments: [RUNNING_COMMITMENT], sessions })
+    render(<StoreWrapper><ProgressScreen navigate={vi.fn()} onEditCommitment={vi.fn()} /></StoreWrapper>)
     return { sessions }
   }
 
@@ -109,10 +109,10 @@ function lastWeekDay(dayOffset: number): string {
 
 describe('ProgressScreen — review countdown card', () => {
   it('shows the review countdown card in the empty state', () => {
-    seedStore({ routines: [RUNNING_ROUTINE], sessions: [] })
+    seedStore({ commitments: [RUNNING_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
-        <ProgressScreen navigate={vi.fn()} onEditRoutine={vi.fn()} />
+        <ProgressScreen navigate={vi.fn()} onEditCommitment={vi.fn()} />
       </StoreWrapper>,
     )
     expect(screen.getByTestId('review-card-countdown')).toBeInTheDocument()
@@ -120,11 +120,11 @@ describe('ProgressScreen — review countdown card', () => {
   })
 
   it('shows the review countdown when not enough data for charts', () => {
-    const session = makeRunningSession(RUNNING_ROUTINE.id, 'act-run', daysAgo(1), 5, 30)
-    seedStore({ routines: [RUNNING_ROUTINE], sessions: [session] })
+    const session = makeRunningSession(RUNNING_COMMITMENT.id, 'act-run', daysAgo(1), 5, 30)
+    seedStore({ commitments: [RUNNING_COMMITMENT], sessions: [session] })
     render(
       <StoreWrapper>
-        <ProgressScreen navigate={vi.fn()} onEditRoutine={vi.fn()} />
+        <ProgressScreen navigate={vi.fn()} onEditCommitment={vi.fn()} />
       </StoreWrapper>,
     )
     expect(screen.getByTestId('progress-not-enough-data')).toBeInTheDocument()
@@ -135,15 +135,15 @@ describe('ProgressScreen — review countdown card', () => {
 describe('ProgressScreen — review ready card', () => {
   it('shows review-card-ready when sessions exist in the previous week', () => {
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', lastWeekDay(0), 60, 8),
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', lastWeekDay(2), 65, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', lastWeekDay(0), 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', lastWeekDay(2), 65, 8),
       // Need a third session to pass hasEnoughData >= 2 AND have data in full state
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', daysAgo(1), 70, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', daysAgo(1), 70, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions })
     render(
       <StoreWrapper>
-        <ProgressScreen navigate={vi.fn()} onEditRoutine={vi.fn()} />
+        <ProgressScreen navigate={vi.fn()} onEditCommitment={vi.fn()} />
       </StoreWrapper>,
     )
     expect(screen.getByTestId('review-card-ready')).toBeInTheDocument()
@@ -154,14 +154,14 @@ describe('ProgressScreen — review ready card', () => {
     const user = userEvent.setup()
     const navigate = vi.fn()
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', lastWeekDay(0), 60, 8),
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', lastWeekDay(2), 65, 8),
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', daysAgo(1), 70, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', lastWeekDay(0), 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', lastWeekDay(2), 65, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', daysAgo(1), 70, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions })
     render(
       <StoreWrapper>
-        <ProgressScreen navigate={navigate} onEditRoutine={vi.fn()} />
+        <ProgressScreen navigate={navigate} onEditCommitment={vi.fn()} />
       </StoreWrapper>,
     )
     await user.click(screen.getByTestId('review-week-button'))
@@ -183,15 +183,15 @@ describe('ProgressScreen — past reviews', () => {
     const twoWeeksAgoStr = twoWeeksAgoMonday.toISOString()
 
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', lastWeekDay(0), 60, 8),
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', twoWeeksAgoStr, 55, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', lastWeekDay(0), 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', twoWeeksAgoStr, 55, 8),
       // Recent session so hasEnoughData
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', daysAgo(1), 70, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', daysAgo(1), 70, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions })
     render(
       <StoreWrapper>
-        <ProgressScreen navigate={vi.fn()} onEditRoutine={vi.fn()} />
+        <ProgressScreen navigate={vi.fn()} onEditCommitment={vi.fn()} />
       </StoreWrapper>,
     )
     expect(screen.getByText('Past reviews')).toBeInTheDocument()

@@ -24,17 +24,17 @@ import { ActivityIcon } from '../components/ActivityIcon'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { useAppStore } from '../store/useAppStore'
 import { usePreferences } from '../hooks/usePreferences'
-import { personaPresets } from '../domain/templates'
+import { paths } from '../domain/templates'
 import { useNotification } from '../hooks/useNotification'
-import { sessionsForRoutine, calculateVolume } from '../domain/calculations'
+import { sessionsForCommitment, calculateVolume } from '../domain/calculations'
 import type { Navigate } from '../App'
-import type { Activity, DayOfWeek, MeasurementType, Routine, Session } from '../domain/types'
+import type { Activity, DayOfWeek, MeasurementType, Commitment, Session } from '../domain/types'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
   navigate: Navigate
-  onStartSession: (routineId: string, date?: string) => void
+  onStartSession: (commitmentId: string, date?: string) => void
   onViewPath?: (presetId: string) => void
 }
 
@@ -92,11 +92,11 @@ function estimatedDuration(activity: Activity): number | null {
   return dur?.target ?? null
 }
 
-// ─── Today's cards (grouped by routine) ───────────────────────────────────────
+// ─── Today's cards (grouped by commitment) ───────────────────────────────────────
 
 interface TodayCard {
-  routine: Routine
-  /** Activities scheduled for today within this routine. */
+  commitment: Commitment
+  /** Activities scheduled for today within this commitment. */
   activities: Activity[]
   completedToday: boolean
   /** Original index for stable tie-breaking. */
@@ -104,36 +104,36 @@ interface TodayCard {
 }
 
 /**
- * Build one card per routine scheduled for today, sorted by:
- * 0. Incomplete routines above completed ones
+ * Build one card per commitment scheduled for today, sorted by:
+ * 0. Incomplete commitments above completed ones
  * 1. Preferred time (Morning, Afternoon, Evening, Any time)
  * 2. Estimated duration ascending (shorter first)
  * 3. Original creation order as tie-breaker
  *
- * A routine with multiple activities (e.g. strength exercises) becomes
+ * A commitment with multiple activities (e.g. strength exercises) becomes
  * one card with sub-items — not multiple cards.
  */
 function buildTodayCards(
-  routines: Routine[],
+  commitments: Commitment[],
   sessions: Session[],
   todayStr: string,
 ): TodayCard[] {
   const todayDow = isoDayOfWeek(todayStr)
 
-  const cards: TodayCard[] = routines
-    .map((routine, index) => {
-      const scheduledActivities = routine.activities.filter((a) => {
+  const cards: TodayCard[] = commitments
+    .map((commitment, index) => {
+      const scheduledActivities = commitment.activities.filter((a) => {
         if (!a.scheduledDays || a.scheduledDays.length === 0) return true
         return a.scheduledDays.includes(todayDow)
       })
 
       if (scheduledActivities.length === 0) return null
 
-      const completedToday = sessionsForRoutine(sessions, routine.id).some(
+      const completedToday = sessionsForCommitment(sessions, commitment.id).some(
         (s) => s.completedAt.slice(0, 10) === todayStr,
       )
 
-      return { routine, activities: scheduledActivities, completedToday, index }
+      return { commitment, activities: scheduledActivities, completedToday, index }
     })
     .filter((card): card is TodayCard => card !== null)
 
@@ -160,11 +160,11 @@ function buildTodayCards(
 }
 
 /**
- * True when any routine was scheduled for yesterday but no session was
+ * True when any commitment was scheduled for yesterday but no session was
  * completed yesterday, AND today still has incomplete activities.
  */
 function shouldShowMissedYesterday(
-  routines: Routine[],
+  commitments: Commitment[],
   sessions: Session[],
   allCompleteToday: boolean,
 ): boolean {
@@ -174,10 +174,10 @@ function shouldShowMissedYesterday(
   const y = yesterday()
   const yDow = isoDayOfWeek(y)
 
-  return routines.some((routine) => {
-    if (routine.createdAt.slice(0, 10) >= y) return false
+  return commitments.some((commitment) => {
+    if (commitment.createdAt.slice(0, 10) >= y) return false
 
-    const scheduledYesterday = routine.activities.some((a) => {
+    const scheduledYesterday = commitment.activities.some((a) => {
       if (a.frequency === 'daily') return true
       if (!a.scheduledDays || a.scheduledDays.length === 0) return false
       return a.scheduledDays.includes(yDow)
@@ -185,7 +185,7 @@ function shouldShowMissedYesterday(
 
     if (!scheduledYesterday) return false
 
-    const didYesterday = sessionsForRoutine(sessions, routine.id).some(
+    const didYesterday = sessionsForCommitment(sessions, commitment.id).some(
       (s) => s.completedAt.slice(0, 10) === y,
     )
     return !didYesterday
@@ -194,13 +194,13 @@ function shouldShowMissedYesterday(
 
 // ─── Tomorrow preview ─────────────────────────────────────────────────────────
 
-function buildTomorrowNames(routines: Routine[]): string[] {
+function buildTomorrowNames(commitments: Commitment[]): string[] {
   const tomorrowStr = tomorrow()
   const tomorrowDow = isoDayOfWeek(tomorrowStr)
 
-  return routines
-    .filter((routine) => {
-      return routine.activities.some((a) => {
+  return commitments
+    .filter((commitment) => {
+      return commitment.activities.some((a) => {
         if (a.frequency === 'daily') return true
         if (a.scheduledDays && a.scheduledDays.length > 0) {
           return a.scheduledDays.includes(tomorrowDow)
@@ -213,13 +213,6 @@ function buildTomorrowNames(routines: Routine[]): string[] {
 
 // ─── Format duration ──────────────────────────────────────────────────────────
 
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `~${minutes} min`
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  if (m === 0) return `~${h}h`
-  return `~${h}h ${m}m`
-}
 
 // ─── Metric helpers ───────────────────────────────────────────────────────────
 
@@ -268,15 +261,15 @@ interface CompletedResult {
 
 /**
  * Extract the most recent session result for an activity on a given day
- * and compare it with the most recent prior session for the same routine.
+ * and compare it with the most recent prior session for the same commitment.
  */
 function getCompletedResult(
   sessions: Session[],
-  routine: Routine,
+  commitment: Commitment,
   activity: Activity,
   todayStr: string,
 ): CompletedResult | null {
-  const routineSessions = sessionsForRoutine(sessions, routine.id)
+  const routineSessions = sessionsForCommitment(sessions, commitment.id)
   // Find today's session
   const todaySession = [...routineSessions]
     .reverse()
@@ -529,12 +522,12 @@ function CircularProgress({
 
 export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props) {
   const { state } = useAppStore()
-  const { routines, sessions } = state
+  const { commitments, sessions } = state
   const { preferences } = usePreferences()
   const { permission, requestPermission, scheduleReminder, confirmation } = useNotification()
   const [openSnooze, setOpenSnooze] = useState<string | null>(null)
 
-  async function handleSnooze(activityName: string, activityId: string, minutes: number) {
+  async function handleSnooze(activityName: string, _activityId: string, minutes: number) {
     let perm = permission
     if (perm === 'default') {
       perm = await requestPermission()
@@ -546,24 +539,24 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
     setOpenSnooze(null)
   }
 
-  if (routines.length === 0) {
+  if (commitments.length === 0) {
     return (
       <div data-testid="screen-dashboard" className="flex flex-col min-h-full">
         <div data-testid="dashboard-empty" className="flex flex-1 flex-col">
           <EmptyState
             icon={<Plus size={32} aria-hidden="true" />}
-            title="No routines yet"
-            description="Create your first routine to start tracking."
-            actionLabel="Create a routine"
+            title="No commitments yet"
+            description="Create your first commitment to start tracking."
+            actionLabel="Create a commitment"
             onAction={() => navigate('welcome')}
           />
           <button
             type="button"
-            data-testid="create-routine-button"
+            data-testid="create-commitment-button"
             onClick={() => navigate('welcome')}
             className="sr-only"
           >
-            Create a routine
+            Create a commitment
           </button>
         </div>
       </div>
@@ -571,15 +564,15 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
   }
 
   const todayStr = today()
-  const todayCards = buildTodayCards(routines, sessions, todayStr)
+  const todayCards = buildTodayCards(commitments, sessions, todayStr)
 
   const totalCards = todayCards.length
   const completedCount = todayCards.filter((c) => c.completedToday).length
   const allComplete = totalCards > 0 && completedCount === totalCards
   const hasSessions = sessions.length > 0
 
-  const missedYesterday = shouldShowMissedYesterday(routines, sessions, allComplete)
-  const tomorrowNames = buildTomorrowNames(routines)
+  const missedYesterday = shouldShowMissedYesterday(commitments, sessions, allComplete)
+  const tomorrowNames = buildTomorrowNames(commitments)
 
   if (totalCards === 0) {
     return (
@@ -601,8 +594,8 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
               <Button
                 variant="ghost"
                 size="icon"
-                data-testid="add-routine-button"
-                aria-label="Add routine"
+                data-testid="add-commitment-button"
+                aria-label="Add commitment"
                 onClick={() => navigate('welcome')}
               >
                 <Plus size={20} aria-hidden="true" />
@@ -642,8 +635,8 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
             <Button
               variant="ghost"
               size="icon"
-              data-testid="add-routine-button"
-              aria-label="Add routine"
+              data-testid="add-commitment-button"
+              aria-label="Add commitment"
               onClick={() => navigate('welcome')}
             >
               <Plus size={20} aria-hidden="true" />
@@ -660,33 +653,33 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
           >
             <p>Missed yesterday? You can still log it.</p>
             <div className="flex flex-wrap gap-2 mt-2">
-              {routines
-                .filter((routine) => {
+              {commitments
+                .filter((commitment) => {
                   const y = yesterday()
                   const yDow = isoDayOfWeek(y)
-                  if (routine.createdAt.slice(0, 10) >= y) return false
-                  return routine.activities.some((a) => {
+                  if (commitment.createdAt.slice(0, 10) >= y) return false
+                  return commitment.activities.some((a) => {
                     if (a.frequency === 'daily') return true
                     if (a.scheduledDays && a.scheduledDays.length > 0) return a.scheduledDays.includes(yDow)
                     return false
                   })
                 })
-                .filter((routine) => {
+                .filter((commitment) => {
                   const y = yesterday()
-                  return !sessionsForRoutine(sessions, routine.id).some(
+                  return !sessionsForCommitment(sessions, commitment.id).some(
                     (s) => s.completedAt.slice(0, 10) === y
                   )
                 })
-                .map((routine) => (
+                .map((commitment) => (
                   <Button
-                    key={routine.id}
+                    key={commitment.id}
                     variant="outline"
                     size="sm"
-                    data-testid={`log-yesterday-${routine.id}`}
-                    onClick={() => onStartSession(routine.id, yesterday())}
+                    data-testid={`log-yesterday-${commitment.id}`}
+                    onClick={() => onStartSession(commitment.id, yesterday())}
                     className="text-xs"
                   >
-                    Log {routine.name}
+                    Log {commitment.name}
                   </Button>
                 ))}
             </div>
@@ -718,7 +711,7 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
               </p>
             )}
             {preferences.chosenPath && (() => {
-              const preset = personaPresets.find((p) => p.id === preferences.chosenPath)
+              const preset = paths.find((p) => p.id === preferences.chosenPath)
               if (!preset) return null
               return (
                 <button
@@ -757,15 +750,15 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                 </p>
               )}
               <div className="flex flex-col gap-3 md:grid md:grid-cols-2">
-                {group.cards.map(({ activities: cardActivities, routine, completedToday }) => {
+                {group.cards.map(({ activities: cardActivities, commitment, completedToday }) => {
                   const primaryActivity = cardActivities[0]!
                   const hasMultipleActivities = cardActivities.length > 1
 
                   if (completedToday) {
-                    const result = getCompletedResult(sessions, routine, primaryActivity, todayStr)
+                    const result = getCompletedResult(sessions, commitment, primaryActivity, todayStr)
                     return (
                       <div
-                        key={routine.id}
+                        key={commitment.id}
                         data-testid={`activity-card-${primaryActivity.id}`}
                         className="relative rounded-xl border border-success/30 bg-success-muted/30 p-4"
                       >
@@ -780,8 +773,8 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                           </span>
                           <button
                             type="button"
-                            data-testid={`log-session-button-${routine.id}`}
-                            onClick={() => onStartSession(routine.id)}
+                            data-testid={`log-session-button-${commitment.id}`}
+                            onClick={() => onStartSession(commitment.id)}
                             className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground hover:bg-muted/80 transition-colors"
                           >
                             Log again
@@ -790,10 +783,10 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
 
                         <div className="flex items-start gap-3 pr-20">
                           <div className="flex items-center justify-center size-10 rounded-lg bg-success/10 mt-0.5 shrink-0">
-                            <ActivityIcon name={routine.name} size={22} />
+                            <ActivityIcon name={commitment.name} size={22} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-foreground leading-snug">{routine.name}</p>
+                            <p className="font-semibold text-foreground leading-snug">{commitment.name}</p>
                             {primaryActivity.description && !hasMultipleActivities && (
                               <p className="text-xs text-muted-foreground italic mt-1">{primaryActivity.description}</p>
                             )}
@@ -832,20 +825,20 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
 
                   return (
                     <div
-                      key={routine.id}
+                      key={commitment.id}
                       role="button"
                       tabIndex={0}
                       data-testid={`activity-card-${primaryActivity.id}`}
-                      onClick={() => onStartSession(routine.id)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onStartSession(routine.id) } }}
+                      onClick={() => onStartSession(commitment.id)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onStartSession(commitment.id) } }}
                       className="rounded-xl border border-border bg-card ring-1 ring-foreground/5 p-4 w-full text-left cursor-pointer hover:bg-surface-muted active:bg-surface-muted/80 transition-colors"
                     >
                       <div className="flex items-start gap-3">
                         <div className="flex items-center justify-center size-10 rounded-lg bg-brand/10 mt-0.5 shrink-0">
-                          <ActivityIcon name={routine.name} size={22} />
+                          <ActivityIcon name={commitment.name} size={22} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-foreground leading-snug">{routine.name}</p>
+                          <p className="font-semibold text-foreground leading-snug">{commitment.name}</p>
                           {primaryActivity.description && !hasMultipleActivities && (
                             <p className="text-xs text-muted-foreground italic mt-1">{primaryActivity.description}</p>
                           )}
@@ -873,16 +866,16 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                         >
                           <button
                             type="button"
-                            data-testid={`remind-button-${routine.id}`}
-                            aria-label={`Options for ${routine.name}`}
-                            onClick={() => setOpenSnooze(openSnooze === routine.id ? null : routine.id)}
+                            data-testid={`remind-button-${commitment.id}`}
+                            aria-label={`Options for ${commitment.name}`}
+                            onClick={() => setOpenSnooze(openSnooze === commitment.id ? null : commitment.id)}
                             className="flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors"
                           >
                             <MoreHorizontal size={18} aria-hidden="true" />
                           </button>
-                          {openSnooze === routine.id && (
+                          {openSnooze === commitment.id && (
                             <div
-                              data-testid={`remind-menu-${routine.id}`}
+                              data-testid={`remind-menu-${commitment.id}`}
                               className="absolute right-0 top-full mt-1 z-10 w-44 rounded-lg border border-border bg-card p-1 shadow-lg ring-1 ring-foreground/5"
                             >
                               <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground">Remind me</p>
@@ -891,7 +884,7 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                                   key={opt.label}
                                   type="button"
                                   data-testid={`remind-option-${opt.minutes}`}
-                                  onClick={() => handleSnooze(routine.name, routine.id, opt.minutes)}
+                                  onClick={() => handleSnooze(commitment.name, commitment.id, opt.minutes)}
                                   className="flex w-full items-center rounded-md px-3 py-2 text-sm text-foreground hover:bg-surface-muted transition-colors"
                                 >
                                   {opt.label}

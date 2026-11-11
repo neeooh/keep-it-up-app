@@ -1,13 +1,13 @@
 /**
  * DashboardScreen tests — Today screen.
  *
- * - Empty state renders create-routine prompt
+ * - Empty state renders create-commitment prompt
  * - Daily completion summary (X of Y completed)
  * - Activity cards with correct states
  * - Start / Log another button behavior
  * - Activity sorting by preferred time and duration
- * - "Create a routine" navigates to welcome
- * - Multiple routines each get their own activity card
+ * - "Create a commitment" navigates to welcome
+ * - Multiple commitments each get their own activity card
  */
 
 import { render, screen } from '@testing-library/react'
@@ -16,9 +16,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { DashboardScreen } from './DashboardScreen'
 import {
-  STRENGTH_ROUTINE,
-  RUNNING_ROUTINE,
-  AVOID_ROUTINE,
+  STRENGTH_COMMITMENT,
+  RUNNING_COMMITMENT,
+  AVOID_COMMITMENT,
   makeStrengthSession,
   makeAvoidSession,
   daysAgo,
@@ -26,15 +26,15 @@ import {
   clearStore,
   StoreWrapper,
 } from './__tests__/fixtures'
-import type { Routine, DayOfWeek } from '../domain/types'
+import type { Commitment, DayOfWeek } from '../domain/types'
 
 afterEach(() => {
   clearStore()
 })
 
 describe('DashboardScreen — empty state', () => {
-  it('renders empty state when no routines exist', () => {
-    seedStore({ routines: [], sessions: [] })
+  it('renders empty state when no commitments exist', () => {
+    seedStore({ commitments: [], sessions: [] })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -44,11 +44,11 @@ describe('DashboardScreen — empty state', () => {
       </StoreWrapper>,
     )
     expect(screen.getByTestId('dashboard-empty')).toBeInTheDocument()
-    expect(screen.getByText(/no routines yet/i)).toBeInTheDocument()
+    expect(screen.getByText(/no commitments yet/i)).toBeInTheDocument()
   })
 
-  it('has a "Create a routine" button that navigates to welcome', async () => {
-    seedStore({ routines: [], sessions: [] })
+  it('has a "Create a commitment" button that navigates to welcome', async () => {
+    seedStore({ commitments: [], sessions: [] })
     const navigate = vi.fn()
     const user = userEvent.setup()
     render(
@@ -59,14 +59,14 @@ describe('DashboardScreen — empty state', () => {
         />
       </StoreWrapper>,
     )
-    await user.click(screen.getByTestId('create-routine-button'))
+    await user.click(screen.getByTestId('create-commitment-button'))
     expect(navigate).toHaveBeenCalledWith('welcome')
   })
 })
 
 describe('DashboardScreen — daily completion summary', () => {
   it('shows "0 of N completed" when no sessions exist today', () => {
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -82,9 +82,9 @@ describe('DashboardScreen — daily completion summary', () => {
   it('shows correct count when a session was completed today', () => {
     const nowIso = new Date().toISOString()
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', nowIso, 60, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE, RUNNING_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT, RUNNING_COMMITMENT], sessions })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -100,9 +100,9 @@ describe('DashboardScreen — daily completion summary', () => {
 describe('DashboardScreen — activity cards', () => {
   function setup() {
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', daysAgo(2), 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', daysAgo(2), 60, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions })
     const navigate = vi.fn()
     const onStartSession = vi.fn()
     render(
@@ -134,11 +134,11 @@ describe('DashboardScreen — activity cards', () => {
     expect(card.getAttribute('role')).toBe('button')
   })
 
-  it('calls onStartSession with the correct routine ID', async () => {
+  it('calls onStartSession with the correct commitment ID', async () => {
     const user = userEvent.setup()
     const { onStartSession } = setup()
     await user.click(screen.getByTestId(`activity-card-act-bench`))
-    expect(onStartSession).toHaveBeenCalledWith(STRENGTH_ROUTINE.id)
+    expect(onStartSession).toHaveBeenCalledWith(STRENGTH_COMMITMENT.id)
   })
 })
 
@@ -146,9 +146,9 @@ describe('DashboardScreen — completed activity state', () => {
   it('shows Done badge and Log again link', () => {
     const nowIso = new Date().toISOString()
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', nowIso, 60, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -158,16 +158,16 @@ describe('DashboardScreen — completed activity state', () => {
       </StoreWrapper>,
     )
     expect(screen.getByTestId('completed-badge-act-bench')).toHaveTextContent('Done')
-    const logBtn = screen.getByTestId(`log-session-button-${STRENGTH_ROUTINE.id}`)
+    const logBtn = screen.getByTestId(`log-session-button-${STRENGTH_COMMITMENT.id}`)
     expect(logBtn).toHaveTextContent('Log again')
   })
 
   it('shows session measurements on the completed card', () => {
     const nowIso = new Date().toISOString()
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', nowIso, 60, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -182,10 +182,10 @@ describe('DashboardScreen — completed activity state', () => {
   it('shows delta when a previous session exists', () => {
     const nowIso = new Date().toISOString()
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', daysAgo(2), 50, 8),
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', daysAgo(2), 50, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', nowIso, 60, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -201,9 +201,9 @@ describe('DashboardScreen — completed activity state', () => {
   it('does not show delta when no previous session exists', () => {
     const nowIso = new Date().toISOString()
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', nowIso, 60, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -216,9 +216,9 @@ describe('DashboardScreen — completed activity state', () => {
   })
 })
 
-describe('DashboardScreen — multiple routines', () => {
+describe('DashboardScreen — multiple commitments', () => {
   function setupMulti() {
-    seedStore({ routines: [STRENGTH_ROUTINE, RUNNING_ROUTINE], sessions: [] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT, RUNNING_COMMITMENT], sessions: [] })
     const navigate = vi.fn()
     const onStartSession = vi.fn()
     render(
@@ -232,13 +232,13 @@ describe('DashboardScreen — multiple routines', () => {
     return { navigate, onStartSession }
   }
 
-  it('renders an activity card for each routine\'s activities', () => {
+  it('renders an activity card for each commitment\'s activities', () => {
     setupMulti()
     expect(screen.getByTestId('activity-card-act-bench')).toBeInTheDocument()
     expect(screen.getByTestId('activity-card-act-run')).toBeInTheDocument()
   })
 
-  it('renders a tappable card for each routine', () => {
+  it('renders a tappable card for each commitment', () => {
     setupMulti()
     expect(
       screen.getByTestId(`activity-card-act-bench`),
@@ -248,21 +248,21 @@ describe('DashboardScreen — multiple routines', () => {
     ).toBeInTheDocument()
   })
 
-  it('calls onStartSession with the correct ID for each routine', async () => {
+  it('calls onStartSession with the correct ID for each commitment', async () => {
     const user = userEvent.setup()
     const { onStartSession } = setupMulti()
     await user.click(screen.getByTestId(`activity-card-act-run`))
-    expect(onStartSession).toHaveBeenCalledWith(RUNNING_ROUTINE.id)
+    expect(onStartSession).toHaveBeenCalledWith(RUNNING_COMMITMENT.id)
   })
 })
 
 describe('DashboardScreen — no analytics sections', () => {
   it('does not render Momentum, This Week, or Progress sections', () => {
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', daysAgo(2), 60, 8),
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', daysAgo(5), 65, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', daysAgo(2), 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', daysAgo(5), 65, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -279,7 +279,7 @@ describe('DashboardScreen — no analytics sections', () => {
 
 describe('DashboardScreen — remind button', () => {
   it('shows overflow menu button for incomplete activities', () => {
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -288,11 +288,11 @@ describe('DashboardScreen — remind button', () => {
         />
       </StoreWrapper>,
     )
-    expect(screen.getByTestId(`remind-button-${STRENGTH_ROUTINE.id}`)).toBeInTheDocument()
+    expect(screen.getByTestId(`remind-button-${STRENGTH_COMMITMENT.id}`)).toBeInTheDocument()
   })
 
   it('opens remind menu on click', async () => {
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [] })
     const user = userEvent.setup()
     render(
       <StoreWrapper>
@@ -302,8 +302,8 @@ describe('DashboardScreen — remind button', () => {
         />
       </StoreWrapper>,
     )
-    await user.click(screen.getByTestId(`remind-button-${STRENGTH_ROUTINE.id}`))
-    expect(screen.getByTestId(`remind-menu-${STRENGTH_ROUTINE.id}`)).toBeInTheDocument()
+    await user.click(screen.getByTestId(`remind-button-${STRENGTH_COMMITMENT.id}`))
+    expect(screen.getByTestId(`remind-menu-${STRENGTH_COMMITMENT.id}`)).toBeInTheDocument()
     expect(screen.getByText('15 min')).toBeInTheDocument()
     expect(screen.getByText('1 hour')).toBeInTheDocument()
     expect(screen.getByText('This evening')).toBeInTheDocument()
@@ -312,9 +312,9 @@ describe('DashboardScreen — remind button', () => {
   it('does not show remind button for completed activities', () => {
     const nowIso = new Date().toISOString()
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', nowIso, 60, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -323,11 +323,11 @@ describe('DashboardScreen — remind button', () => {
         />
       </StoreWrapper>,
     )
-    expect(screen.queryByTestId(`remind-button-${STRENGTH_ROUTINE.id}`)).not.toBeInTheDocument()
+    expect(screen.queryByTestId(`remind-button-${STRENGTH_COMMITMENT.id}`)).not.toBeInTheDocument()
   })
 
   it('overflow menu button is inside the tappable card', () => {
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -337,7 +337,7 @@ describe('DashboardScreen — remind button', () => {
       </StoreWrapper>,
     )
     const card = screen.getByTestId(`activity-card-act-bench`)
-    const remindBtn = screen.getByTestId(`remind-button-${STRENGTH_ROUTINE.id}`)
+    const remindBtn = screen.getByTestId(`remind-button-${STRENGTH_COMMITMENT.id}`)
     expect(card.contains(remindBtn)).toBe(true)
   })
 })
@@ -345,11 +345,11 @@ describe('DashboardScreen — remind button', () => {
 describe('DashboardScreen — activity sorting', () => {
   it('sorts completed activities below incomplete ones', () => {
     const nowIso = new Date().toISOString()
-    // Strength routine has a session today (completed), Running does not
+    // Strength commitment has a session today (completed), Running does not
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', nowIso, 60, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE, RUNNING_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT, RUNNING_COMMITMENT], sessions })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -367,7 +367,7 @@ describe('DashboardScreen — activity sorting', () => {
 
 describe('DashboardScreen — missed-yesterday banner', () => {
   it('does NOT show when sessions is empty (first-time user)', () => {
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -379,16 +379,16 @@ describe('DashboardScreen — missed-yesterday banner', () => {
     expect(screen.queryByTestId('missed-yesterday')).not.toBeInTheDocument()
   })
 
-  it('does NOT show when routine was created today', () => {
-    const newRoutine: Routine = {
-      ...STRENGTH_ROUTINE,
+  it('does NOT show when commitment was created today', () => {
+    const newRoutine: Commitment = {
+      ...STRENGTH_COMMITMENT,
       createdAt: new Date().toISOString(),
     }
-    // Provide an old session from another routine so sessions.length > 0
+    // Provide an old session from another commitment so sessions.length > 0
     const sessions = [
-      makeStrengthSession('other-routine', 'other-act', daysAgo(3), 50, 8),
+      makeStrengthSession('other-commitment', 'other-act', daysAgo(3), 50, 8),
     ]
-    seedStore({ routines: [newRoutine], sessions })
+    seedStore({ commitments: [newRoutine], sessions })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -403,10 +403,10 @@ describe('DashboardScreen — missed-yesterday banner', () => {
   it('does NOT show when all activities are completed today', () => {
     const nowIso = new Date().toISOString()
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', daysAgo(3), 50, 8),
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', daysAgo(3), 50, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', nowIso, 60, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -418,12 +418,12 @@ describe('DashboardScreen — missed-yesterday banner', () => {
     expect(screen.queryByTestId('missed-yesterday')).not.toBeInTheDocument()
   })
 
-  it('shows banner when a daily routine was missed yesterday', () => {
-    // AVOID_ROUTINE has frequency 'daily'
+  it('shows banner when a daily commitment was missed yesterday', () => {
+    // AVOID_COMMITMENT has frequency 'daily'
     const sessions = [
-      makeAvoidSession(AVOID_ROUTINE.id, 'act-no-fast-food', daysAgo(3), true),
+      makeAvoidSession(AVOID_COMMITMENT.id, 'act-no-fast-food', daysAgo(3), true),
     ]
-    seedStore({ routines: [AVOID_ROUTINE], sessions })
+    seedStore({ commitments: [AVOID_COMMITMENT], sessions })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -452,10 +452,10 @@ describe('DashboardScreen — tomorrow preview', () => {
     vi.setSystemTime(WEDNESDAY)
   }
 
-  it('shows tomorrow preview for a routine with daily frequency', () => {
+  it('shows tomorrow preview for a commitment with daily frequency', () => {
     setupFakeTime()
-    // AVOID_ROUTINE has frequency 'daily' — scheduled today AND tomorrow
-    seedStore({ routines: [AVOID_ROUTINE], sessions: [] })
+    // AVOID_COMMITMENT has frequency 'daily' — scheduled today AND tomorrow
+    seedStore({ commitments: [AVOID_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -475,8 +475,8 @@ describe('DashboardScreen — tomorrow preview', () => {
     // Wednesday = dow 3, Thursday = dow 4
     // Scheduled Wed + Thu so it appears on today's list AND tomorrow preview
     const WEDNESDAY_DOW: DayOfWeek = 3
-    const routine: Routine = {
-      id: 'routine-wed-thu',
+    const commitment: Commitment = {
+      id: 'commitment-wed-thu',
       name: 'Wed-Thu Run',
       createdAt: '2025-09-01T00:00:00.000Z',
       activities: [
@@ -490,7 +490,7 @@ describe('DashboardScreen — tomorrow preview', () => {
         },
       ],
     }
-    seedStore({ routines: [routine], sessions: [] })
+    seedStore({ commitments: [commitment], sessions: [] })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -504,12 +504,12 @@ describe('DashboardScreen — tomorrow preview', () => {
     expect(preview).toHaveTextContent(/Wed-Thu Run/)
   })
 
-  it('does NOT show tomorrow preview when no routines are scheduled for tomorrow', () => {
+  it('does NOT show tomorrow preview when no commitments are scheduled for tomorrow', () => {
     setupFakeTime()
     // Scheduled only on Wednesday (3) — shows today, but tomorrow (Thu 4) has nothing
     const WEDNESDAY_DOW: DayOfWeek = 3
-    const routine: Routine = {
-      id: 'routine-wed-only',
+    const commitment: Commitment = {
+      id: 'commitment-wed-only',
       name: 'Wednesday Only',
       createdAt: '2025-09-01T00:00:00.000Z',
       activities: [
@@ -523,7 +523,7 @@ describe('DashboardScreen — tomorrow preview', () => {
         },
       ],
     }
-    seedStore({ routines: [routine], sessions: [] })
+    seedStore({ commitments: [commitment], sessions: [] })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -535,13 +535,13 @@ describe('DashboardScreen — tomorrow preview', () => {
     expect(screen.queryByTestId('tomorrow-preview')).not.toBeInTheDocument()
   })
 
-  it('excludes routines with no scheduledDays and non-daily frequency', () => {
+  it('excludes commitments with no scheduledDays and non-daily frequency', () => {
     setupFakeTime()
-    // STRENGTH_ROUTINE: frequency '3x_week', no scheduledDays
-    // RUNNING_ROUTINE: frequency '2x_week', no scheduledDays
+    // STRENGTH_COMMITMENT: frequency '3x_week', no scheduledDays
+    // RUNNING_COMMITMENT: frequency '2x_week', no scheduledDays
     // Both show on today's list (buildTodayCards treats empty scheduledDays as "every day")
     // but buildTomorrowNames excludes them because it cannot predict non-daily + no days
-    seedStore({ routines: [STRENGTH_ROUTINE, RUNNING_ROUTINE], sessions: [] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT, RUNNING_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -556,7 +556,7 @@ describe('DashboardScreen — tomorrow preview', () => {
 
 describe('DashboardScreen — primary target subtitle', () => {
   it('shows distance target for a DO activity with distance measurement', () => {
-    seedStore({ routines: [RUNNING_ROUTINE], sessions: [] })
+    seedStore({ commitments: [RUNNING_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -565,13 +565,13 @@ describe('DashboardScreen — primary target subtitle', () => {
         />
       </StoreWrapper>,
     )
-    // RUNNING_ROUTINE has distance target 5 km (highest priority)
+    // RUNNING_COMMITMENT has distance target 5 km (highest priority)
     expect(screen.getByText('5 km target')).toBeInTheDocument()
   })
 
   it('shows duration target for a DO activity with duration-only measurement', () => {
-    const durationOnlyRoutine: Routine = {
-      id: 'routine-meditation',
+    const durationOnlyRoutine: Commitment = {
+      id: 'commitment-meditation',
       name: 'Meditation',
       createdAt: daysAgo(10),
       activities: [
@@ -584,7 +584,7 @@ describe('DashboardScreen — primary target subtitle', () => {
         },
       ],
     }
-    seedStore({ routines: [durationOnlyRoutine], sessions: [] })
+    seedStore({ commitments: [durationOnlyRoutine], sessions: [] })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -597,7 +597,7 @@ describe('DashboardScreen — primary target subtitle', () => {
   })
 
   it('shows no subtitle for an AVOID activity', () => {
-    seedStore({ routines: [AVOID_ROUTINE], sessions: [] })
+    seedStore({ commitments: [AVOID_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -609,9 +609,9 @@ describe('DashboardScreen — primary target subtitle', () => {
     expect(screen.queryByText(/target/)).not.toBeInTheDocument()
   })
 
-  it('shows exercise names for a multi-activity routine', () => {
-    const multiRoutine: Routine = {
-      id: 'routine-multi',
+  it('shows exercise names for a multi-activity commitment', () => {
+    const multiRoutine: Commitment = {
+      id: 'commitment-multi',
       name: 'Full Body',
       createdAt: daysAgo(10),
       activities: [
@@ -631,7 +631,7 @@ describe('DashboardScreen — primary target subtitle', () => {
         },
       ],
     }
-    seedStore({ routines: [multiRoutine], sessions: [] })
+    seedStore({ commitments: [multiRoutine], sessions: [] })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -645,12 +645,12 @@ describe('DashboardScreen — primary target subtitle', () => {
 })
 
 describe('DashboardScreen — missed-yesterday actionable buttons', () => {
-  it('shows Log [routine name] button when a daily routine was missed yesterday', () => {
-    // AVOID_ROUTINE has frequency 'daily' and was created 30 days ago
+  it('shows Log [commitment name] button when a daily commitment was missed yesterday', () => {
+    // AVOID_COMMITMENT has frequency 'daily' and was created 30 days ago
     const sessions = [
-      makeAvoidSession(AVOID_ROUTINE.id, 'act-no-fast-food', daysAgo(3), true),
+      makeAvoidSession(AVOID_COMMITMENT.id, 'act-no-fast-food', daysAgo(3), true),
     ]
-    seedStore({ routines: [AVOID_ROUTINE], sessions })
+    seedStore({ commitments: [AVOID_COMMITMENT], sessions })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -660,15 +660,15 @@ describe('DashboardScreen — missed-yesterday actionable buttons', () => {
       </StoreWrapper>,
     )
     expect(screen.getByTestId('missed-yesterday')).toBeInTheDocument()
-    expect(screen.getByTestId(`log-yesterday-${AVOID_ROUTINE.id}`)).toBeInTheDocument()
-    expect(screen.getByTestId(`log-yesterday-${AVOID_ROUTINE.id}`)).toHaveTextContent('Log No Fast Food')
+    expect(screen.getByTestId(`log-yesterday-${AVOID_COMMITMENT.id}`)).toBeInTheDocument()
+    expect(screen.getByTestId(`log-yesterday-${AVOID_COMMITMENT.id}`)).toHaveTextContent('Log No Fast Food')
   })
 
-  it('calls onStartSession with routine id and yesterday date when Log button is clicked', async () => {
+  it('calls onStartSession with commitment id and yesterday date when Log button is clicked', async () => {
     const sessions = [
-      makeAvoidSession(AVOID_ROUTINE.id, 'act-no-fast-food', daysAgo(3), true),
+      makeAvoidSession(AVOID_COMMITMENT.id, 'act-no-fast-food', daysAgo(3), true),
     ]
-    seedStore({ routines: [AVOID_ROUTINE], sessions })
+    seedStore({ commitments: [AVOID_COMMITMENT], sessions })
     const onStartSession = vi.fn()
     const user = userEvent.setup()
     render(
@@ -679,20 +679,20 @@ describe('DashboardScreen — missed-yesterday actionable buttons', () => {
         />
       </StoreWrapper>,
     )
-    await user.click(screen.getByTestId(`log-yesterday-${AVOID_ROUTINE.id}`))
+    await user.click(screen.getByTestId(`log-yesterday-${AVOID_COMMITMENT.id}`))
     const expectedYesterday = (() => {
       const d = new Date()
       d.setUTCDate(d.getUTCDate() - 1)
       return d.toISOString().slice(0, 10)
     })()
-    expect(onStartSession).toHaveBeenCalledWith(AVOID_ROUTINE.id, expectedYesterday)
+    expect(onStartSession).toHaveBeenCalledWith(AVOID_COMMITMENT.id, expectedYesterday)
   })
 })
 
 describe('DashboardScreen — time-of-day grouping', () => {
   it('shows time-group headers when activities span multiple time slots', () => {
-    const morningRoutine: Routine = {
-      id: 'routine-morning',
+    const morningRoutine: Commitment = {
+      id: 'commitment-morning',
       name: 'Morning Meditation',
       createdAt: daysAgo(10),
       activities: [
@@ -706,8 +706,8 @@ describe('DashboardScreen — time-of-day grouping', () => {
         },
       ],
     }
-    const eveningRoutine: Routine = {
-      id: 'routine-evening',
+    const eveningRoutine: Commitment = {
+      id: 'commitment-evening',
       name: 'Evening Reading',
       createdAt: daysAgo(10),
       activities: [
@@ -721,7 +721,7 @@ describe('DashboardScreen — time-of-day grouping', () => {
         },
       ],
     }
-    seedStore({ routines: [morningRoutine, eveningRoutine], sessions: [] })
+    seedStore({ commitments: [morningRoutine, eveningRoutine], sessions: [] })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -735,8 +735,8 @@ describe('DashboardScreen — time-of-day grouping', () => {
   })
 
   it('shows no time-group header when all activities share the same preferred time', () => {
-    const morningA: Routine = {
-      id: 'routine-morning-a',
+    const morningA: Commitment = {
+      id: 'commitment-morning-a',
       name: 'Stretch',
       createdAt: daysAgo(10),
       activities: [
@@ -750,8 +750,8 @@ describe('DashboardScreen — time-of-day grouping', () => {
         },
       ],
     }
-    const morningB: Routine = {
-      id: 'routine-morning-b',
+    const morningB: Commitment = {
+      id: 'commitment-morning-b',
       name: 'Journal',
       createdAt: daysAgo(10),
       activities: [
@@ -765,7 +765,7 @@ describe('DashboardScreen — time-of-day grouping', () => {
         },
       ],
     }
-    seedStore({ routines: [morningA, morningB], sessions: [] })
+    seedStore({ commitments: [morningA, morningB], sessions: [] })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -781,8 +781,8 @@ describe('DashboardScreen — time-of-day grouping', () => {
   })
 
   it('groups mixed activities into correct time slots', () => {
-    const morningRoutine: Routine = {
-      id: 'routine-grp-morning',
+    const morningRoutine: Commitment = {
+      id: 'commitment-grp-morning',
       name: 'Yoga',
       createdAt: daysAgo(10),
       activities: [
@@ -796,8 +796,8 @@ describe('DashboardScreen — time-of-day grouping', () => {
         },
       ],
     }
-    const afternoonRoutine: Routine = {
-      id: 'routine-grp-afternoon',
+    const afternoonRoutine: Commitment = {
+      id: 'commitment-grp-afternoon',
       name: 'Walk',
       createdAt: daysAgo(10),
       activities: [
@@ -811,8 +811,8 @@ describe('DashboardScreen — time-of-day grouping', () => {
         },
       ],
     }
-    const noTimeRoutine: Routine = {
-      id: 'routine-grp-anytime',
+    const noTimeRoutine: Commitment = {
+      id: 'commitment-grp-anytime',
       name: 'Drink Water',
       createdAt: daysAgo(10),
       activities: [
@@ -826,7 +826,7 @@ describe('DashboardScreen — time-of-day grouping', () => {
       ],
     }
     seedStore({
-      routines: [morningRoutine, afternoonRoutine, noTimeRoutine],
+      commitments: [morningRoutine, afternoonRoutine, noTimeRoutine],
       sessions: [],
     })
     render(
@@ -850,9 +850,9 @@ describe('DashboardScreen — time-of-day grouping', () => {
 describe('DashboardScreen — streak counter', () => {
   it('shows "Active for X days" when sessions exist but streak < 2', () => {
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', daysAgo(5), 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', daysAgo(5), 60, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -865,7 +865,7 @@ describe('DashboardScreen — streak counter', () => {
   })
 
   it('is hidden when no sessions exist', () => {
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -882,9 +882,9 @@ describe('DashboardScreen — completion message', () => {
   it('shows "All done for today" when all activities are completed', () => {
     const nowIso = new Date().toISOString()
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', nowIso, 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', nowIso, 60, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions })
     render(
       <StoreWrapper>
         <DashboardScreen

@@ -13,9 +13,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { HistoryScreen } from './HistoryScreen'
 import {
-  STRENGTH_ROUTINE,
-  RUNNING_ROUTINE,
-  AVOID_ROUTINE,
+  STRENGTH_COMMITMENT,
+  RUNNING_COMMITMENT,
+  AVOID_COMMITMENT,
   makeStrengthSession,
   makeRunningSession,
   makeAvoidSession,
@@ -31,7 +31,7 @@ afterEach(() => {
 
 describe('HistoryScreen — empty state', () => {
   it('shows empty state when no sessions exist', () => {
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [] })
     render(<StoreWrapper><HistoryScreen navigate={vi.fn()} /></StoreWrapper>)
     expect(screen.getByTestId('history-empty')).toBeInTheDocument()
     expect(screen.getByText(/your history starts here/i)).toBeInTheDocument()
@@ -41,28 +41,28 @@ describe('HistoryScreen — empty state', () => {
 describe('HistoryScreen — with sessions', () => {
   function setup() {
     const session1 = makeStrengthSession(
-      STRENGTH_ROUTINE.id,
+      STRENGTH_COMMITMENT.id,
       'act-bench',
       daysAgo(5),
       60,
       8,
     )
     const session2 = makeStrengthSession(
-      STRENGTH_ROUTINE.id,
+      STRENGTH_COMMITMENT.id,
       'act-bench',
       daysAgo(2),
       65,
       8,
     )
     const session3 = makeStrengthSession(
-      STRENGTH_ROUTINE.id,
+      STRENGTH_COMMITMENT.id,
       'act-bench',
       daysAgo(0),
       70,
       8,
     )
     const sessions = [session1, session2, session3]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions })
     const navigate = vi.fn()
     render(<StoreWrapper><HistoryScreen navigate={navigate} /></StoreWrapper>)
     return { navigate, sessions }
@@ -133,13 +133,13 @@ describe('HistoryScreen — with sessions', () => {
 describe('HistoryScreen — edit session dialog', () => {
   it('opens edit dialog when Edit button is clicked (does not navigate)', async () => {
     const session = makeStrengthSession(
-      STRENGTH_ROUTINE.id,
+      STRENGTH_COMMITMENT.id,
       'act-bench',
       daysAgo(0),
       70,
       8,
     )
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [session] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [session] })
     const navigate = vi.fn()
     const user = userEvent.setup()
     render(<StoreWrapper><HistoryScreen navigate={navigate} /></StoreWrapper>)
@@ -158,13 +158,13 @@ describe('HistoryScreen — edit session dialog', () => {
 
   it('pre-fills strength set values from the existing session', async () => {
     const session = makeStrengthSession(
-      STRENGTH_ROUTINE.id,
+      STRENGTH_COMMITMENT.id,
       'act-bench',
       daysAgo(0),
       75,
       10,
     )
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [session] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [session] })
     const user = userEvent.setup()
     render(<StoreWrapper><HistoryScreen navigate={vi.fn()} /></StoreWrapper>)
 
@@ -180,13 +180,13 @@ describe('HistoryScreen — edit session dialog', () => {
 
   it('saves edited session when Save changes is clicked', async () => {
     const session = makeStrengthSession(
-      STRENGTH_ROUTINE.id,
+      STRENGTH_COMMITMENT.id,
       'act-bench',
       daysAgo(0),
       60,
       8,
     )
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [session] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [session] })
     const user = userEvent.setup()
     render(<StoreWrapper><HistoryScreen navigate={vi.fn()} /></StoreWrapper>)
 
@@ -211,13 +211,13 @@ describe('HistoryScreen — edit session dialog', () => {
 
   it('opens edit dialog for a metric session and pre-fills values', async () => {
     const session = makeRunningSession(
-      RUNNING_ROUTINE.id,
+      RUNNING_COMMITMENT.id,
       'act-run',
       daysAgo(0),
       5.2,
       31,
     )
-    seedStore({ routines: [RUNNING_ROUTINE], sessions: [session] })
+    seedStore({ commitments: [RUNNING_COMMITMENT], sessions: [session] })
     const user = userEvent.setup()
     render(<StoreWrapper><HistoryScreen navigate={vi.fn()} /></StoreWrapper>)
 
@@ -233,12 +233,12 @@ describe('HistoryScreen — edit session dialog', () => {
 
   it('opens edit dialog for an AVOID session and pre-fills stayedOnTrack', async () => {
     const session = makeAvoidSession(
-      AVOID_ROUTINE.id,
+      AVOID_COMMITMENT.id,
       'act-no-fast-food',
       daysAgo(0),
       true,
     )
-    seedStore({ routines: [AVOID_ROUTINE], sessions: [session] })
+    seedStore({ commitments: [AVOID_COMMITMENT], sessions: [session] })
     const user = userEvent.setup()
     render(<StoreWrapper><HistoryScreen navigate={vi.fn()} /></StoreWrapper>)
 

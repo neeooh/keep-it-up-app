@@ -19,7 +19,7 @@ import { ThemeToggle } from '../components/ThemeToggle'
 import { usePreferences } from '../hooks/usePreferences'
 import { useAppStore } from '../store/useAppStore'
 import { exportJSON, exportCSV, exportMarkdown, downloadFile } from '../domain/export'
-import { personaPresets } from '../domain/templates'
+import { paths } from '../domain/templates'
 import type { Navigate } from '../App'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -65,8 +65,8 @@ export function SettingsScreen({ navigate, onViewPath }: Props) {
   }, [nameValue, preferences.userName, updatePreferences])
 
   const sessionCount = state.sessions.length
-  const routineCount = state.routines.length
-  const hasData = sessionCount > 0 || routineCount > 0
+  const commitmentCount = state.commitments.length
+  const hasData = sessionCount > 0 || commitmentCount > 0
   const dateStamp = new Date().toISOString().slice(0, 10)
 
   function handleExport() {
@@ -114,7 +114,7 @@ export function SettingsScreen({ navigate, onViewPath }: Props) {
 
         {/* ── Your path section ────────────────────────────────────────── */}
         {preferences.chosenPath && (() => {
-          const preset = personaPresets.find((p) => p.id === preferences.chosenPath)
+          const preset = paths.find((p) => p.id === preferences.chosenPath)
           if (!preset) return null
           return (
             <section>
@@ -152,7 +152,7 @@ export function SettingsScreen({ navigate, onViewPath }: Props) {
           <SectionHeader title="Your data" />
           <p className="text-sm text-muted-foreground mt-2 mb-3">
             {hasData
-              ? `${routineCount} ${routineCount === 1 ? 'routine' : 'routines'} and ${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'} available to export.`
+              ? `${commitmentCount} ${commitmentCount === 1 ? 'commitment' : 'commitments'} and ${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'} available to export.`
               : 'No data to export yet. Complete some sessions first.'}
           </p>
 

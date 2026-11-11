@@ -10,7 +10,7 @@
  *
  * Shows a completion summary, a positive insight, an optional struggle
  * note, a momentum stat, and two forward-looking actions (keep / adjust).
- * Schedule and frequency changes happen through the Edit Routine screen.
+ * Schedule and frequency changes happen through the Edit Commitment screen.
  */
 
 import { CalendarCheck } from 'lucide-react'
@@ -39,7 +39,7 @@ import type {
 
 interface Props {
   navigate: Navigate
-  onEditRoutine: (routineId: string) => void
+  onEditCommitment: (commitmentId: string) => void
 }
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
@@ -143,9 +143,9 @@ function metricLabel(type: MeasurementType): string {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
+export function WeeklyReviewScreen({ navigate, onEditCommitment }: Props) {
   const { state } = useAppStore()
-  const { routines, sessions } = state
+  const { commitments, sessions } = state
 
   // Review the most recently completed week (last Monday–Sunday).
   const weekStart = previousWeekStart()
@@ -178,7 +178,7 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
 
   const summary: WeeklySummary = calculateWeeklySummary(
     sessions,
-    routines,
+    commitments,
     weekStart,
   )
 
@@ -188,17 +188,17 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
   const missed = Math.max(planned - completed, 0)
 
   // Progress highlights (positive deltas drive "what went well").
-  const progressEntries = routines.flatMap((r) =>
+  const progressEntries = commitments.flatMap((r) =>
     r.activities.flatMap((a) => calculateProgress(sessions, a)),
   )
   const positiveProgress = progressEntries.filter((e) => e.deltaPercent > 0)
 
-  // A routine that hit 100% last week.
+  // A commitment that hit 100% last week.
   const perfectRoutine = summary.entries.find(
     (e) => e.planned > 0 && e.completed >= e.planned,
   )
 
-  // The weakest routine (for the constructive note) when clearly behind.
+  // The weakest commitment (for the constructive note) when clearly behind.
   const sortedByRate = [...summary.entries]
     .filter((e) => e.planned > 0)
     .sort((a, b) => a.consistencyRate - b.consistencyRate)
@@ -210,7 +210,7 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
 
   const activeDays = daysSinceFirstSession(sessions)
 
-  const primaryRoutine = routines[0]
+  const primaryCommitment = commitments[0]
 
   // ─── "What went well" lines ──────────────────────────────────────────────
   const wentWell: string[] = []
@@ -218,7 +218,7 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
     wentWell.push(`Strong week. You completed ${completed} of ${planned} sessions.`)
   }
   if (perfectRoutine) {
-    wentWell.push(`You hit every ${perfectRoutine.routineName} session.`)
+    wentWell.push(`You hit every ${perfectRoutine.commitmentName} session.`)
   }
   for (const entry of positiveProgress.slice(0, 2)) {
     wentWell.push(
@@ -247,10 +247,10 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
             <div className="mt-4 flex flex-col gap-2">
               {summary.entries.map((entry) => (
                 <div
-                  key={entry.routineId}
+                  key={entry.commitmentId}
                   className="flex items-center justify-between text-sm"
                 >
-                  <span className="text-foreground">{entry.routineName}</span>
+                  <span className="text-foreground">{entry.commitmentName}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">
                       {entry.completed} / {entry.planned}
@@ -294,7 +294,7 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
               </p>
               {hasClearWeakest && weakest && (
                 <p className="text-sm text-foreground">
-                  {weakest.routineName} was the hardest to keep up.
+                  {weakest.commitmentName} was the hardest to keep up.
                 </p>
               )}
             </div>
@@ -349,7 +349,7 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
         )}
 
         {/* e. This week */}
-        {primaryRoutine && (
+        {primaryCommitment && (
           <section>
             <SectionHeader title="This week" />
             {consistency < 50 && activeDays > 7 && (
@@ -363,16 +363,16 @@ export function WeeklyReviewScreen({ navigate, onEditRoutine }: Props) {
             )}
             <div className="flex flex-col gap-2">
               <Button
-                data-testid="keep-routine-button"
+                data-testid="keep-commitment-button"
                 onClick={() => navigate('dashboard')}
                 className="w-full"
               >
                 Keep my plan
               </Button>
               <Button
-                data-testid="edit-routine-button"
+                data-testid="edit-commitment-button"
                 variant="outline"
-                onClick={() => onEditRoutine(primaryRoutine.id)}
+                onClick={() => onEditCommitment(primaryCommitment.id)}
                 className="w-full"
               >
                 Adjust my plan

@@ -8,7 +8,7 @@
 
 import { ChevronLeft, Sun, Moon, Clock } from 'lucide-react'
 import { Button } from '../../components/ui/button'
-import { personaPresets, type PersonaPreset } from '../../domain/templates'
+import { paths, type Path } from '../../domain/templates'
 import type { Navigate } from '../../App'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -22,11 +22,11 @@ interface Props {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function totalDailyMinutes(preset: PersonaPreset): number {
-  const routines = preset.buildRoutines()
+function totalDailyMinutes(preset: Path): number {
+  const commitments = preset.buildCommitments()
   let total = 0
-  for (const routine of routines) {
-    for (const activity of routine.activities) {
+  for (const commitment of commitments) {
+    for (const activity of commitment.activities) {
       const dur = activity.measurements.find((m) => m.type === 'duration')
       if (dur?.target) total += dur.target
     }
@@ -41,14 +41,14 @@ interface GroupedActivity {
   isAvoid: boolean
 }
 
-function groupByTime(preset: PersonaPreset): { morning: GroupedActivity[]; evening: GroupedActivity[]; anytime: GroupedActivity[] } {
-  const routines = preset.buildRoutines()
+function groupByTime(preset: Path): { morning: GroupedActivity[]; evening: GroupedActivity[]; anytime: GroupedActivity[] } {
+  const commitments = preset.buildCommitments()
   const morning: GroupedActivity[] = []
   const evening: GroupedActivity[] = []
   const anytime: GroupedActivity[] = []
 
-  for (const routine of routines) {
-    for (const activity of routine.activities) {
+  for (const commitment of commitments) {
+    for (const activity of commitment.activities) {
       const dur = activity.measurements.find((m) => m.type === 'duration')
       const item: GroupedActivity = {
         name: activity.name,
@@ -88,7 +88,7 @@ function ActivityRow({ activity }: { activity: GroupedActivity }) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export function PathPreviewScreen({ navigate, presetId, onConfirm, onBack }: Props) {
-  const preset = presetId ? personaPresets.find((p) => p.id === presetId) : null
+  const preset = presetId ? paths.find((p) => p.id === presetId) : null
 
   if (!preset) {
     return (

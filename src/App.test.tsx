@@ -151,14 +151,14 @@ describe('App — active nav tab has aria-current="page"', () => {
   })
 })
 
-// ─── BUG-001 regression: adding a second routine ──────────────────────────────
+// ─── BUG-001 regression: adding a second commitment ──────────────────────────────
 
 /**
  * Walks through the full onboarding flow: welcome → choose-direction →
  * configure-activity → set-frequency → optional-schedule → optional-challenge
  * → plan-review → "Start today".
  *
- * After completion the dashboard should be active and contain the new routine.
+ * After completion the dashboard should be active and contain the new commitment.
  */
 async function completeOnboarding(
   user: ReturnType<typeof userEvent.setup>,
@@ -180,35 +180,35 @@ async function completeOnboarding(
   await user.click(screen.getByTestId('start-button'))
 }
 
-describe('BUG-001 regression — adding a second routine', () => {
-  it('shows both routines in the dashboard after adding two via onboarding', async () => {
+describe('BUG-001 regression — adding a second commitment', () => {
+  it('shows both commitments in the dashboard after adding two via onboarding', async () => {
     const user = userEvent.setup()
     renderAt('welcome')
 
-    // First routine: Running
+    // First commitment: Running
     await completeOnboarding(user, 'template-card-running')
 
-    // Should land on dashboard with 1 routine
+    // Should land on dashboard with 1 commitment
     expect(screen.getByTestId('screen-dashboard')).toBeInTheDocument()
     expect(screen.getAllByText('Running').length).toBeGreaterThanOrEqual(1)
 
     // Verify it is in localStorage
     const state1 = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
-    expect(state1.routines).toHaveLength(1)
+    expect(state1.commitments).toHaveLength(1)
 
-    // Click "+" to add another routine
-    await user.click(screen.getByTestId('add-routine-button'))
+    // Click "+" to add another commitment
+    await user.click(screen.getByTestId('add-commitment-button'))
 
-    // Second routine: Walking
+    // Second commitment: Walking
     await completeOnboarding(user, 'template-card-walking')
 
-    // Should land on dashboard with 2 routines
+    // Should land on dashboard with 2 commitments
     expect(screen.getByTestId('screen-dashboard')).toBeInTheDocument()
 
     const state2 = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
-    expect(state2.routines).toHaveLength(2)
+    expect(state2.commitments).toHaveLength(2)
 
-    // Both routines should appear as activity cards on Today
+    // Both commitments should appear as activity cards on Today
     expect(screen.getAllByText('Running').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Walking').length).toBeGreaterThanOrEqual(1)
   })

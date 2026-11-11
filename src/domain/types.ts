@@ -12,7 +12,7 @@ export type MeasurementType =
   | 'reps'
   | 'weight'
 
-/** How often the user intends to perform the routine. */
+/** How often the user intends to perform the commitment. */
 export type Frequency = 'daily' | '3x_week' | '2x_week' | '1x_week' | 'flexible'
 
 /** ISO day-of-week (1 = Monday … 7 = Sunday, matching date-fns). */
@@ -20,6 +20,12 @@ export type DayOfWeek = 1 | 2 | 3 | 4 | 5 | 6 | 7
 
 /** Supported optional challenge durations (days). */
 export type ChallengeDuration = 30 | 60 | 90 | 365
+
+/** How a commitment is marked complete. */
+export type CompletionMethod = 'binary' | 'detailed'
+
+/** Notification type for commitment reminders. */
+export type ReminderType = 'alert' | 'alarm' | 'none'
 
 // ─── Activity configuration ───────────────────────────────────────────────────
 
@@ -36,7 +42,7 @@ export interface MeasurementConfig {
 }
 
 /**
- * A specific behaviour within a routine.
+ * A specific behaviour within a commitment.
  * Activities are generic — the same type models running, reading, and
  * "no smoking" without requiring separate domain objects.
  */
@@ -45,31 +51,40 @@ export interface Activity {
   name: string
   /** One-line prompt or tip. Shows on the dashboard card and session screen. */
   description?: string
+  /** Clear instruction for what the user should do. */
+  instruction?: string
   direction: Direction
   measurements: MeasurementConfig[]
   frequency: Frequency
+  /** How this activity is marked complete. Defaults to 'binary'. */
+  completionMethod?: CompletionMethod
   /** Preferred days, e.g. [1, 3, 5] for Mon/Wed/Fri. Optional. */
   scheduledDays?: DayOfWeek[]
-  /** Free-text time preference, e.g. "morning". Optional. */
+  /** Free-text time preference, e.g. "Morning". Optional. */
   preferredTime?: string
+  /** HH:MM time for the reminder notification. Optional. */
+  reminderTime?: string
+  /** Type of reminder notification. Defaults to 'none'. */
+  reminderType?: ReminderType
 }
 
-// ─── Routine ──────────────────────────────────────────────────────────────────
+// ─── Commitment ───────────────────────────────────────────────────────────────
 
 /**
- * A repeatable plan containing one or more activities.
+ * An individual thing the user intends to do or avoid.
+ * Contains one or more activities.
  */
-export interface Routine {
+export interface Commitment {
   id: string
   name: string
   activities: Activity[]
-  /** ISO 8601 date-time string of when the routine was created. */
+  /** ISO 8601 date-time string of when the commitment was created. */
   createdAt: string
-  /** If set, this routine is part of a fixed-duration challenge. */
+  /** If set, this commitment is part of a fixed-duration challenge. */
   challengeDurationDays?: ChallengeDuration
   /** ISO 8601 date string (YYYY-MM-DD) when the challenge started. */
   challengeStartDate?: string
-  /** Free-text motivation: why the user committed to this routine. */
+  /** Free-text motivation: why the user made this commitment. */
   motivation?: string
 }
 
@@ -108,12 +123,12 @@ export interface ActivityResult {
 }
 
 /**
- * A completed occurrence of a routine.
+ * A completed occurrence of a commitment.
  * An incomplete session (abandoned mid-way) must not be saved as a Session.
  */
 export interface Session {
   id: string
-  routineId: string
+  commitmentId: string
   /** ISO 8601 date-time string of when the session was completed. */
   completedAt: string
   results: ActivityResult[]
@@ -125,7 +140,7 @@ export interface Session {
  * The complete application state that is persisted to localStorage.
  */
 export interface AppState {
-  routines: Routine[]
+  commitments: Commitment[]
   sessions: Session[]
 }
 
@@ -146,10 +161,10 @@ export interface TrendPoint {
   value: number
 }
 
-/** Summary of one routine's performance for a given week. */
+/** Summary of one commitment's performance for a given week. */
 export interface WeeklySummaryEntry {
-  routineId: string
-  routineName: string
+  commitmentId: string
+  commitmentName: string
   /** Number of sessions completed this week. */
   completed: number
   /** Number of sessions planned this week (derived from frequency). */
@@ -163,7 +178,7 @@ export interface WeeklySummary {
   /** ISO 8601 date string (YYYY-MM-DD) for Monday of the reviewed week. */
   weekStart: string
   entries: WeeklySummaryEntry[]
-  /** Overall consistency across all routines, 0–100. */
+  /** Overall consistency across all commitments, 0–100. */
   overallConsistency: number
   /** Sessions completed in the last 6 weeks window. */
   recentCompleted: number

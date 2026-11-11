@@ -6,10 +6,10 @@
  * - loadState: correctly deserialises a valid stored state
  * - saveState: serialises state to localStorage under the correct key
  * - Serialisation round-trip: save then load returns equivalent state
- * - addRoutine: appends a new routine
- * - updateRoutine: replaces an existing routine by id
- * - updateRoutine: does nothing for an unknown id
- * - deleteRoutine: removes the routine and all its sessions
+ * - addCommitment: appends a new commitment
+ * - updateCommitment: replaces an existing commitment by id
+ * - updateCommitment: does nothing for an unknown id
+ * - deleteCommitment: removes the commitment and all its sessions
  * - addSession: appends a new session
  * - Context: useAppStore throws outside AppStoreProvider
  * - Context: two consumers share the same state
@@ -26,14 +26,14 @@ import {
   saveState,
   useAppStore,
 } from './useAppStore'
-import type { Routine, Session } from '../domain/types'
+import type { Commitment, Session } from '../domain/types'
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
-function makeRoutine(id: string): Routine {
+function makeCommitment(id: string): Commitment {
   return {
     id,
-    name: `Routine ${id}`,
+    name: `Commitment ${id}`,
     activities: [
       {
         id: `act-${id}`,
@@ -47,14 +47,14 @@ function makeRoutine(id: string): Routine {
   }
 }
 
-function makeSession(id: string, routineId: string): Session {
+function makeSession(id: string, commitmentId: string): Session {
   return {
     id,
-    routineId,
+    commitmentId,
     completedAt: '2026-10-05T10:00:00.000Z',
     results: [
       {
-        activityId: `act-${routineId}`,
+        activityId: `act-${commitmentId}`,
         measurements: { distance: 5 },
       },
     ],
@@ -94,29 +94,29 @@ describe('loadState', () => {
     expect(loadState()).toEqual(EMPTY_STATE)
   })
 
-  it('returns EMPTY_STATE when routines field is missing', () => {
+  it('returns EMPTY_STATE when commitments field is missing', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ sessions: [] }))
     expect(loadState()).toEqual(EMPTY_STATE)
   })
 
   it('returns EMPTY_STATE when sessions field is missing', () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ routines: [] }))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ commitments: [] }))
     expect(loadState()).toEqual(EMPTY_STATE)
   })
 
-  it('returns EMPTY_STATE when routines is not an array', () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ routines: {}, sessions: [] }))
+  it('returns EMPTY_STATE when commitments is not an array', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ commitments: {}, sessions: [] }))
     expect(loadState()).toEqual(EMPTY_STATE)
   })
 
   it('returns EMPTY_STATE when sessions is not an array', () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ routines: [], sessions: 'bad' }))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ commitments: [], sessions: 'bad' }))
     expect(loadState()).toEqual(EMPTY_STATE)
   })
 
   it('correctly deserialises a valid stored state', () => {
     const stored = {
-      routines: [makeRoutine('r1')],
+      commitments: [makeCommitment('r1')],
       sessions: [makeSession('s1', 'r1')],
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
@@ -133,7 +133,7 @@ describe('loadState', () => {
 
 describe('saveState', () => {
   it('writes the state to localStorage under the correct key', () => {
-    const state = { routines: [makeRoutine('r1')], sessions: [] }
+    const state = { commitments: [makeCommitment('r1')], sessions: [] }
     saveState(state)
     const raw = localStorage.getItem(STORAGE_KEY)
     expect(raw).not.toBeNull()
@@ -141,8 +141,8 @@ describe('saveState', () => {
   })
 
   it('overwrites a previously stored state', () => {
-    saveState({ routines: [makeRoutine('r1')], sessions: [] })
-    saveState({ routines: [], sessions: [] })
+    saveState({ commitments: [makeCommitment('r1')], sessions: [] })
+    saveState({ commitments: [], sessions: [] })
     expect(loadState()).toEqual(EMPTY_STATE)
   })
 })
@@ -152,7 +152,7 @@ describe('saveState', () => {
 describe('serialisation round-trip', () => {
   it('save then load returns equivalent state', () => {
     const state = {
-      routines: [makeRoutine('r1'), makeRoutine('r2')],
+      commitments: [makeCommitment('r1'), makeCommitment('r2')],
       sessions: [makeSession('s1', 'r1'), makeSession('s2', 'r2')],
     }
     saveState(state)
@@ -178,191 +178,191 @@ describe('useAppStore — context', () => {
   })
 })
 
-// ─── useAppStore — addRoutine ─────────────────────────────────────────────────
+// ─── useAppStore — addCommitment ─────────────────────────────────────────────────
 
-describe('useAppStore — addRoutine', () => {
-  it('appends a new routine to state', () => {
+describe('useAppStore — addCommitment', () => {
+  it('appends a new commitment to state', () => {
     const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
-      result.current.addRoutine(makeRoutine('r1'))
+      result.current.addCommitment(makeCommitment('r1'))
     })
 
-    expect(result.current.state.routines).toHaveLength(1)
-    expect(result.current.state.routines[0]!.id).toBe('r1')
+    expect(result.current.state.commitments).toHaveLength(1)
+    expect(result.current.state.commitments[0]!.id).toBe('r1')
   })
 
-  it('appends multiple routines in order', () => {
+  it('appends multiple commitments in order', () => {
     const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
-      result.current.addRoutine(makeRoutine('r1'))
-      result.current.addRoutine(makeRoutine('r2'))
+      result.current.addCommitment(makeCommitment('r1'))
+      result.current.addCommitment(makeCommitment('r2'))
     })
 
-    expect(result.current.state.routines).toHaveLength(2)
-    expect(result.current.state.routines[0]!.id).toBe('r1')
-    expect(result.current.state.routines[1]!.id).toBe('r2')
+    expect(result.current.state.commitments).toHaveLength(2)
+    expect(result.current.state.commitments[0]!.id).toBe('r1')
+    expect(result.current.state.commitments[1]!.id).toBe('r2')
   })
 
   it('does not affect existing sessions', () => {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ routines: [], sessions: [makeSession('s1', 'r-existing')] }),
+      JSON.stringify({ commitments: [], sessions: [makeSession('s1', 'r-existing')] }),
     )
     const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
-      result.current.addRoutine(makeRoutine('r1'))
+      result.current.addCommitment(makeCommitment('r1'))
     })
 
     expect(result.current.state.sessions).toHaveLength(1)
   })
 
-  it('persists the new routine to localStorage', () => {
+  it('persists the new commitment to localStorage', () => {
     const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
-      result.current.addRoutine(makeRoutine('r1'))
+      result.current.addCommitment(makeCommitment('r1'))
     })
 
     const persisted = loadState()
-    expect(persisted.routines).toHaveLength(1)
-    expect(persisted.routines[0]!.id).toBe('r1')
+    expect(persisted.commitments).toHaveLength(1)
+    expect(persisted.commitments[0]!.id).toBe('r1')
   })
 })
 
-// ─── useAppStore — updateRoutine ──────────────────────────────────────────────
+// ─── useAppStore — updateCommitment ──────────────────────────────────────────────
 
-describe('useAppStore — updateRoutine', () => {
-  it('replaces an existing routine by id', () => {
+describe('useAppStore — updateCommitment', () => {
+  it('replaces an existing commitment by id', () => {
     const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
-      result.current.addRoutine(makeRoutine('r1'))
+      result.current.addCommitment(makeCommitment('r1'))
     })
 
-    const updated: Routine = { ...makeRoutine('r1'), name: 'Updated Name' }
+    const updated: Commitment = { ...makeCommitment('r1'), name: 'Updated Name' }
 
     act(() => {
-      result.current.updateRoutine(updated)
+      result.current.updateCommitment(updated)
     })
 
-    expect(result.current.state.routines).toHaveLength(1)
-    expect(result.current.state.routines[0]!.name).toBe('Updated Name')
+    expect(result.current.state.commitments).toHaveLength(1)
+    expect(result.current.state.commitments[0]!.name).toBe('Updated Name')
   })
 
-  it('does not change the number of routines', () => {
+  it('does not change the number of commitments', () => {
     const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
-      result.current.addRoutine(makeRoutine('r1'))
-      result.current.addRoutine(makeRoutine('r2'))
+      result.current.addCommitment(makeCommitment('r1'))
+      result.current.addCommitment(makeCommitment('r2'))
     })
 
     act(() => {
-      result.current.updateRoutine({ ...makeRoutine('r1'), name: 'Changed' })
+      result.current.updateCommitment({ ...makeCommitment('r1'), name: 'Changed' })
     })
 
-    expect(result.current.state.routines).toHaveLength(2)
+    expect(result.current.state.commitments).toHaveLength(2)
   })
 
-  it('only updates the matching routine, leaving others unchanged', () => {
+  it('only updates the matching commitment, leaving others unchanged', () => {
     const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
-      result.current.addRoutine(makeRoutine('r1'))
-      result.current.addRoutine(makeRoutine('r2'))
+      result.current.addCommitment(makeCommitment('r1'))
+      result.current.addCommitment(makeCommitment('r2'))
     })
 
     act(() => {
-      result.current.updateRoutine({ ...makeRoutine('r1'), name: 'Changed' })
+      result.current.updateCommitment({ ...makeCommitment('r1'), name: 'Changed' })
     })
 
-    expect(result.current.state.routines[1]!.name).toBe('Routine r2')
+    expect(result.current.state.commitments[1]!.name).toBe('Commitment r2')
   })
 
   it('does nothing when the id does not exist', () => {
     const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
-      result.current.addRoutine(makeRoutine('r1'))
+      result.current.addCommitment(makeCommitment('r1'))
     })
 
     act(() => {
-      result.current.updateRoutine(makeRoutine('does-not-exist'))
+      result.current.updateCommitment(makeCommitment('does-not-exist'))
     })
 
-    expect(result.current.state.routines).toHaveLength(1)
-    expect(result.current.state.routines[0]!.id).toBe('r1')
+    expect(result.current.state.commitments).toHaveLength(1)
+    expect(result.current.state.commitments[0]!.id).toBe('r1')
   })
 
-  it('persists the updated routine to localStorage', () => {
+  it('persists the updated commitment to localStorage', () => {
     const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
-      result.current.addRoutine(makeRoutine('r1'))
+      result.current.addCommitment(makeCommitment('r1'))
     })
 
     act(() => {
-      result.current.updateRoutine({ ...makeRoutine('r1'), name: 'Persisted' })
+      result.current.updateCommitment({ ...makeCommitment('r1'), name: 'Persisted' })
     })
 
-    expect(loadState().routines[0]!.name).toBe('Persisted')
+    expect(loadState().commitments[0]!.name).toBe('Persisted')
   })
 })
 
-// ─── useAppStore — deleteRoutine ──────────────────────────────────────────────
+// ─── useAppStore — deleteCommitment ──────────────────────────────────────────────
 
-describe('useAppStore — deleteRoutine', () => {
-  it('removes the routine with the given id', () => {
+describe('useAppStore — deleteCommitment', () => {
+  it('removes the commitment with the given id', () => {
     const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
-      result.current.addRoutine(makeRoutine('r1'))
-      result.current.addRoutine(makeRoutine('r2'))
+      result.current.addCommitment(makeCommitment('r1'))
+      result.current.addCommitment(makeCommitment('r2'))
     })
 
     act(() => {
-      result.current.deleteRoutine('r1')
+      result.current.deleteCommitment('r1')
     })
 
-    expect(result.current.state.routines).toHaveLength(1)
-    expect(result.current.state.routines[0]!.id).toBe('r2')
+    expect(result.current.state.commitments).toHaveLength(1)
+    expect(result.current.state.commitments[0]!.id).toBe('r2')
   })
 
-  it('removes all sessions that belong to the deleted routine', () => {
+  it('removes all sessions that belong to the deleted commitment', () => {
     const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
-      result.current.addRoutine(makeRoutine('r1'))
+      result.current.addCommitment(makeCommitment('r1'))
       result.current.addSession(makeSession('s1', 'r1'))
       result.current.addSession(makeSession('s2', 'r1'))
-      result.current.addSession(makeSession('s3', 'r2')) // different routine
+      result.current.addSession(makeSession('s3', 'r2')) // different commitment
     })
 
     act(() => {
-      result.current.deleteRoutine('r1')
+      result.current.deleteCommitment('r1')
     })
 
     expect(result.current.state.sessions).toHaveLength(1)
     expect(result.current.state.sessions[0]!.id).toBe('s3')
   })
 
-  it('leaves other routines and sessions intact', () => {
+  it('leaves other commitments and sessions intact', () => {
     const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
-      result.current.addRoutine(makeRoutine('r1'))
-      result.current.addRoutine(makeRoutine('r2'))
+      result.current.addCommitment(makeCommitment('r1'))
+      result.current.addCommitment(makeCommitment('r2'))
       result.current.addSession(makeSession('s2', 'r2'))
     })
 
     act(() => {
-      result.current.deleteRoutine('r1')
+      result.current.deleteCommitment('r1')
     })
 
-    expect(result.current.state.routines[0]!.id).toBe('r2')
+    expect(result.current.state.commitments[0]!.id).toBe('r2')
     expect(result.current.state.sessions[0]!.id).toBe('s2')
   })
 
@@ -370,28 +370,28 @@ describe('useAppStore — deleteRoutine', () => {
     const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
-      result.current.addRoutine(makeRoutine('r1'))
+      result.current.addCommitment(makeCommitment('r1'))
     })
 
     act(() => {
-      result.current.deleteRoutine('does-not-exist')
+      result.current.deleteCommitment('does-not-exist')
     })
 
-    expect(result.current.state.routines).toHaveLength(1)
+    expect(result.current.state.commitments).toHaveLength(1)
   })
 
   it('persists the deletion to localStorage', () => {
     const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
-      result.current.addRoutine(makeRoutine('r1'))
+      result.current.addCommitment(makeCommitment('r1'))
     })
 
     act(() => {
-      result.current.deleteRoutine('r1')
+      result.current.deleteCommitment('r1')
     })
 
-    expect(loadState().routines).toHaveLength(0)
+    expect(loadState().commitments).toHaveLength(0)
   })
 })
 
@@ -422,15 +422,15 @@ describe('useAppStore — addSession', () => {
     expect(result.current.state.sessions[1]!.id).toBe('s2')
   })
 
-  it('does not affect existing routines', () => {
+  it('does not affect existing commitments', () => {
     const { result } = renderHook(() => useAppStore(), { wrapper })
 
     act(() => {
-      result.current.addRoutine(makeRoutine('r1'))
+      result.current.addCommitment(makeCommitment('r1'))
       result.current.addSession(makeSession('s1', 'r1'))
     })
 
-    expect(result.current.state.routines).toHaveLength(1)
+    expect(result.current.state.commitments).toHaveLength(1)
   })
 
   it('persists the new session to localStorage', () => {
@@ -451,15 +451,15 @@ describe('useAppStore — addSession', () => {
 describe('useAppStore — initial load', () => {
   it('initialises state from an existing localStorage entry', () => {
     const stored = {
-      routines: [makeRoutine('r1')],
+      commitments: [makeCommitment('r1')],
       sessions: [makeSession('s1', 'r1')],
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
 
     const { result } = renderHook(() => useAppStore(), { wrapper })
 
-    expect(result.current.state.routines).toHaveLength(1)
-    expect(result.current.state.routines[0]!.id).toBe('r1')
+    expect(result.current.state.commitments).toHaveLength(1)
+    expect(result.current.state.commitments[0]!.id).toBe('r1')
     expect(result.current.state.sessions).toHaveLength(1)
   })
 

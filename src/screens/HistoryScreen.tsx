@@ -19,7 +19,7 @@ import { ActivityIcon } from '../components/ActivityIcon'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { EditSessionDialog } from '../components/EditSessionDialog'
 import { useAppStore } from '../store/useAppStore'
-import { calculateVolume } from '../domain/calculations'
+
 import type { Navigate } from '../App'
 import type { Session, MeasurementType } from '../domain/types'
 
@@ -135,7 +135,7 @@ function sessionStatus(
 
 export function HistoryScreen({ navigate }: Props) {
   const { state, deleteSession, updateSession } = useAppStore()
-  const { routines, sessions } = state
+  const { commitments, sessions } = state
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
@@ -207,7 +207,7 @@ export function HistoryScreen({ navigate }: Props) {
             <SectionHeader title={group.label} />
             <div>
               {group.sessions.map((session) => {
-                const routine = routines.find((r) => r.id === session.routineId)
+                const commitment = commitments.find((r) => r.id === session.commitmentId)
                 const summary = sessionSummary(session)
                 const status = sessionStatus(session)
                 const isExpanded = expandedIds.has(session.id)
@@ -228,11 +228,11 @@ export function HistoryScreen({ navigate }: Props) {
                       }}
                       className="flex cursor-pointer items-center justify-between py-3 border-b border-border/50 last:border-0 hover:bg-surface-muted rounded-lg -mx-2 px-2 transition-colors"
                     >
-                      <ActivityIcon name={routine?.name ?? ''} size={28} className="mr-3" />
+                      <ActivityIcon name={commitment?.name ?? ''} size={28} className="mr-3" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-foreground truncate">
-                            {routine?.name ?? 'Unknown routine'}
+                            {commitment?.name ?? 'Unknown commitment'}
                           </p>
                           <StatusBadge variant={status.variant} label={status.label} />
                         </div>
@@ -321,14 +321,14 @@ export function HistoryScreen({ navigate }: Props) {
       {/* Edit session dialog */}
       {editingSessionId && (() => {
         const editSession = sessions.find((s) => s.id === editingSessionId)
-        const editRoutine = editSession ? routines.find((r) => r.id === editSession.routineId) : null
-        if (!editSession || !editRoutine) return null
+        const editCommitment = editSession ? commitments.find((r) => r.id === editSession.commitmentId) : null
+        if (!editSession || !editCommitment) return null
         return (
           <EditSessionDialog
             open={true}
             onOpenChange={(open) => { if (!open) setEditingSessionId(null) }}
             session={editSession}
-            routine={editRoutine}
+            commitment={editCommitment}
             onSave={(updated) => {
               updateSession(updated)
               setEditingSessionId(null)

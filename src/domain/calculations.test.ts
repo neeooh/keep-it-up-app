@@ -23,11 +23,11 @@ import {
   calculateVolume,
   calculateWeeklySummary,
   plannedSessionsPerWeek,
-  routinePlannedPerWeek,
-  sessionsForRoutine,
+  commitmentPlannedPerWeek,
+  sessionsForCommitment,
   sessionsInRange,
 } from './calculations'
-import type { Activity, Routine, Session } from './types'
+import type { Activity, Commitment, Session } from './types'
 
 // ─── Test fixtures ────────────────────────────────────────────────────────────
 
@@ -42,9 +42,9 @@ function makeActivity(overrides: Partial<Activity> = {}): Activity {
   }
 }
 
-function makeRoutine(overrides: Partial<Routine> = {}): Routine {
+function makeCommitment(overrides: Partial<Commitment> = {}): Commitment {
   return {
-    id: 'routine-1',
+    id: 'commitment-1',
     name: 'Morning Run',
     activities: [makeActivity()],
     createdAt: '2026-10-01T07:00:00.000Z',
@@ -53,14 +53,14 @@ function makeRoutine(overrides: Partial<Routine> = {}): Routine {
 }
 
 function makeSession(
-  routineId: string,
+  commitmentId: string,
   completedAt: string,
   activityId = 'act-1',
   measurements: Partial<Record<string, number>> = { distance: 5 },
 ): Session {
   return {
     id: `session-${completedAt}`,
-    routineId,
+    commitmentId,
     completedAt,
     results: [
       {
@@ -95,54 +95,54 @@ describe('plannedSessionsPerWeek', () => {
   })
 })
 
-// ─── routinePlannedPerWeek ────────────────────────────────────────────────────
+// ─── commitmentPlannedPerWeek ────────────────────────────────────────────────────
 
-describe('routinePlannedPerWeek', () => {
+describe('commitmentPlannedPerWeek', () => {
   it('uses the first activity frequency', () => {
-    expect(routinePlannedPerWeek(makeRoutine())).toBe(3)
+    expect(commitmentPlannedPerWeek(makeCommitment())).toBe(3)
   })
 
-  it('returns 0 for a routine with no activities', () => {
-    expect(routinePlannedPerWeek(makeRoutine({ activities: [] }))).toBe(0)
+  it('returns 0 for a commitment with no activities', () => {
+    expect(commitmentPlannedPerWeek(makeCommitment({ activities: [] }))).toBe(0)
   })
 
   it('returns 0 for flexible frequency', () => {
-    const routine = makeRoutine({
+    const commitment = makeCommitment({
       activities: [makeActivity({ frequency: 'flexible' })],
     })
-    expect(routinePlannedPerWeek(routine)).toBe(0)
+    expect(commitmentPlannedPerWeek(commitment)).toBe(0)
   })
 })
 
-// ─── sessionsForRoutine ───────────────────────────────────────────────────────
+// ─── sessionsForCommitment ───────────────────────────────────────────────────────
 
-describe('sessionsForRoutine', () => {
-  it('filters to only the requested routine', () => {
+describe('sessionsForCommitment', () => {
+  it('filters to only the requested commitment', () => {
     const sessions: Session[] = [
-      makeSession('routine-1', '2026-10-01T10:00:00.000Z'),
-      makeSession('routine-2', '2026-10-02T10:00:00.000Z'),
-      makeSession('routine-1', '2026-10-03T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-01T10:00:00.000Z'),
+      makeSession('commitment-2', '2026-10-02T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-03T10:00:00.000Z'),
     ]
-    const result = sessionsForRoutine(sessions, 'routine-1')
+    const result = sessionsForCommitment(sessions, 'commitment-1')
     expect(result).toHaveLength(2)
-    expect(result.every((s) => s.routineId === 'routine-1')).toBe(true)
+    expect(result.every((s) => s.commitmentId === 'commitment-1')).toBe(true)
   })
 
   it('returns sessions sorted oldest-first', () => {
     const sessions: Session[] = [
-      makeSession('routine-1', '2026-10-03T10:00:00.000Z'),
-      makeSession('routine-1', '2026-10-01T10:00:00.000Z'),
-      makeSession('routine-1', '2026-10-02T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-03T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-01T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-02T10:00:00.000Z'),
     ]
-    const result = sessionsForRoutine(sessions, 'routine-1')
+    const result = sessionsForCommitment(sessions, 'commitment-1')
     expect(result[0]!.completedAt).toBe('2026-10-01T10:00:00.000Z')
     expect(result[1]!.completedAt).toBe('2026-10-02T10:00:00.000Z')
     expect(result[2]!.completedAt).toBe('2026-10-03T10:00:00.000Z')
   })
 
   it('returns empty array when no matching sessions', () => {
-    const sessions = [makeSession('routine-2', '2026-10-01T10:00:00.000Z')]
-    expect(sessionsForRoutine(sessions, 'routine-1')).toHaveLength(0)
+    const sessions = [makeSession('commitment-2', '2026-10-01T10:00:00.000Z')]
+    expect(sessionsForCommitment(sessions, 'commitment-1')).toHaveLength(0)
   })
 })
 
@@ -175,16 +175,16 @@ describe('sessionsInRange', () => {
 // ─── calculateConsistency ─────────────────────────────────────────────────────
 
 describe('calculateConsistency', () => {
-  const routine = makeRoutine() // 3x_week
+  const commitment = makeCommitment() // 3x_week
 
   it('returns 100 when all planned sessions are completed', () => {
     // 1 week = 3 planned, 3 completed
     const sessions: Session[] = [
-      makeSession('routine-1', '2026-10-05T10:00:00.000Z'), // Mon
-      makeSession('routine-1', '2026-10-07T10:00:00.000Z'), // Wed
-      makeSession('routine-1', '2026-10-09T10:00:00.000Z'), // Fri
+      makeSession('commitment-1', '2026-10-05T10:00:00.000Z'), // Mon
+      makeSession('commitment-1', '2026-10-07T10:00:00.000Z'), // Wed
+      makeSession('commitment-1', '2026-10-09T10:00:00.000Z'), // Fri
     ]
-    const result = calculateConsistency(sessions, routine, {
+    const result = calculateConsistency(sessions, commitment, {
       start: '2026-10-05',
       end: '2026-10-11',
     })
@@ -193,10 +193,10 @@ describe('calculateConsistency', () => {
 
   it('returns approximately 67 for 2 of 3 planned sessions', () => {
     const sessions: Session[] = [
-      makeSession('routine-1', '2026-10-05T10:00:00.000Z'),
-      makeSession('routine-1', '2026-10-07T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-05T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-07T10:00:00.000Z'),
     ]
-    const result = calculateConsistency(sessions, routine, {
+    const result = calculateConsistency(sessions, commitment, {
       start: '2026-10-05',
       end: '2026-10-11',
     })
@@ -204,10 +204,10 @@ describe('calculateConsistency', () => {
   })
 
   it('returns 0 for flexible frequency', () => {
-    const flexRoutine = makeRoutine({
+    const flexRoutine = makeCommitment({
       activities: [makeActivity({ frequency: 'flexible' })],
     })
-    const sessions = [makeSession('routine-1', '2026-10-05T10:00:00.000Z')]
+    const sessions = [makeSession('commitment-1', '2026-10-05T10:00:00.000Z')]
     expect(
       calculateConsistency(sessions, flexRoutine, { start: '2026-10-05', end: '2026-10-11' }),
     ).toBe(0)
@@ -216,9 +216,9 @@ describe('calculateConsistency', () => {
   it('result is always in [0, 100]', () => {
     // More sessions than planned — should clamp to 100
     const sessions: Session[] = Array.from({ length: 10 }, (_, i) =>
-      makeSession('routine-1', `2026-10-${String(i + 1).padStart(2, '0')}T10:00:00.000Z`),
+      makeSession('commitment-1', `2026-10-${String(i + 1).padStart(2, '0')}T10:00:00.000Z`),
     )
-    const result = calculateConsistency(sessions, routine, {
+    const result = calculateConsistency(sessions, commitment, {
       start: '2026-10-01',
       end: '2026-10-07',
     })
@@ -227,7 +227,7 @@ describe('calculateConsistency', () => {
   })
 
   it('returns 0 when there are no sessions', () => {
-    const result = calculateConsistency([], routine, {
+    const result = calculateConsistency([], commitment, {
       start: '2026-10-05',
       end: '2026-10-11',
     })
@@ -236,8 +236,8 @@ describe('calculateConsistency', () => {
 
   it('returns 0 for an empty date range', () => {
     const result = calculateConsistency(
-      [makeSession('routine-1', '2026-10-05T10:00:00.000Z')],
-      routine,
+      [makeSession('commitment-1', '2026-10-05T10:00:00.000Z')],
+      commitment,
       { start: '2026-10-11', end: '2026-10-05' }, // reversed range
     )
     expect(result).toBe(0)
@@ -246,16 +246,16 @@ describe('calculateConsistency', () => {
   // ── Pro-rating tests (today parameter) ────────────────────────────────────
 
   it('pro-rates partial week: 100% when all elapsed days are covered', () => {
-    // 3x_week routine. Range: Mon Oct 5 – Wed Oct 7 (3 days = partial week).
+    // 3x_week commitment. Range: Mon Oct 5 – Wed Oct 7 (3 days = partial week).
     // today = Oct 7 (Wednesday). Elapsed = 3 days. Pro-rated planned = (3/7)*3 ≈ 1.29.
     // 2 completed sessions → 2 / 1.29 → clamped to 100.
     const sessions: Session[] = [
-      makeSession('routine-1', '2026-10-05T10:00:00.000Z'), // Mon
-      makeSession('routine-1', '2026-10-07T10:00:00.000Z'), // Wed
+      makeSession('commitment-1', '2026-10-05T10:00:00.000Z'), // Mon
+      makeSession('commitment-1', '2026-10-07T10:00:00.000Z'), // Wed
     ]
     const result = calculateConsistency(
       sessions,
-      routine,
+      commitment,
       { start: '2026-10-05', end: '2026-10-07' },
       '2026-10-07',
     )
@@ -263,19 +263,19 @@ describe('calculateConsistency', () => {
   })
 
   it('pro-rates: full past weeks + partial current week', () => {
-    // 3x_week routine. Range: Mon Sep 28 – Wed Oct 7.
+    // 3x_week commitment. Range: Mon Sep 28 – Wed Oct 7.
     // Sep 28–Oct 4 = 7 days (1 full week, planned = 3).
     // Oct 5–Oct 7 = 3 days (partial week, pro-rated planned = (3/7)*3 ≈ 1.29).
     // Total planned ≈ 4.29. 4 completed sessions → 4 / 4.29 → 93%.
     const sessions: Session[] = [
-      makeSession('routine-1', '2026-09-28T10:00:00.000Z'), // Mon wk1
-      makeSession('routine-1', '2026-09-30T10:00:00.000Z'), // Wed wk1
-      makeSession('routine-1', '2026-10-02T10:00:00.000Z'), // Fri wk1
-      makeSession('routine-1', '2026-10-06T10:00:00.000Z'), // Tue wk2
+      makeSession('commitment-1', '2026-09-28T10:00:00.000Z'), // Mon wk1
+      makeSession('commitment-1', '2026-09-30T10:00:00.000Z'), // Wed wk1
+      makeSession('commitment-1', '2026-10-02T10:00:00.000Z'), // Fri wk1
+      makeSession('commitment-1', '2026-10-06T10:00:00.000Z'), // Tue wk2
     ]
     const result = calculateConsistency(
       sessions,
-      routine,
+      commitment,
       { start: '2026-09-28', end: '2026-10-07' },
       '2026-10-07',
     )
@@ -287,18 +287,18 @@ describe('calculateConsistency', () => {
     // Range Mon Oct 5 – Sun Oct 11 (full week). today = Oct 15 (after range).
     // Should behave the same as without the today parameter.
     const sessions: Session[] = [
-      makeSession('routine-1', '2026-10-05T10:00:00.000Z'),
-      makeSession('routine-1', '2026-10-07T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-05T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-07T10:00:00.000Z'),
     ]
     const withToday = calculateConsistency(
       sessions,
-      routine,
+      commitment,
       { start: '2026-10-05', end: '2026-10-11' },
       '2026-10-15',
     )
     const withoutToday = calculateConsistency(
       sessions,
-      routine,
+      commitment,
       { start: '2026-10-05', end: '2026-10-11' },
     )
     expect(withToday).toBe(withoutToday)
@@ -308,19 +308,19 @@ describe('calculateConsistency', () => {
     // Range: Mon Oct 5 – Sun Oct 11. today = Sun Oct 11 (last day of week).
     // 7 elapsed days → fullWeeks = 1, remainder = 0 → same as full week.
     const sessions: Session[] = [
-      makeSession('routine-1', '2026-10-05T10:00:00.000Z'),
-      makeSession('routine-1', '2026-10-07T10:00:00.000Z'),
-      makeSession('routine-1', '2026-10-09T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-05T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-07T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-09T10:00:00.000Z'),
     ]
     const withToday = calculateConsistency(
       sessions,
-      routine,
+      commitment,
       { start: '2026-10-05', end: '2026-10-11' },
       '2026-10-11',
     )
     const withoutToday = calculateConsistency(
       sessions,
-      routine,
+      commitment,
       { start: '2026-10-05', end: '2026-10-11' },
     )
     expect(withToday).toBe(withoutToday)
@@ -328,22 +328,22 @@ describe('calculateConsistency', () => {
   })
 
   it('partial week with no sessions penalizes only elapsed days', () => {
-    // 3x_week routine. 2 full weeks (Mon Sep 28 – Sun Oct 11) + 3 days (Mon Oct 12 – Wed Oct 14).
+    // 3x_week commitment. 2 full weeks (Mon Sep 28 – Sun Oct 11) + 3 days (Mon Oct 12 – Wed Oct 14).
     // Full weeks: 2 × 3 = 6 planned.
     // Partial week: (3/7) × 3 ≈ 1.29 planned.
     // Total planned ≈ 7.29. 6 completed (all in past weeks, none in current).
     // 6 / 7.29 ≈ 82%.
     const sessions: Session[] = [
-      makeSession('routine-1', '2026-09-28T10:00:00.000Z'),
-      makeSession('routine-1', '2026-09-30T10:00:00.000Z'),
-      makeSession('routine-1', '2026-10-02T10:00:00.000Z'),
-      makeSession('routine-1', '2026-10-05T10:00:00.000Z'),
-      makeSession('routine-1', '2026-10-07T10:00:00.000Z'),
-      makeSession('routine-1', '2026-10-09T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-09-28T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-09-30T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-02T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-05T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-07T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-09T10:00:00.000Z'),
     ]
     const result = calculateConsistency(
       sessions,
-      routine,
+      commitment,
       { start: '2026-09-28', end: '2026-10-14' },
       '2026-10-14',
     )
@@ -358,20 +358,20 @@ describe('calculateConsistency', () => {
     // With pro-rating to Oct 14: 82%. The user is not punished for Thu-Sun.
     const withoutProrating = calculateConsistency(
       sessions,
-      routine,
+      commitment,
       { start: '2026-09-28', end: '2026-10-18' },
     )
     expect(withoutProrating).toBe(67)
     expect(result).toBeGreaterThan(withoutProrating)
   })
 
-  it('1-day range with 1 completed session for a daily routine returns 100%', () => {
-    // Simulates a routine created today with 1 session completed today.
-    const dailyRoutine = makeRoutine({
+  it('1-day range with 1 completed session for a daily commitment returns 100%', () => {
+    // Simulates a commitment created today with 1 session completed today.
+    const dailyRoutine = makeCommitment({
       activities: [makeActivity({ frequency: 'daily' })],
     })
     const sessions: Session[] = [
-      makeSession('routine-1', '2026-10-07T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-07T10:00:00.000Z'),
     ]
     const result = calculateConsistency(
       sessions,
@@ -382,15 +382,15 @@ describe('calculateConsistency', () => {
     expect(result).toBe(100)
   })
 
-  it('3-day range for a 3x_week routine with 1 session returns proportional score', () => {
-    // Routine created 3 days ago. 3x_week → pro-rated planned = (3/7)*3 ≈ 1.29.
+  it('3-day range for a 3x_week commitment with 1 session returns proportional score', () => {
+    // Commitment created 3 days ago. 3x_week → pro-rated planned = (3/7)*3 ≈ 1.29.
     // 1 completed → 1/1.29 ≈ 78%.
     const sessions: Session[] = [
-      makeSession('routine-1', '2026-10-05T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-05T10:00:00.000Z'),
     ]
     const result = calculateConsistency(
       sessions,
-      routine,
+      commitment,
       { start: '2026-10-05', end: '2026-10-07' },
       '2026-10-07',
     )
@@ -402,29 +402,29 @@ describe('calculateConsistency', () => {
 
 describe('calculateCompletionRate', () => {
   it('returns correct completed and planned counts', () => {
-    const routine = makeRoutine() // 3x_week
+    const commitment = makeCommitment() // 3x_week
     const sessions = [
-      makeSession('routine-1', '2026-10-05T10:00:00.000Z'), // Mon week of Oct 5
-      makeSession('routine-1', '2026-10-07T10:00:00.000Z'), // Wed
+      makeSession('commitment-1', '2026-10-05T10:00:00.000Z'), // Mon week of Oct 5
+      makeSession('commitment-1', '2026-10-07T10:00:00.000Z'), // Wed
     ]
-    const result = calculateCompletionRate(sessions, routine, '2026-10-05')
+    const result = calculateCompletionRate(sessions, commitment, '2026-10-05')
     expect(result.completed).toBe(2)
     expect(result.planned).toBe(3)
   })
 
   it('returns 0 completed when no sessions in the week', () => {
-    const routine = makeRoutine()
-    const result = calculateCompletionRate([], routine, '2026-10-05')
+    const commitment = makeCommitment()
+    const result = calculateCompletionRate([], commitment, '2026-10-05')
     expect(result.completed).toBe(0)
     expect(result.planned).toBe(3)
   })
 
   it('does not count sessions from a different week', () => {
-    const routine = makeRoutine()
+    const commitment = makeCommitment()
     const sessions = [
-      makeSession('routine-1', '2026-09-28T10:00:00.000Z'), // previous week
+      makeSession('commitment-1', '2026-09-28T10:00:00.000Z'), // previous week
     ]
-    const result = calculateCompletionRate(sessions, routine, '2026-10-05')
+    const result = calculateCompletionRate(sessions, commitment, '2026-10-05')
     expect(result.completed).toBe(0)
   })
 })
@@ -433,13 +433,13 @@ describe('calculateCompletionRate', () => {
 
 describe('calculateWeeklySummary', () => {
   it('computes overall consistency correctly', () => {
-    const routine = makeRoutine()
+    const commitment = makeCommitment()
     const sessions = [
-      makeSession('routine-1', '2026-10-05T10:00:00.000Z'),
-      makeSession('routine-1', '2026-10-07T10:00:00.000Z'),
-      makeSession('routine-1', '2026-10-09T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-05T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-07T10:00:00.000Z'),
+      makeSession('commitment-1', '2026-10-09T10:00:00.000Z'),
     ]
-    const summary = calculateWeeklySummary(sessions, [routine], '2026-10-05')
+    const summary = calculateWeeklySummary(sessions, [commitment], '2026-10-05')
     expect(summary.overallConsistency).toBe(100)
     expect(summary.entries).toHaveLength(1)
     expect(summary.entries[0]!.completed).toBe(3)
@@ -447,14 +447,14 @@ describe('calculateWeeklySummary', () => {
   })
 
   it('returns 0 consistency for a week with no sessions', () => {
-    const routine = makeRoutine()
-    const summary = calculateWeeklySummary([], [routine], '2026-10-05')
+    const commitment = makeCommitment()
+    const summary = calculateWeeklySummary([], [commitment], '2026-10-05')
     expect(summary.overallConsistency).toBe(0)
   })
 
-  it('handles multiple routines', () => {
-    const routineA = makeRoutine({ id: 'r-a', activities: [makeActivity({ id: 'a1', frequency: '3x_week' })] })
-    const routineB = makeRoutine({ id: 'r-b', activities: [makeActivity({ id: 'a2', frequency: '2x_week' })] })
+  it('handles multiple commitments', () => {
+    const routineA = makeCommitment({ id: 'r-a', activities: [makeActivity({ id: 'a1', frequency: '3x_week' })] })
+    const routineB = makeCommitment({ id: 'r-b', activities: [makeActivity({ id: 'a2', frequency: '2x_week' })] })
 
     const sessions = [
       makeSession('r-a', '2026-10-05T10:00:00.000Z', 'a1'),
@@ -476,7 +476,7 @@ describe('calculateVolume', () => {
   it('calculates total volume from sets correctly', () => {
     const session: Session = {
       id: 's1',
-      routineId: 'r1',
+      commitmentId: 'r1',
       completedAt: '2026-10-05T10:00:00.000Z',
       results: [
         {
@@ -502,7 +502,7 @@ describe('calculateVolume', () => {
     ]
     const session: Session = {
       id: 's1',
-      routineId: 'r1',
+      commitmentId: 'r1',
       completedAt: '2026-10-05T10:00:00.000Z',
       results: [{ activityId: 'act-1', measurements: {}, sets }],
     }
@@ -520,11 +520,11 @@ describe('calculateVolume', () => {
     const reversed = [...sets].reverse()
 
     const session1: Session = {
-      id: 's1', routineId: 'r1', completedAt: '2026-10-01T10:00:00.000Z',
+      id: 's1', commitmentId: 'r1', completedAt: '2026-10-01T10:00:00.000Z',
       results: [{ activityId: 'act-1', measurements: {}, sets }],
     }
     const session2: Session = {
-      id: 's2', routineId: 'r1', completedAt: '2026-10-02T10:00:00.000Z',
+      id: 's2', commitmentId: 'r1', completedAt: '2026-10-02T10:00:00.000Z',
       results: [{ activityId: 'act-1', measurements: {}, sets: reversed }],
     }
     expect(calculateVolume(session1, 'act-1')).toBeCloseTo(calculateVolume(session2, 'act-1'))
@@ -537,7 +537,7 @@ describe('calculateVolume', () => {
 
   it('falls back to scalar measurements when no sets present', () => {
     const session: Session = {
-      id: 's1', routineId: 'r1', completedAt: '2026-10-05T10:00:00.000Z',
+      id: 's1', commitmentId: 'r1', completedAt: '2026-10-05T10:00:00.000Z',
       results: [{ activityId: 'act-1', measurements: { weight: 60, reps: 8, sets: 3 } }],
     }
     // 60 * 8 * 3 = 1440
@@ -640,7 +640,7 @@ describe('calculateTrend', () => {
 
   it('uses total volume for weight metric on set-based activities', () => {
     const session: Session = {
-      id: 's1', routineId: 'r1', completedAt: '2026-10-01T10:00:00.000Z',
+      id: 's1', commitmentId: 'r1', completedAt: '2026-10-01T10:00:00.000Z',
       results: [{
         activityId: 'act-1',
         measurements: {},
@@ -655,23 +655,23 @@ describe('calculateTrend', () => {
 // ─── calculateStreak ─────────────────────────────────────────────────────────
 
 describe('calculateStreak', () => {
-  it('returns 0 for flexible frequency routines', () => {
-    const routine = makeRoutine({
+  it('returns 0 for flexible frequency commitments', () => {
+    const commitment = makeCommitment({
       activities: [makeActivity({ frequency: 'flexible' })],
     })
-    expect(calculateStreak([makeSession('routine-1', new Date().toISOString())], routine)).toBe(0)
+    expect(calculateStreak([makeSession('commitment-1', new Date().toISOString())], commitment)).toBe(0)
   })
 
-  it('returns 0 for routines with no sessions', () => {
-    const routine = makeRoutine()
-    expect(calculateStreak([], routine)).toBe(0)
+  it('returns 0 for commitments with no sessions', () => {
+    const commitment = makeCommitment()
+    expect(calculateStreak([], commitment)).toBe(0)
   })
 })
 
 // ─── calculateChallengeProgress ───────────────────────────────────────────────
 
 describe('calculateChallengeProgress', () => {
-  const challengeRoutine = makeRoutine({
+  const challengeRoutine = makeCommitment({
     challengeDurationDays: 30,
     challengeStartDate: '2026-10-01',
   })
@@ -681,7 +681,7 @@ describe('calculateChallengeProgress', () => {
     const sessions = Array.from({ length: 50 }, (_, i) => {
       const date = new Date('2026-10-01')
       date.setUTCDate(date.getUTCDate() + i)
-      return makeSession('routine-1', date.toISOString())
+      return makeSession('commitment-1', date.toISOString())
     })
     const progress = calculateChallengeProgress(challengeRoutine, sessions, '2026-11-10')
     expect(progress.completionRate).toBeLessThanOrEqual(1)
@@ -705,9 +705,9 @@ describe('calculateChallengeProgress', () => {
 
   it('counts only sessions within the challenge window', () => {
     const sessions = [
-      makeSession('routine-1', '2026-09-30T10:00:00.000Z'), // before challenge
-      makeSession('routine-1', '2026-10-05T10:00:00.000Z'), // within
-      makeSession('routine-1', '2026-11-02T10:00:00.000Z'), // after challenge end (Oct 30)
+      makeSession('commitment-1', '2026-09-30T10:00:00.000Z'), // before challenge
+      makeSession('commitment-1', '2026-10-05T10:00:00.000Z'), // within
+      makeSession('commitment-1', '2026-11-02T10:00:00.000Z'), // after challenge end (Oct 30)
     ]
     const progress = calculateChallengeProgress(challengeRoutine, sessions, '2026-10-10')
     expect(progress.completedSessions).toBe(1)
@@ -747,7 +747,7 @@ describe('calculatePersonalBest', () => {
 
   it('finds the max weight from individual sets (not total volume)', () => {
     const session: Session = {
-      id: 's1', routineId: 'r1', completedAt: '2026-10-01T10:00:00.000Z',
+      id: 's1', commitmentId: 'r1', completedAt: '2026-10-01T10:00:00.000Z',
       results: [{
         activityId: 'act-1',
         measurements: {},

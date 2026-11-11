@@ -2,12 +2,12 @@
  * Export utilities — convert app state to downloadable formats.
  *
  * Three formats:
- * - JSON: full-fidelity backup of all routines and sessions.
+ * - JSON: full-fidelity backup of all commitments and sessions.
  * - CSV: one row per session, spreadsheet-friendly.
  * - Markdown: human-readable summary for notes and journals.
  */
 
-import type { AppState, Routine, Session, MeasurementType } from '../domain/types'
+import type { AppState, Commitment, MeasurementType } from '../domain/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -40,8 +40,8 @@ function formatDateTime(iso: string): string {
   })
 }
 
-function routineById(routines: Routine[], id: string): Routine | undefined {
-  return routines.find((r) => r.id === id)
+function commitmentById(commitments: Commitment[], id: string): Commitment | undefined {
+  return commitments.find((c) => c.id === id)
 }
 
 // ─── JSON export ──────────────────────────────────────────────────────────────
@@ -62,10 +62,10 @@ function csvEscape(value: string): string {
 /**
  * Build a CSV string with one row per session.
  *
- * Columns: Date, Routine, Activity, Type, Measurements, Sets, Stayed On Track
+ * Columns: Date, Commitment, Activity, Type, Measurements, Sets, Stayed On Track
  */
 export function exportCSV(state: AppState): string {
-  const header = ['Date', 'Routine', 'Activity', 'Direction', 'Measurements', 'Sets', 'Stayed On Track']
+  const header = ['Date', 'Commitment', 'Activity', 'Direction', 'Measurements', 'Sets', 'Stayed On Track']
   const rows: string[][] = []
 
   const sorted = [...state.sessions].sort((a, b) =>
@@ -73,11 +73,11 @@ export function exportCSV(state: AppState): string {
   )
 
   for (const session of sorted) {
-    const routine = routineById(state.routines, session.routineId)
-    const routineName = routine?.name ?? 'Unknown'
+    const commitment = commitmentById(state.commitments, session.commitmentId)
+    const commitmentName = commitment?.name ?? 'Unknown'
 
     for (const result of session.results) {
-      const activity = routine?.activities.find((a) => a.id === result.activityId)
+      const activity = commitment?.activities.find((a) => a.id === result.activityId)
       const activityName = activity?.name ?? 'Unknown'
       const direction = activity?.direction ?? ''
 
@@ -109,7 +109,7 @@ export function exportCSV(state: AppState): string {
 
       rows.push([
         session.completedAt.slice(0, 10),
-        routineName,
+        commitmentName,
         activityName,
         direction,
         measurementParts.join('; '),
@@ -129,7 +129,7 @@ export function exportCSV(state: AppState): string {
 // ─── Markdown export ──────────────────────────────────────────────────────────
 
 /**
- * Build a Markdown document with routines and session history.
+ * Build a Markdown document with commitments and session history.
  */
 export function exportMarkdown(state: AppState): string {
   const lines: string[] = []
@@ -139,24 +139,24 @@ export function exportMarkdown(state: AppState): string {
   lines.push(`Exported on ${formatDate(new Date().toISOString())}`)
   lines.push('')
 
-  // Routines
-  lines.push('## Routines')
+  // Commitments
+  lines.push('## Commitments')
   lines.push('')
 
-  if (state.routines.length === 0) {
-    lines.push('No routines.')
+  if (state.commitments.length === 0) {
+    lines.push('No commitments.')
   } else {
-    for (const routine of state.routines) {
-      lines.push(`### ${routine.name}`)
+    for (const commitment of state.commitments) {
+      lines.push(`### ${commitment.name}`)
       lines.push('')
-      lines.push(`- Created: ${formatDate(routine.createdAt)}`)
-      if (routine.challengeDurationDays) {
-        lines.push(`- Challenge: ${routine.challengeDurationDays} days (started ${routine.challengeStartDate ?? 'unknown'})`)
+      lines.push(`- Created: ${formatDate(commitment.createdAt)}`)
+      if (commitment.challengeDurationDays) {
+        lines.push(`- Challenge: ${commitment.challengeDurationDays} days (started ${commitment.challengeStartDate ?? 'unknown'})`)
       }
-      lines.push(`- Activities: ${routine.activities.length}`)
+      lines.push(`- Activities: ${commitment.activities.length}`)
       lines.push('')
 
-      for (const activity of routine.activities) {
+      for (const activity of commitment.activities) {
         lines.push(`**${activity.name}** (${activity.direction})`)
         const details: string[] = []
         details.push(`Frequency: ${activity.frequency}`)
@@ -202,12 +202,12 @@ export function exportMarkdown(state: AppState): string {
         lines.push('')
       }
 
-      const routine = routineById(state.routines, session.routineId)
-      lines.push(`**${routine?.name ?? 'Unknown routine'}** — ${formatDateTime(session.completedAt)}`)
+      const commitment = commitmentById(state.commitments, session.commitmentId)
+      lines.push(`**${commitment?.name ?? 'Unknown commitment'}** — ${formatDateTime(session.completedAt)}`)
       lines.push('')
 
       for (const result of session.results) {
-        const activity = routine?.activities.find((a) => a.id === result.activityId)
+        const activity = commitment?.activities.find((a) => a.id === result.activityId)
         const name = activity?.name ?? 'Unknown'
 
         if (result.stayedOnTrack !== undefined) {

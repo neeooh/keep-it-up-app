@@ -25,7 +25,7 @@ import type {
   Activity,
   ActivityResult,
   MeasurementType,
-  Routine,
+  Commitment,
   Session,
   SetResult,
 } from '../domain/types'
@@ -36,7 +36,7 @@ interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   session: Session
-  routine: Routine
+  commitment: Commitment
   onSave: (updated: Session) => void
 }
 
@@ -86,10 +86,10 @@ interface ActivityEditState {
 // ─── Initialize state from existing session results ───────────────────────────
 
 function initStateFromSession(
-  routine: Routine,
+  commitment: Commitment,
   session: Session,
 ): ActivityEditState[] {
-  return routine.activities.map((activity) => {
+  return commitment.activities.map((activity) => {
     const result = session.results.find((r) => r.activityId === activity.id)
 
     if (activity.direction === 'AVOID') {
@@ -140,10 +140,10 @@ function initStateFromSession(
 
 function buildUpdatedSession(
   original: Session,
-  routine: Routine,
+  commitment: Commitment,
   states: ActivityEditState[],
 ): Session {
-  const results: ActivityResult[] = routine.activities.map((activity, index) => {
+  const results: ActivityResult[] = commitment.activities.map((activity, index) => {
     const s = states[index]!
 
     if (activity.direction === 'AVOID') {
@@ -374,17 +374,17 @@ export function EditSessionDialog({
   open,
   onOpenChange,
   session,
-  routine,
+  commitment,
   onSave,
 }: Props) {
   const [states, setStates] = useState<ActivityEditState[]>(() =>
-    initStateFromSession(routine, session),
+    initStateFromSession(commitment, session),
   )
 
   // Re-initialize when a different session is opened.
   const [lastSessionId, setLastSessionId] = useState(session.id)
   if (session.id !== lastSessionId) {
-    setStates(initStateFromSession(routine, session))
+    setStates(initStateFromSession(commitment, session))
     setLastSessionId(session.id)
   }
 
@@ -393,7 +393,7 @@ export function EditSessionDialog({
   }, [])
 
   function handleSave() {
-    const updated = buildUpdatedSession(session, routine, states)
+    const updated = buildUpdatedSession(session, commitment, states)
     onSave(updated)
     onOpenChange(false)
   }
@@ -406,7 +406,7 @@ export function EditSessionDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-5">
-          {routine.activities.map((activity, index) => (
+          {commitment.activities.map((activity, index) => (
             <div key={activity.id} className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">{activity.name}</p>
 

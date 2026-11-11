@@ -5,7 +5,7 @@
  * screen component to render.
  *
  * Onboarding screens (welcome → plan-review) hide the bottom navigation.
- * Main screens (dashboard → edit-routine) show it.
+ * Main screens (dashboard → edit-commitment) show it.
  */
 
 export type Screen =
@@ -23,7 +23,7 @@ export type Screen =
   | 'history'
   | 'progress'
   | 'weekly-review'
-  | 'edit-routine'
+  | 'edit-commitment'
   | 'settings'
 
 /** Screens that belong to the onboarding flow (no bottom nav). */
@@ -44,7 +44,7 @@ export const MAIN_SCREENS: Screen[] = [
   'history',
   'progress',
   'weekly-review',
-  'edit-routine',
+  'edit-commitment',
   'settings',
 ]
 

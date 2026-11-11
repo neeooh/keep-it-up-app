@@ -129,7 +129,7 @@ export function PlanReviewScreen({
   const [challengeOpen, setChallengeOpen] = useState(false)
   const [nameEditing, setNameEditing] = useState(false)
 
-  const isDuplicate = state.routines.some(
+  const isDuplicate = state.commitments.some(
     (r) => r.name.toLowerCase() === activityName.toLowerCase(),
   )
 
@@ -188,7 +188,7 @@ export function PlanReviewScreen({
           >
             <AlertTriangle size={16} className="text-destructive mt-0.5 shrink-0" aria-hidden="true" />
             <p className="text-sm text-foreground">
-              You already have a routine called "{activityName}". You can still
+              You already have a commitment called "{activityName}". You can still
               create this one, but consider renaming it to tell them apart.
             </p>
           </div>

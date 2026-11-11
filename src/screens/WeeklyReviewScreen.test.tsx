@@ -17,7 +17,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { WeeklyReviewScreen } from './WeeklyReviewScreen'
 import {
-  STRENGTH_ROUTINE,
+  STRENGTH_COMMITMENT,
   makeStrengthSession,
   seedStore,
   clearStore,
@@ -47,10 +47,10 @@ function lastWeekDay(dayOffset: number): string {
 
 describe('WeeklyReviewScreen — empty state', () => {
   it('shows countdown when no sessions exist', () => {
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
-        <WeeklyReviewScreen navigate={vi.fn()} onEditRoutine={vi.fn()} />
+        <WeeklyReviewScreen navigate={vi.fn()} onEditCommitment={vi.fn()} />
       </StoreWrapper>,
     )
     expect(screen.getByText(/your weekly review/i)).toBeInTheDocument()
@@ -61,12 +61,12 @@ describe('WeeklyReviewScreen — empty state', () => {
   it('shows countdown when sessions exist but none in previous week', () => {
     // Session from today (current week, not previous week)
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', new Date().toISOString(), 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', new Date().toISOString(), 60, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions })
     render(
       <StoreWrapper>
-        <WeeklyReviewScreen navigate={vi.fn()} onEditRoutine={vi.fn()} />
+        <WeeklyReviewScreen navigate={vi.fn()} onEditCommitment={vi.fn()} />
       </StoreWrapper>,
     )
     expect(screen.getByText(/no sessions were logged last week/i)).toBeInTheDocument()
@@ -79,18 +79,18 @@ describe('WeeklyReviewScreen — empty state', () => {
 describe('WeeklyReviewScreen — rendering', () => {
   function setup() {
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', lastWeekDay(0), 60, 8),
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', lastWeekDay(2), 65, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', lastWeekDay(0), 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', lastWeekDay(2), 65, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions })
     const navigate = vi.fn()
-    const onEditRoutine = vi.fn()
+    const onEditCommitment = vi.fn()
     render(
       <StoreWrapper>
-        <WeeklyReviewScreen navigate={navigate} onEditRoutine={onEditRoutine} />
+        <WeeklyReviewScreen navigate={navigate} onEditCommitment={onEditCommitment} />
       </StoreWrapper>,
     )
-    return { navigate, onEditRoutine }
+    return { navigate, onEditCommitment }
   }
 
   it('renders "Your week" heading', () => {
@@ -123,19 +123,19 @@ describe('WeeklyReviewScreen — rendering', () => {
 describe('WeeklyReviewScreen — "Keep my plan" navigation', () => {
   it('navigates to dashboard when "Keep my plan" is clicked', async () => {
     seedStore({
-      routines: [STRENGTH_ROUTINE],
+      commitments: [STRENGTH_COMMITMENT],
       sessions: [
-        makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', lastWeekDay(1), 60, 8),
+        makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', lastWeekDay(1), 60, 8),
       ],
     })
     const navigate = vi.fn()
     const user = userEvent.setup()
     render(
       <StoreWrapper>
-        <WeeklyReviewScreen navigate={navigate} onEditRoutine={vi.fn()} />
+        <WeeklyReviewScreen navigate={navigate} onEditCommitment={vi.fn()} />
       </StoreWrapper>,
     )
-    await user.click(screen.getByTestId('keep-routine-button'))
+    await user.click(screen.getByTestId('keep-commitment-button'))
     expect(navigate).toHaveBeenCalledWith('dashboard')
   })
 })
@@ -143,22 +143,22 @@ describe('WeeklyReviewScreen — "Keep my plan" navigation', () => {
 // ─── "Adjust my plan" routes to edit ──────────────────────────────────────────
 
 describe('WeeklyReviewScreen — "Adjust my plan" routes to edit', () => {
-  it('calls onEditRoutine with the primary routine ID', async () => {
+  it('calls onEditCommitment with the primary commitment ID', async () => {
     seedStore({
-      routines: [STRENGTH_ROUTINE],
+      commitments: [STRENGTH_COMMITMENT],
       sessions: [
-        makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', lastWeekDay(0), 60, 8),
+        makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', lastWeekDay(0), 60, 8),
       ],
     })
-    const onEditRoutine = vi.fn()
+    const onEditCommitment = vi.fn()
     const user = userEvent.setup()
     render(
       <StoreWrapper>
-        <WeeklyReviewScreen navigate={vi.fn()} onEditRoutine={onEditRoutine} />
+        <WeeklyReviewScreen navigate={vi.fn()} onEditCommitment={onEditCommitment} />
       </StoreWrapper>,
     )
-    await user.click(screen.getByTestId('edit-routine-button'))
-    expect(onEditRoutine).toHaveBeenCalledWith(STRENGTH_ROUTINE.id)
+    await user.click(screen.getByTestId('edit-commitment-button'))
+    expect(onEditCommitment).toHaveBeenCalledWith(STRENGTH_COMMITMENT.id)
   })
 })
 
@@ -169,12 +169,12 @@ describe('WeeklyReviewScreen — conditional suggestions', () => {
     // One session in last week + one older session to pass the 7-day age gate.
     // 1 of 3 planned = 33% consistency.
     seedStore({
-      routines: [STRENGTH_ROUTINE],
+      commitments: [STRENGTH_COMMITMENT],
       sessions: [
-        makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', lastWeekDay(0), 50, 8),
+        makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', lastWeekDay(0), 50, 8),
         // Old session to satisfy activeDays > 7
         makeStrengthSession(
-          STRENGTH_ROUTINE.id,
+          STRENGTH_COMMITMENT.id,
           'act-bench',
           new Date(Date.now() - 20 * 86_400_000).toISOString(),
           50,
@@ -184,7 +184,7 @@ describe('WeeklyReviewScreen — conditional suggestions', () => {
     })
     render(
       <StoreWrapper>
-        <WeeklyReviewScreen navigate={vi.fn()} onEditRoutine={vi.fn()} />
+        <WeeklyReviewScreen navigate={vi.fn()} onEditCommitment={vi.fn()} />
       </StoreWrapper>,
     )
     expect(screen.getByTestId('reduce-suggestion')).toBeInTheDocument()
@@ -192,17 +192,17 @@ describe('WeeklyReviewScreen — conditional suggestions', () => {
 
   it('does not show reduce suggestion when last week was fully completed', () => {
     const sessions = [
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', lastWeekDay(0), 60, 8),
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', lastWeekDay(2), 60, 8),
-      makeStrengthSession(STRENGTH_ROUTINE.id, 'act-bench', lastWeekDay(4), 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', lastWeekDay(0), 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', lastWeekDay(2), 60, 8),
+      makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', lastWeekDay(4), 60, 8),
     ]
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions })
     render(
       <StoreWrapper>
-        <WeeklyReviewScreen navigate={vi.fn()} onEditRoutine={vi.fn()} />
+        <WeeklyReviewScreen navigate={vi.fn()} onEditCommitment={vi.fn()} />
       </StoreWrapper>,
     )
-    // 3 sessions last week for a 3x_week routine = 100% consistency
+    // 3 sessions last week for a 3x_week commitment = 100% consistency
     expect(screen.queryByTestId('reduce-suggestion')).not.toBeInTheDocument()
   })
 })

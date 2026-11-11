@@ -1,11 +1,11 @@
 /**
  * Shared test fixtures for screen tests.
  *
- * Provides mock routines, sessions, and helper functions to set up
+ * Provides mock commitments, sessions, and helper functions to set up
  * localStorage state for rendering tests.
  */
 
-import type { AppState, Routine, Session } from '../../domain/types'
+import type { AppState, Commitment, Session } from '../../domain/types'
 import { AppStoreProvider, STORAGE_KEY } from '../../store/useAppStore'
 import { ThemeProvider } from '../../hooks/useTheme'
 import { PreferencesProvider } from '../../hooks/usePreferences'
@@ -31,8 +31,8 @@ export function thisMonday(): string {
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
-export const STRENGTH_ROUTINE: Routine = {
-  id: 'routine-strength',
+export const STRENGTH_COMMITMENT: Commitment = {
+  id: 'commitment-strength',
   name: 'Strength Training',
   createdAt: daysAgo(30),
   activities: [
@@ -50,8 +50,8 @@ export const STRENGTH_ROUTINE: Routine = {
   ],
 }
 
-export const RUNNING_ROUTINE: Routine = {
-  id: 'routine-running',
+export const RUNNING_COMMITMENT: Commitment = {
+  id: 'commitment-running',
   name: 'Running',
   createdAt: daysAgo(30),
   activities: [
@@ -68,8 +68,8 @@ export const RUNNING_ROUTINE: Routine = {
   ],
 }
 
-export const AVOID_ROUTINE: Routine = {
-  id: 'routine-no-fast-food',
+export const AVOID_COMMITMENT: Commitment = {
+  id: 'commitment-no-fast-food',
   name: 'No Fast Food',
   createdAt: daysAgo(30),
   activities: [
@@ -84,7 +84,7 @@ export const AVOID_ROUTINE: Routine = {
 }
 
 export function makeStrengthSession(
-  routineId: string,
+  commitmentId: string,
   activityId: string,
   completedAt: string,
   weight: number,
@@ -92,7 +92,7 @@ export function makeStrengthSession(
 ): Session {
   return {
     id: `session-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    routineId,
+    commitmentId,
     completedAt,
     results: [
       {
@@ -109,7 +109,7 @@ export function makeStrengthSession(
 }
 
 export function makeRunningSession(
-  routineId: string,
+  commitmentId: string,
   activityId: string,
   completedAt: string,
   distance: number,
@@ -117,7 +117,7 @@ export function makeRunningSession(
 ): Session {
   return {
     id: `session-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    routineId,
+    commitmentId,
     completedAt,
     results: [
       {
@@ -129,14 +129,14 @@ export function makeRunningSession(
 }
 
 export function makeAvoidSession(
-  routineId: string,
+  commitmentId: string,
   activityId: string,
   completedAt: string,
   stayedOnTrack: boolean,
 ): Session {
   return {
     id: `session-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    routineId,
+    commitmentId,
     completedAt,
     results: [
       {

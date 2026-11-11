@@ -1,7 +1,7 @@
 /**
  * ActiveSessionScreen — session recording.
  *
- * Adapts to the routine's activity types:
+ * Adapts to the commitment's activity types:
  * - Strength (sets/reps/weight): set-by-set entry with pre-fill from last session
  * - Metric (distance, duration, quantity): simple number inputs
  * - AVOID: "Did you stay on track today?" binary with supportive feedback
@@ -17,7 +17,7 @@ import { Label } from '../components/ui/label'
 import { PageHeader } from '../components/PageHeader'
 import { ActivityIcon } from '../components/ActivityIcon'
 import { useAppStore } from '../store/useAppStore'
-import { sessionsForRoutine } from '../domain/calculations'
+import { sessionsForCommitment } from '../domain/calculations'
 import type { Navigate } from '../App'
 import type {
   Activity,
@@ -30,7 +30,7 @@ import type {
 
 interface Props {
   navigate: Navigate
-  routineId: string | null
+  commitmentId: string | null
   /** Optional ISO date (YYYY-MM-DD) to log for. Defaults to today. */
   sessionDate?: string
 }
@@ -437,20 +437,20 @@ function SuccessOverlay({ motivation }: { motivation?: string }) {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props) {
+export function ActiveSessionScreen({ navigate, commitmentId, sessionDate }: Props) {
   const { state, addSession } = useAppStore()
   const [selectedDate, setSelectedDate] = useState(sessionDate ?? new Date().toISOString().slice(0, 10))
   const [showSuccess, setShowSuccess] = useState(false)
   const dateOptions = useMemo(() => lastSevenDays(), [])
 
-  const routine = routineId
-    ? state.routines.find((r) => r.id === routineId)
+  const commitment = commitmentId
+    ? state.commitments.find((r) => r.id === commitmentId)
     : null
 
   // Pre-fill from last session
   const lastSessionResults = useMemo(() => {
-    if (!routine) return new Map<string, ActivityResult>()
-    const prev = sessionsForRoutine(state.sessions, routine.id)
+    if (!commitment) return new Map<string, ActivityResult>()
+    const prev = sessionsForCommitment(state.sessions, commitment.id)
     if (prev.length === 0) return new Map<string, ActivityResult>()
     const last = prev[prev.length - 1]!
     const map = new Map<string, ActivityResult>()
@@ -458,25 +458,25 @@ export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props)
       map.set(r.activityId, r)
     }
     return map
-  }, [routine, state.sessions])
+  }, [commitment, state.sessions])
 
   // Detect whether pre-fill is active (strength activities with previous data)
   const lastSessionDate = useMemo(() => {
-    if (!routine) return null
-    const prev = sessionsForRoutine(state.sessions, routine.id)
+    if (!commitment) return null
+    const prev = sessionsForCommitment(state.sessions, commitment.id)
     if (prev.length === 0) return null
     const last = prev[prev.length - 1]!
-    const hasStrength = routine.activities.some(isStrengthActivity)
+    const hasStrength = commitment.activities.some(isStrengthActivity)
     if (!hasStrength) return null
     return new Date(last.completedAt).toLocaleDateString('en-GB', {
       day: 'numeric',
       month: 'short',
     })
-  }, [routine, state.sessions])
+  }, [commitment, state.sessions])
 
   const [activityStates, setActivityStates] = useState<ActivityState[]>(() => {
-    if (!routine) return []
-    return routine.activities.map((activity) => {
+    if (!commitment) return []
+    return commitment.activities.map((activity) => {
       const lastResult = lastSessionResults.get(activity.id)
       return {
         activityId: activity.id,
@@ -489,18 +489,18 @@ export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props)
     })
   })
 
-  // Error state: routine not found
-  if (!routine) {
+  // Error state: commitment not found
+  if (!commitment) {
     return (
       <div
         data-testid="screen-active-session"
         className="flex flex-col items-center justify-center min-h-full p-6 text-center"
       >
         <h1 className="text-xl font-semibold text-foreground">
-          Routine not found
+          Commitment not found
         </h1>
         <p className="text-sm text-muted-foreground mt-2">
-          This routine may have been deleted.
+          This commitment may have been deleted.
         </p>
         <Button
           data-testid="back-to-dashboard"
@@ -519,14 +519,14 @@ export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props)
     )
   }
 
-  const allComplete = routine.activities.every((activity, index) =>
+  const allComplete = commitment.activities.every((activity, index) =>
     isActivityComplete(activity, activityStates[index]!),
   )
 
   function handleComplete() {
-    if (!allComplete || !routine) return
+    if (!allComplete || !commitment) return
 
-    const results: ActivityResult[] = routine.activities.map(
+    const results: ActivityResult[] = commitment.activities.map(
       (activity, index) => {
         const s = activityStates[index]!
 
@@ -568,7 +568,7 @@ export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props)
 
     addSession({
       id: crypto.randomUUID(),
-      routineId: routine.id,
+      commitmentId: commitment.id,
       completedAt: selectedDate === new Date().toISOString().slice(0, 10)
         ? new Date().toISOString()
         : `${selectedDate}T12:00:00.000Z`,
@@ -585,10 +585,10 @@ export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props)
 
   return (
     <div data-testid="screen-active-session" className="flex flex-col min-h-full">
-      {showSuccess && <SuccessOverlay motivation={routine.motivation} />}
+      {showSuccess && <SuccessOverlay motivation={commitment.motivation} />}
 
       {/* Header */}
-      <PageHeader title={routine.name} backAction={() => navigate('dashboard')} />
+      <PageHeader title={commitment.name} backAction={() => navigate('dashboard')} />
 
       {/* Date selector — compact inline */}
       <div data-testid="date-selector" className="px-5 pb-2">
@@ -609,7 +609,7 @@ export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props)
 
       {/* Session progress indicator — fills as activities are completed */}
       <SessionProgress
-        activities={routine.activities}
+        activities={commitment.activities}
         activityStates={activityStates}
       />
 
@@ -624,7 +624,7 @@ export function ActiveSessionScreen({ navigate, routineId, sessionDate }: Props)
 
       {/* Activity forms */}
       <div className="flex-1 overflow-y-auto px-5 pb-6">
-        {routine.activities.map((activity, index) => (
+        {commitment.activities.map((activity, index) => (
           <div
             key={activity.id}
             data-testid={`activity-card-${activity.id}`}

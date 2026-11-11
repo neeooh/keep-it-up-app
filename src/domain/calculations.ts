@@ -11,10 +11,10 @@
 import type {
   Activity,
   ChallengeProgress,
+  Commitment,
   DateRange,
   MeasurementType,
   ProgressEntry,
-  Routine,
   Session,
   TrendPoint,
   WeeklySummary,
@@ -63,8 +63,8 @@ function daysBetween(start: Date, end: Date): number {
 // ─── Frequency helpers ────────────────────────────────────────────────────────
 
 /**
- * Return how many sessions are planned for a routine in a 7-day week,
- * based on its first activity's frequency setting.
+ * Return how many sessions are planned per week for an activity,
+ * based on its frequency setting.
  * 'flexible' is treated as 0 planned (user decides each time).
  */
 export function plannedSessionsPerWeek(activity: Activity): number {
@@ -83,22 +83,22 @@ export function plannedSessionsPerWeek(activity: Activity): number {
 }
 
 /**
- * Return the planned sessions per week for a routine.
- * Uses the first activity's frequency as the routine-level frequency.
- * Returns 0 for empty routines or flexible frequency.
+ * Return the planned sessions per week for a commitment.
+ * Uses the first activity's frequency as the commitment-level frequency.
+ * Returns 0 for empty commitments or flexible frequency.
  */
-export function routinePlannedPerWeek(routine: Routine): number {
-  const first = routine.activities[0]
+export function commitmentPlannedPerWeek(commitment: Commitment): number {
+  const first = commitment.activities[0]
   if (!first) return 0
   return plannedSessionsPerWeek(first)
 }
 
 // ─── Session helpers ──────────────────────────────────────────────────────────
 
-/** Return sessions that belong to a given routine, sorted oldest-first. */
-export function sessionsForRoutine(sessions: Session[], routineId: string): Session[] {
+/** Return sessions that belong to a given commitment, sorted oldest-first. */
+export function sessionsForCommitment(sessions: Session[], commitmentId: string): Session[] {
   return sessions
-    .filter((s) => s.routineId === routineId)
+    .filter((s) => s.commitmentId === commitmentId)
     .sort((a, b) => a.completedAt.localeCompare(b.completedAt))
 }
 
@@ -115,7 +115,7 @@ export function sessionsInRange(sessions: Session[], range: DateRange): Session[
 // ─── calculateConsistency ─────────────────────────────────────────────────────
 
 /**
- * Calculate the consistency percentage for a routine over a date range.
+ * Calculate the consistency percentage for a commitment over a date range.
  *
  * Consistency = completed sessions / planned sessions, expressed as a
  * percentage, clamped to [0, 100].
@@ -132,11 +132,11 @@ export function sessionsInRange(sessions: Session[], range: DateRange): Session[
  */
 export function calculateConsistency(
   sessions: Session[],
-  routine: Routine,
+  commitment: Commitment,
   range: DateRange,
   today?: string,
 ): number {
-  const planned = routinePlannedPerWeek(routine)
+  const planned = commitmentPlannedPerWeek(commitment)
   if (planned === 0) return 0
 
   const startDate = toDate(range.start)
@@ -168,7 +168,7 @@ export function calculateConsistency(
     totalPlanned = totalWeeks * planned
   }
 
-  const completed = sessionsForRoutine(sessions, routine.id).filter((s) => {
+  const completed = sessionsForCommitment(sessions, commitment.id).filter((s) => {
     const t = new Date(s.completedAt).getTime()
     return (
       t >= startDate.getTime() &&
@@ -183,20 +183,20 @@ export function calculateConsistency(
 // ─── calculateCompletionRate ──────────────────────────────────────────────────
 
 /**
- * Return the completion rate for a routine in a given week as { completed, planned }.
+ * Return the completion rate for a commitment in a given week as { completed, planned }.
  *
  * `weekStart` must be the Monday of the target week (YYYY-MM-DD).
  */
 export function calculateCompletionRate(
   sessions: Session[],
-  routine: Routine,
+  commitment: Commitment,
   weekStart: string,
 ): { completed: number; planned: number } {
   const monday = toDate(weekStart)
   const sunday = addDays(monday, 6)
 
-  const planned = routinePlannedPerWeek(routine)
-  const completed = sessionsForRoutine(sessions, routine.id).filter((s) => {
+  const planned = commitmentPlannedPerWeek(commitment)
+  const completed = sessionsForCommitment(sessions, commitment.id).filter((s) => {
     const t = new Date(s.completedAt).getTime()
     return t >= monday.getTime() && t <= sunday.getTime() + 86_400_000 - 1
   }).length
@@ -207,7 +207,7 @@ export function calculateCompletionRate(
 // ─── calculateWeeklySummary ───────────────────────────────────────────────────
 
 /**
- * Compute the full weekly summary for all routines in a given week.
+ * Compute the full weekly summary for all commitments in a given week.
  *
  * `weekStart` is the Monday of the week to summarise (YYYY-MM-DD).
  * The "recent" window covers the 6-week period ending on the Sunday of
@@ -215,7 +215,7 @@ export function calculateCompletionRate(
  */
 export function calculateWeeklySummary(
   sessions: Session[],
-  routines: Routine[],
+  commitments: Commitment[],
   weekStart: string,
 ): WeeklySummary {
   const monday = toDate(weekStart)
@@ -226,14 +226,14 @@ export function calculateWeeklySummary(
   let recentCompleted = 0
   let recentPlanned = 0
 
-  const entries: WeeklySummaryEntry[] = routines.map((routine) => {
-    const { completed, planned } = calculateCompletionRate(sessions, routine, weekStart)
+  const entries: WeeklySummaryEntry[] = commitments.map((commitment) => {
+    const { completed, planned } = calculateCompletionRate(sessions, commitment, weekStart)
     const consistencyRate = planned > 0 ? Math.min(1, completed / planned) : 0
 
-    // Recent window for this routine
-    const weeklyPlanned = routinePlannedPerWeek(routine)
+    // Recent window for this commitment
+    const weeklyPlanned = commitmentPlannedPerWeek(commitment)
     recentPlanned += weeklyPlanned * 6
-    recentCompleted += sessionsForRoutine(sessions, routine.id).filter((s) => {
+    recentCompleted += sessionsForCommitment(sessions, commitment.id).filter((s) => {
       const t = new Date(s.completedAt).getTime()
       return (
         t >= recentStart.getTime() &&
@@ -242,8 +242,8 @@ export function calculateWeeklySummary(
     }).length
 
     return {
-      routineId: routine.id,
-      routineName: routine.name,
+      commitmentId: commitment.id,
+      commitmentName: commitment.name,
       completed,
       planned,
       consistencyRate,
@@ -396,20 +396,20 @@ export function calculateTrend(
 // ─── calculateStreak ─────────────────────────────────────────────────────────
 
 /**
- * Calculate the current consecutive-week streak for a routine.
+ * Calculate the current consecutive-week streak for a commitment.
  *
  * A streak is the number of consecutive calendar weeks (ending with the
  * most recent completed week, or the current week) in which the user met
  * or exceeded their planned session count.
  *
- * 'flexible' frequency routines always return 0.
+ * 'flexible' frequency commitments always return 0.
  */
-export function calculateStreak(sessions: Session[], routine: Routine): number {
-  const planned = routinePlannedPerWeek(routine)
+export function calculateStreak(sessions: Session[], commitment: Commitment): number {
+  const planned = commitmentPlannedPerWeek(commitment)
   if (planned === 0) return 0
 
-  const routineSessions = sessionsForRoutine(sessions, routine.id)
-  if (routineSessions.length === 0) return 0
+  const commitmentSessions = sessionsForCommitment(sessions, commitment.id)
+  if (commitmentSessions.length === 0) return 0
 
   // Find the Monday of the current week
   const now = new Date()
@@ -424,7 +424,7 @@ export function calculateStreak(sessions: Session[], routine: Routine): number {
     const weekStart = weekMonday.getTime()
     const weekEnd = weekSunday.getTime() + 86_400_000 - 1
 
-    const count = routineSessions.filter((s) => {
+    const count = commitmentSessions.filter((s) => {
       const t = new Date(s.completedAt).getTime()
       return t >= weekStart && t <= weekEnd
     }).length
@@ -432,8 +432,8 @@ export function calculateStreak(sessions: Session[], routine: Routine): number {
     if (count >= planned) {
       streak++
     } else if (i === 0) {
-      // Current week is incomplete but not yet over — don't break
-      // (only break if it's a past week that was missed)
+      // Current week is incomplete but not yet over — do not break
+      // (only break if it is a past week that was missed)
     } else {
       break
     }
@@ -447,7 +447,7 @@ export function calculateStreak(sessions: Session[], routine: Routine): number {
 // ─── calculateChallengeProgress ───────────────────────────────────────────────
 
 /**
- * Calculate how far through a challenge a routine is.
+ * Calculate how far through a challenge a commitment is.
  *
  * Invariants:
  * - elapsedDays is clamped to [0, totalDays].
@@ -455,12 +455,12 @@ export function calculateStreak(sessions: Session[], routine: Routine): number {
  * - Challenge progress cannot exceed the challenge duration.
  */
 export function calculateChallengeProgress(
-  routine: Routine,
+  commitment: Commitment,
   sessions: Session[],
   today: string = toDateString(new Date()),
 ): ChallengeProgress {
-  const totalDays = routine.challengeDurationDays!
-  const startDate = toDate(routine.challengeStartDate!)
+  const totalDays = commitment.challengeDurationDays!
+  const startDate = toDate(commitment.challengeStartDate!)
   const endDate = addDays(startDate, totalDays - 1)
   const todayDate = toDate(today)
 
@@ -469,7 +469,7 @@ export function calculateChallengeProgress(
     Math.max(0, daysBetween(startDate, todayDate) + 1),
   )
 
-  const completedSessions = sessionsForRoutine(sessions, routine.id).filter((s) => {
+  const completedSessions = sessionsForCommitment(sessions, commitment.id).filter((s) => {
     const t = new Date(s.completedAt).getTime()
     return (
       t >= startDate.getTime() &&

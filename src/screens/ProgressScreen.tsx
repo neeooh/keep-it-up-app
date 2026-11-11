@@ -25,17 +25,17 @@ import {
   calculateTrend,
   calculateVolume,
   calculateWeeklySummary,
-  sessionsForRoutine,
+  sessionsForCommitment,
   sessionsInRange,
 } from '../domain/calculations'
 import type { Navigate } from '../App'
-import type { MeasurementType, Routine, Session, TrendPoint, WeeklySummary } from '../domain/types'
+import type { MeasurementType, Commitment, Session, TrendPoint, WeeklySummary } from '../domain/types'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
   navigate: Navigate
-  onEditRoutine: (routineId: string) => void
+  onEditCommitment: (commitmentId: string) => void
 }
 
 type Range = '7d' | '30d' | '90d'
@@ -73,14 +73,14 @@ function formatDuration(totalMinutes: number): string {
   return `${hours}h ${mins}m`
 }
 
-/** True when a routine's first activity is an AVOID goal. */
-function isAvoidRoutine(routine: Routine): boolean {
-  return routine.activities.some((a) => a.direction === 'AVOID')
+/** True when a commitment's first activity is an AVOID goal. */
+function isAvoidCommitment(commitment: Commitment): boolean {
+  return commitment.activities.some((a) => a.direction === 'AVOID')
 }
 
 /** Longest run of consecutive stayedOnTrack=true sessions (chronological). */
-function longestStreak(sessions: Session[], routineId: string): number {
-  const ordered = sessionsForRoutine(sessions, routineId)
+function longestStreak(sessions: Session[], commitmentId: string): number {
+  const ordered = sessionsForCommitment(sessions, commitmentId)
   let best = 0
   let current = 0
   for (const session of ordered) {
@@ -339,9 +339,9 @@ function ReviewCountdownCard({
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export function ProgressScreen({ navigate, onEditRoutine }: Props) {
+export function ProgressScreen({ navigate, onEditCommitment: _onEditCommitment }: Props) {
   const { state } = useAppStore()
-  const { routines, sessions } = state
+  const { commitments, sessions } = state
 
   const [range, setRange] = useState<Range>('30d')
 
@@ -360,11 +360,11 @@ export function ProgressScreen({ navigate, onEditRoutine }: Props) {
 
   let reviewSummary: WeeklySummary | null = null
   if (hasReviewData) {
-    reviewSummary = calculateWeeklySummary(sessions, routines, lastWeekStart)
+    reviewSummary = calculateWeeklySummary(sessions, commitments, lastWeekStart)
   }
 
   // ── Empty / not-enough-data state ─────────────────────────────────────────
-  if (routines.length === 0 || !hasEnoughData) {
+  if (commitments.length === 0 || !hasEnoughData) {
     return (
       <div data-testid="screen-progress" className="flex flex-col min-h-full">
         <PageHeader title="Progress" rightAction={<ThemeToggle />} />
@@ -391,17 +391,17 @@ export function ProgressScreen({ navigate, onEditRoutine }: Props) {
   const rangeStart = weeksAgo(weeks)
   const dateRange = { start: rangeStart, end: todayStr }
 
-  const avoidRoutines = routines.filter(isAvoidRoutine)
-  const doRoutines = routines.filter((r) => !isAvoidRoutine(r))
+  const avoidCommitments = commitments.filter(isAvoidCommitment)
+  const doCommitments = commitments.filter((r) => !isAvoidCommitment(r))
 
-  // Consistency per routine over the selected range.
-  // Clamp range start to routine createdAt so new routines are not
+  // Consistency per commitment over the selected range.
+  // Clamp range start to commitment createdAt so new commitments are not
   // penalized for days before they existed. Pass todayStr for pro-rating.
-  const consistencyData = routines.map((r) => {
+  const consistencyData = commitments.map((r) => {
     const created = r.createdAt.slice(0, 10)
     const effectiveStart = created > rangeStart ? created : rangeStart
     return {
-      routine: r,
+      commitment: r,
       consistency: calculateConsistency(sessions, r, { start: effectiveStart, end: todayStr }, todayStr),
     }
   })
@@ -409,8 +409,8 @@ export function ProgressScreen({ navigate, onEditRoutine }: Props) {
   const rangeSessions = sessionsInRange(sessions, dateRange)
 
   // ── AVOID stats ───────────────────────────────────────────────────────────
-  const avoidStats = avoidRoutines.map((routine) => {
-    const inRange = rangeSessions.filter((s) => s.routineId === routine.id)
+  const avoidStats = avoidCommitments.map((commitment) => {
+    const inRange = rangeSessions.filter((s) => s.commitmentId === commitment.id)
     const successfulDays = inRange.filter((s) =>
       s.results.some((r) => r.stayedOnTrack === true),
     ).length
@@ -418,22 +418,22 @@ export function ProgressScreen({ navigate, onEditRoutine }: Props) {
       inRange.length > 0
         ? Math.round((successfulDays / inRange.length) * 100)
         : 0
-    const streak = longestStreak(sessions, routine.id)
-    return { routine, successfulDays, completionRate, streak }
+    const streak = longestStreak(sessions, commitment.id)
+    return { commitment, successfulDays, completionRate, streak }
   })
 
   // ── DO: performance deltas (only DO activities) ─────────────────────────────
-  const progressEntries = doRoutines.flatMap((r) =>
+  const progressEntries = doCommitments.flatMap((r) =>
     r.activities.flatMap((a) => calculateProgress(sessions, a)),
   )
 
   // ── DO: volume + duration over the selected range (weight-based only) ───────
   let rangeVolume = 0
-  for (const routine of doRoutines) {
-    for (const activity of routine.activities) {
+  for (const commitment of doCommitments) {
+    for (const activity of commitment.activities) {
       if (activity.measurements.some((m) => m.type === 'weight')) {
         for (const session of rangeSessions) {
-          if (session.routineId === routine.id) {
+          if (session.commitmentId === commitment.id) {
             rangeVolume += calculateVolume(session, activity.id)
           }
         }
@@ -443,7 +443,7 @@ export function ProgressScreen({ navigate, onEditRoutine }: Props) {
 
   let rangeDuration = 0
   for (const session of rangeSessions) {
-    if (!doRoutines.some((r) => r.id === session.routineId)) continue
+    if (!doCommitments.some((r) => r.id === session.commitmentId)) continue
     for (const result of session.results) {
       const dur = result.measurements['duration']
       if (dur !== undefined) {
@@ -453,7 +453,7 @@ export function ProgressScreen({ navigate, onEditRoutine }: Props) {
   }
 
   // ── DO: trend data — pick the first meaningful metric per activity ──────────
-  const trendData = doRoutines.flatMap((r) =>
+  const trendData = doCommitments.flatMap((r) =>
     r.activities.flatMap((a) => {
       const metricTypes = a.measurements
         .filter((m) => m.type !== 'sets' && m.type !== 'reps')
@@ -523,7 +523,7 @@ export function ProgressScreen({ navigate, onEditRoutine }: Props) {
             <SectionHeader title="Past reviews" />
             <div className="flex flex-col gap-2">
               {pastWeeks.map(({ weekStart: ws }) => {
-                const summary = calculateWeeklySummary(sessions, routines, ws)
+                const summary = calculateWeeklySummary(sessions, commitments, ws)
                 return (
                   <button
                     key={ws}
@@ -561,16 +561,16 @@ export function ProgressScreen({ navigate, onEditRoutine }: Props) {
           ))}
         </div>
 
-        {/* Consistency per routine */}
+        {/* Consistency per commitment */}
         <div>
           <SectionHeader title={`Consistency (${rangeLabel})`} />
           <div className="rounded-xl bg-surface p-4 ring-1 ring-foreground/5">
             <div className="flex flex-col gap-3">
-              {consistencyData.map(({ routine, consistency }) => (
-                <div key={routine.id}>
+              {consistencyData.map(({ commitment, consistency }) => (
+                <div key={commitment.id}>
                   <div className="flex items-center justify-between text-sm mb-1">
                     <span className="text-foreground truncate mr-4">
-                      {routine.name}
+                      {commitment.name}
                     </span>
                     <span className="text-muted-foreground">{consistency}%</span>
                   </div>
@@ -587,9 +587,9 @@ export function ProgressScreen({ navigate, onEditRoutine }: Props) {
         </div>
 
         {/* AVOID progress (goal-aware — no weight/volume stats) */}
-        {avoidStats.map(({ routine, successfulDays, completionRate, streak }) => (
-          <div key={routine.id}>
-            <SectionHeader title={routine.name} />
+        {avoidStats.map(({ commitment, successfulDays, completionRate, streak }) => (
+          <div key={commitment.id}>
+            <SectionHeader title={commitment.name} />
             <div className="grid grid-cols-3 gap-3">
               <StatCard label="On track" value={successfulDays} unit="days" />
               <StatCard label="Success rate" value={completionRate} unit="%" />

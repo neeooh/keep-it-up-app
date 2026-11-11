@@ -5,8 +5,8 @@
  * derived from the spec requirements:
  *
  * - Consistency is always 0–100
- * - Sessions for a routine always belong to that routine
- * - Sessions for a routine are always sorted oldest-first
+ * - Sessions for a commitment always belong to that commitment
+ * - Sessions for a commitment are always sorted oldest-first
  * - Volume is always non-negative
  * - Volume equals sum of (weight × reps) per set
  * - Completion rate never exceeds planned count
@@ -19,16 +19,16 @@ import {
   calculateConsistency,
   calculateVolume,
   calculateCompletionRate,
-  sessionsForRoutine,
+  sessionsForCommitment,
   plannedSessionsPerWeek,
-  routinePlannedPerWeek,
+  commitmentPlannedPerWeek,
 } from './calculations'
 import type {
   Activity,
   ActivityResult,
   Frequency,
   MeasurementConfig,
-  Routine,
+  Commitment,
   Session,
   SetResult,
 } from './types'
@@ -69,17 +69,17 @@ const activityArb: fc.Arbitrary<Activity> = fc.record({
   frequency: frequencyArb,
 })
 
-const routineArb: fc.Arbitrary<Routine> = fc.record({
+const routineArb: fc.Arbitrary<Commitment> = fc.record({
   id: fc.uuid(),
   name: fc.string({ minLength: 1, maxLength: 30 }),
   activities: fc.array(activityArb, { minLength: 1, maxLength: 3 }),
   createdAt: isoDateArb,
 })
 
-function sessionArb(routineId: string): fc.Arbitrary<Session> {
+function sessionArb(commitmentId: string): fc.Arbitrary<Session> {
   return fc.record({
     id: fc.uuid(),
-    routineId: fc.constant(routineId),
+    commitmentId: fc.constant(commitmentId),
     completedAt: isoDateArb,
     results: fc.constant([] as ActivityResult[]),
   })
@@ -88,7 +88,7 @@ function sessionArb(routineId: string): fc.Arbitrary<Session> {
 function sessionWithRoutineIdArb(): fc.Arbitrary<Session> {
   return fc.record({
     id: fc.uuid(),
-    routineId: fc.uuid(),
+    commitmentId: fc.uuid(),
     completedAt: isoDateArb,
     results: fc.constant([] as ActivityResult[]),
   })
@@ -109,8 +109,8 @@ describe('Property-based tests — domain calculations', () => {
       fc.property(
         routineArb,
         fc.array(sessionWithRoutineIdArb(), { maxLength: 20 }),
-        (routine, sessions) => {
-          const result = calculateConsistency(sessions, routine, {
+        (commitment, sessions) => {
+          const result = calculateConsistency(sessions, commitment, {
             start: '2026-06-01',
             end: '2026-06-30',
           })
@@ -121,38 +121,38 @@ describe('Property-based tests — domain calculations', () => {
     )
   })
 
-  // Property 2: sessionsForRoutine only returns sessions belonging to that routine
-  it('sessionsForRoutine only returns sessions matching the routine id', () => {
+  // Property 2: sessionsForCommitment only returns sessions belonging to that commitment
+  it('sessionsForCommitment only returns sessions matching the commitment id', () => {
     fc.assert(
       fc.property(
         fc.uuid(),
         fc.array(sessionWithRoutineIdArb(), { maxLength: 30 }),
-        (routineId, sessions) => {
-          const filtered = sessionsForRoutine(sessions, routineId)
+        (commitmentId, sessions) => {
+          const filtered = sessionsForCommitment(sessions, commitmentId)
           for (const s of filtered) {
-            expect(s.routineId).toBe(routineId)
+            expect(s.commitmentId).toBe(commitmentId)
           }
         },
       ),
     )
   })
 
-  // Property 3: sessionsForRoutine returns sessions sorted oldest-first
-  it('sessionsForRoutine returns sessions sorted by completedAt ascending', () => {
+  // Property 3: sessionsForCommitment returns sessions sorted oldest-first
+  it('sessionsForCommitment returns sessions sorted by completedAt ascending', () => {
     fc.assert(
       fc.property(
         fc.uuid(),
         fc.array(
           fc.record({
             id: fc.uuid(),
-            routineId: fc.uuid(),
+            commitmentId: fc.uuid(),
             completedAt: isoDateArb,
             results: fc.constant([] as ActivityResult[]),
           }),
           { maxLength: 30 },
         ),
-        (routineId, sessions) => {
-          const filtered = sessionsForRoutine(sessions, routineId)
+        (commitmentId, sessions) => {
+          const filtered = sessionsForCommitment(sessions, commitmentId)
           for (let i = 1; i < filtered.length; i++) {
             expect(filtered[i]!.completedAt >= filtered[i - 1]!.completedAt).toBe(true)
           }
@@ -170,7 +170,7 @@ describe('Property-based tests — domain calculations', () => {
         (activityId, sets) => {
           const session: Session = {
             id: 'test-session',
-            routineId: 'test-routine',
+            commitmentId: 'test-commitment',
             completedAt: new Date().toISOString(),
             results: [{ activityId, measurements: {}, sets }],
           }
@@ -196,7 +196,7 @@ describe('Property-based tests — domain calculations', () => {
         (activityId, sets) => {
           const session: Session = {
             id: 'test-session',
-            routineId: 'test-routine',
+            commitmentId: 'test-commitment',
             completedAt: new Date().toISOString(),
             results: [{ activityId, measurements: {}, sets }],
           }
@@ -208,23 +208,23 @@ describe('Property-based tests — domain calculations', () => {
   })
 
   // Property 6: Completion rate completed count never exceeds total sessions in the week
-  it('completion rate completed count is between 0 and total sessions for the routine', () => {
+  it('completion rate completed count is between 0 and total sessions for the commitment', () => {
     fc.assert(
       fc.property(
         routineArb,
         fc.array(
           fc.record({
             id: fc.uuid(),
-            routineId: fc.uuid(),
+            commitmentId: fc.uuid(),
             completedAt: weekDateArb,
             results: fc.constant([] as ActivityResult[]),
           }),
           { maxLength: 20 },
         ),
-        (routine, sessions) => {
+        (commitment, sessions) => {
           const { completed, planned } = calculateCompletionRate(
             sessions,
-            routine,
+            commitment,
             '2026-09-28',
           )
           expect(completed).toBeGreaterThanOrEqual(0)
@@ -258,8 +258,8 @@ describe('Property-based tests — domain calculations', () => {
     )
   })
 
-  // Property 8: routinePlannedPerWeek returns 0 for empty routines
-  it('routinePlannedPerWeek returns 0 for routines with no activities', () => {
+  // Property 8: commitmentPlannedPerWeek returns 0 for empty commitments
+  it('commitmentPlannedPerWeek returns 0 for commitments with no activities', () => {
     fc.assert(
       fc.property(
         fc.record({
@@ -268,29 +268,29 @@ describe('Property-based tests — domain calculations', () => {
           activities: fc.constant([] as Activity[]),
           createdAt: fc.constant('2026-01-01T00:00:00Z'),
         }),
-        (routine) => {
-          expect(routinePlannedPerWeek(routine as Routine)).toBe(0)
+        (commitment) => {
+          expect(commitmentPlannedPerWeek(commitment as Commitment)).toBe(0)
         },
       ),
     )
   })
 
-  // Property 9: Consistency is 0 when no sessions match the routine
-  it('consistency is 0 when no sessions belong to the routine', () => {
+  // Property 9: Consistency is 0 when no sessions match the commitment
+  it('consistency is 0 when no sessions belong to the commitment', () => {
     fc.assert(
       fc.property(
         routineArb,
         fc.array(
           fc.record({
             id: fc.uuid(),
-            routineId: fc.constant('other-routine-id'),
+            commitmentId: fc.constant('other-commitment-id'),
             completedAt: juneDateArb,
             results: fc.constant([] as ActivityResult[]),
           }),
           { maxLength: 10 },
         ),
-        (routine, sessions) => {
-          const result = calculateConsistency(sessions, routine, {
+        (commitment, sessions) => {
+          const result = calculateConsistency(sessions, commitment, {
             start: '2026-06-01',
             end: '2026-06-30',
           })
@@ -301,14 +301,14 @@ describe('Property-based tests — domain calculations', () => {
   })
 
   // Property 10: Adding more matching sessions never decreases consistency
-  it('adding a session for a routine never decreases consistency', () => {
+  it('adding a session for a commitment never decreases consistency', () => {
     fc.assert(
       fc.property(
         routineArb,
-        fc.array(sessionArb('fixed-routine'), { minLength: 0, maxLength: 5 }),
-        sessionArb('fixed-routine'),
-        (routine, baseSessions, extraSession) => {
-          const r = { ...routine, id: 'fixed-routine' }
+        fc.array(sessionArb('fixed-commitment'), { minLength: 0, maxLength: 5 }),
+        sessionArb('fixed-commitment'),
+        (commitment, baseSessions, extraSession) => {
+          const r = { ...commitment, id: 'fixed-commitment' }
           const range = { start: '2026-01-01', end: '2026-12-31' }
           const before = calculateConsistency(baseSessions, r, range)
           const after = calculateConsistency([...baseSessions, extraSession], r, range)

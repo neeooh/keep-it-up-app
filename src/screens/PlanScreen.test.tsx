@@ -1,14 +1,14 @@
 /**
  * PlanScreen tests.
  *
- * - Empty state when no routines exist
- * - Summary stats (routine count and sessions/week)
- * - Weekly grid with dots for scheduled routines
- * - "any day" for routines without scheduled days
- * - Routine cards with name, frequency, and scheduled days
- * - Challenge progress for routines with challenges
- * - Routine cards call onEditRoutine on click
- * - Add routine buttons navigate to welcome
+ * - Empty state when no commitments exist
+ * - Summary stats (commitment count and sessions/week)
+ * - Weekly grid with dots for scheduled commitments
+ * - "any day" for commitments without scheduled days
+ * - Commitment cards with name, frequency, and scheduled days
+ * - Challenge progress for commitments with challenges
+ * - Commitment cards call onEditCommitment on click
+ * - Add commitment buttons navigate to welcome
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
@@ -20,7 +20,7 @@ import {
   clearStore,
   StoreWrapper,
 } from './__tests__/fixtures'
-import type { AppState, Routine } from '../domain/types'
+import type { AppState, Commitment, DayOfWeek } from '../domain/types'
 
 afterEach(() => {
   clearStore()
@@ -28,31 +28,31 @@ afterEach(() => {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function setup(state: AppState, onEditRoutine = vi.fn()) {
+function setup(state: AppState, onEditCommitment = vi.fn()) {
   seedStore(state)
   const navigate = vi.fn()
   render(
     <StoreWrapper>
-      <PlanScreen navigate={navigate} onEditRoutine={onEditRoutine} />
+      <PlanScreen navigate={navigate} onEditCommitment={onEditCommitment} />
     </StoreWrapper>,
   )
-  return { navigate, onEditRoutine }
+  return { navigate, onEditCommitment }
 }
 
-function makeRoutine(overrides: Partial<Routine & { frequency?: string; scheduledDays?: number[]; preferredTime?: string }> = {}): Routine {
+function makeCommitment(overrides: Partial<Commitment & { frequency?: string; scheduledDays?: number[]; preferredTime?: string }> = {}): Commitment {
   return {
     id: overrides.id ?? 'r1',
-    name: overrides.name ?? 'Test routine',
+    name: overrides.name ?? 'Test commitment',
     createdAt: overrides.createdAt ?? '2026-10-01T10:00:00Z',
     challengeDurationDays: overrides.challengeDurationDays,
     challengeStartDate: overrides.challengeStartDate,
     activities: overrides.activities ?? [{
       id: 'a1',
-      name: overrides.name ?? 'Test routine',
+      name: overrides.name ?? 'Test commitment',
       direction: 'DO' as const,
       measurements: [{ type: 'duration' as const, target: 30 }],
       frequency: (overrides as Record<string, unknown>).frequency as 'daily' | '3x_week' | '2x_week' | '1x_week' | 'flexible' ?? '3x_week',
-      scheduledDays: (overrides as Record<string, unknown>).scheduledDays as number[] | undefined,
+      scheduledDays: (overrides as Record<string, unknown>).scheduledDays as DayOfWeek[] | undefined,
       preferredTime: (overrides as Record<string, unknown>).preferredTime as string | undefined,
     }],
   }
@@ -61,55 +61,55 @@ function makeRoutine(overrides: Partial<Routine & { frequency?: string; schedule
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('PlanScreen — empty state', () => {
-  it('renders empty state when no routines exist', () => {
-    setup({ routines: [], sessions: [] })
+  it('renders empty state when no commitments exist', () => {
+    setup({ commitments: [], sessions: [] })
     expect(screen.getByTestId('plan-empty')).toBeInTheDocument()
-    expect(screen.getByText(/no routines yet/i)).toBeInTheDocument()
+    expect(screen.getByText(/no commitments yet/i)).toBeInTheDocument()
   })
 
-  it('empty state "Create a routine" button navigates to welcome', async () => {
+  it('empty state "Create a commitment" button navigates to welcome', async () => {
     const user = userEvent.setup()
-    const { navigate } = setup({ routines: [], sessions: [] })
-    await user.click(screen.getByRole('button', { name: /create a routine/i }))
+    const { navigate } = setup({ commitments: [], sessions: [] })
+    await user.click(screen.getByRole('button', { name: /create a commitment/i }))
     expect(navigate).toHaveBeenCalledWith('welcome')
   })
 })
 
 describe('PlanScreen — summary stats', () => {
-  it('shows correct routine count and sessions/week', () => {
-    const routines = [
-      makeRoutine({ id: 'r1', name: 'Running', frequency: '3x_week' }),
-      makeRoutine({ id: 'r2', name: 'Meditation', frequency: 'daily' }),
+  it('shows correct commitment count and sessions/week', () => {
+    const commitments = [
+      makeCommitment({ id: 'r1', name: 'Running', frequency: '3x_week' }),
+      makeCommitment({ id: 'r2', name: 'Meditation', frequency: 'daily' }),
     ]
-    setup({ routines, sessions: [] })
+    setup({ commitments, sessions: [] })
 
     const summary = screen.getByTestId('plan-summary')
-    expect(summary).toHaveTextContent('2 routines')
+    expect(summary).toHaveTextContent('2 commitments')
     // 3x_week = 3, daily = 7 → 10 sessions/week
     expect(summary).toHaveTextContent('10 sessions/week')
   })
 
-  it('shows singular "routine" for one routine', () => {
-    const routines = [makeRoutine({ id: 'r1', name: 'Running', frequency: '1x_week' })]
-    setup({ routines, sessions: [] })
+  it('shows singular "commitment" for one commitment', () => {
+    const commitments = [makeCommitment({ id: 'r1', name: 'Running', frequency: '1x_week' })]
+    setup({ commitments, sessions: [] })
 
     const summary = screen.getByTestId('plan-summary')
-    expect(summary).toHaveTextContent('1 routine')
+    expect(summary).toHaveTextContent('1 commitment')
     expect(summary).toHaveTextContent('1 sessions/week')
   })
 })
 
 describe('PlanScreen — weekly grid', () => {
   it('shows dots for scheduled days in the grid', () => {
-    const routines = [
-      makeRoutine({
+    const commitments = [
+      makeCommitment({
         id: 'r1',
         name: 'Running',
         frequency: '3x_week',
         scheduledDays: [1, 3, 5],
       }),
     ]
-    setup({ routines, sessions: [] })
+    setup({ commitments, sessions: [] })
 
     const grid = screen.getByTestId('weekly-grid')
     const row = within(grid).getByTestId('grid-row-r1')
@@ -117,58 +117,58 @@ describe('PlanScreen — weekly grid', () => {
     expect(dots).toHaveLength(3)
   })
 
-  it('shows all 7 dots for a daily routine', () => {
-    const routines = [
-      makeRoutine({ id: 'r1', name: 'Meditation', frequency: 'daily' }),
+  it('shows all 7 dots for a daily commitment', () => {
+    const commitments = [
+      makeCommitment({ id: 'r1', name: 'Meditation', frequency: 'daily' }),
     ]
-    setup({ routines, sessions: [] })
+    setup({ commitments, sessions: [] })
 
     const row = screen.getByTestId('grid-row-r1')
     const dots = within(row).getAllByLabelText('scheduled')
     expect(dots).toHaveLength(7)
   })
 
-  it('shows "any day" for routines without scheduled days', () => {
-    const routines = [
-      makeRoutine({ id: 'r1', name: 'Reading', frequency: 'flexible' }),
+  it('shows "any day" for commitments without scheduled days', () => {
+    const commitments = [
+      makeCommitment({ id: 'r1', name: 'Reading', frequency: 'flexible' }),
     ]
-    setup({ routines, sessions: [] })
+    setup({ commitments, sessions: [] })
 
     const row = screen.getByTestId('grid-row-r1')
     expect(within(row).getByText('any day')).toBeInTheDocument()
   })
 })
 
-describe('PlanScreen — routine cards', () => {
-  it('shows routine name and frequency', () => {
-    const routines = [
-      makeRoutine({ id: 'r1', name: 'Running', frequency: '2x_week' }),
+describe('PlanScreen — commitment cards', () => {
+  it('shows commitment name and frequency', () => {
+    const commitments = [
+      makeCommitment({ id: 'r1', name: 'Running', frequency: '2x_week' }),
     ]
-    setup({ routines, sessions: [] })
+    setup({ commitments, sessions: [] })
 
-    const card = screen.getByTestId('plan-routine-r1')
+    const card = screen.getByTestId('plan-commitment-r1')
     expect(within(card).getByText('Running')).toBeInTheDocument()
     expect(within(card).getByText(/2× per week/)).toBeInTheDocument()
   })
 
-  it('shows scheduled days on the routine card', () => {
-    const routines = [
-      makeRoutine({
+  it('shows scheduled days on the commitment card', () => {
+    const commitments = [
+      makeCommitment({
         id: 'r1',
         name: 'Running',
         frequency: '3x_week',
         scheduledDays: [1, 3, 5],
       }),
     ]
-    setup({ routines, sessions: [] })
+    setup({ commitments, sessions: [] })
 
-    const card = screen.getByTestId('plan-routine-r1')
+    const card = screen.getByTestId('plan-commitment-r1')
     expect(within(card).getByText(/Mon, Wed, Fri/)).toBeInTheDocument()
   })
 
-  it('shows challenge progress for a routine with a challenge', () => {
-    const routines = [
-      makeRoutine({
+  it('shows challenge progress for a commitment with a challenge', () => {
+    const commitments = [
+      makeCommitment({
         id: 'r1',
         name: 'Running',
         frequency: '3x_week',
@@ -176,40 +176,40 @@ describe('PlanScreen — routine cards', () => {
         challengeStartDate: '2026-10-01',
       }),
     ]
-    setup({ routines, sessions: [] })
+    setup({ commitments, sessions: [] })
 
-    const card = screen.getByTestId('plan-routine-r1')
+    const card = screen.getByTestId('plan-commitment-r1')
     expect(within(card).getByText(/30-day challenge/)).toBeInTheDocument()
   })
 
-  it('calls onEditRoutine when a routine card is clicked', async () => {
+  it('calls onEditCommitment when a commitment card is clicked', async () => {
     const user = userEvent.setup()
-    const routines = [
-      makeRoutine({ id: 'r1', name: 'Running', frequency: '3x_week' }),
+    const commitments = [
+      makeCommitment({ id: 'r1', name: 'Running', frequency: '3x_week' }),
     ]
-    const { onEditRoutine } = setup({ routines, sessions: [] })
+    const { onEditCommitment } = setup({ commitments, sessions: [] })
 
-    await user.click(screen.getByTestId('plan-routine-r1'))
-    expect(onEditRoutine).toHaveBeenCalledWith('r1')
+    await user.click(screen.getByTestId('plan-commitment-r1'))
+    expect(onEditCommitment).toHaveBeenCalledWith('r1')
   })
 })
 
-describe('PlanScreen — add routine buttons', () => {
+describe('PlanScreen — add commitment buttons', () => {
   it('header add button navigates to welcome', async () => {
     const user = userEvent.setup()
-    const routines = [makeRoutine({ id: 'r1', name: 'Running' })]
-    const { navigate } = setup({ routines, sessions: [] })
+    const commitments = [makeCommitment({ id: 'r1', name: 'Running' })]
+    const { navigate } = setup({ commitments, sessions: [] })
 
-    await user.click(screen.getByTestId('plan-add-routine-button'))
+    await user.click(screen.getByTestId('plan-add-commitment-button'))
     expect(navigate).toHaveBeenCalledWith('welcome')
   })
 
   it('bottom add button navigates to welcome', async () => {
     const user = userEvent.setup()
-    const routines = [makeRoutine({ id: 'r1', name: 'Running' })]
-    const { navigate } = setup({ routines, sessions: [] })
+    const commitments = [makeCommitment({ id: 'r1', name: 'Running' })]
+    const { navigate } = setup({ commitments, sessions: [] })
 
-    await user.click(screen.getByTestId('plan-add-routine-bottom'))
+    await user.click(screen.getByTestId('plan-add-commitment-bottom'))
     expect(navigate).toHaveBeenCalledWith('welcome')
   })
 })

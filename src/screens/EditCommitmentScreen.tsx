@@ -1,8 +1,8 @@
 /**
- * EditRoutineScreen — edit an existing routine.
+ * EditCommitmentScreen — edit an existing commitment.
  *
- * Pre-populates all fields from the current routine and groups them into
- * clear sections: Routine, Schedule, and Challenge. The Schedule section
+ * Pre-populates all fields from the current commitment and groups them into
+ * clear sections: Commitment, Schedule, and Challenge. The Schedule section
  * uses a unified day picker with preset shortcuts. Days are the source of
  * truth; frequency is derived from the day count.
  *
@@ -26,13 +26,13 @@ import { PageHeader } from '../components/PageHeader'
 import { SectionHeader } from '../components/SectionHeader'
 import { useAppStore } from '../store/useAppStore'
 import type { Navigate } from '../App'
-import type { DayOfWeek, Frequency, Routine } from '../domain/types'
+import type { DayOfWeek, Frequency, Commitment } from '../domain/types'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
   navigate: Navigate
-  routineId: string | null
+  commitmentId: string | null
 }
 
 // ─── Preset definitions ───────────────────────────────────────────────────────
@@ -112,34 +112,34 @@ const UNSELECTED_PILL =
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export function EditRoutineScreen({ navigate, routineId }: Props) {
-  const { state, updateRoutine, deleteRoutine } = useAppStore()
+export function EditCommitmentScreen({ navigate, commitmentId }: Props) {
+  const { state, updateCommitment, deleteCommitment } = useAppStore()
 
-  const routine = routineId
-    ? state.routines.find((r) => r.id === routineId)
+  const commitment = commitmentId
+    ? state.commitments.find((r) => r.id === commitmentId)
     : null
 
-  // Form state — initialised from the routine
-  const [name, setName] = useState(routine?.name ?? '')
+  // Form state — initialised from the commitment
+  const [name, setName] = useState(commitment?.name ?? '')
   const [scheduledDays, setScheduledDays] = useState<DayOfWeek[]>(
-    routine?.activities[0]?.scheduledDays ?? [],
+    commitment?.activities[0]?.scheduledDays ?? [],
   )
   const [preferredTime, setPreferredTime] = useState(
-    routine?.activities[0]?.preferredTime ?? '',
+    commitment?.activities[0]?.preferredTime ?? '',
   )
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [challengeRestarted, setChallengeRestarted] = useState(false)
-  const [motivation, setMotivation] = useState(routine?.motivation ?? '')
+  const [motivation, setMotivation] = useState(commitment?.motivation ?? '')
 
   // Not-found state
-  if (!routine) {
+  if (!commitment) {
     return (
       <div
-        data-testid="screen-edit-routine"
+        data-testid="screen-edit-commitment"
         className="flex flex-col items-center justify-center min-h-full p-6 text-center"
       >
         <h1 className="text-xl font-semibold text-foreground">
-          Routine not found
+          Commitment not found
         </h1>
         <Button
           data-testid="back-to-dashboard"
@@ -168,28 +168,28 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
   }
 
   function handleSave() {
-    if (!routine) return
+    if (!commitment) return
 
-    const updated: Routine = {
-      ...routine,
-      name: name.trim() || routine.name,
+    const updated: Commitment = {
+      ...commitment,
+      name: name.trim() || commitment?.name,
       motivation: motivation.trim() || undefined,
-      activities: routine.activities.map((a) => ({
+      activities: commitment?.activities.map((a) => ({
         ...a,
         frequency,
         scheduledDays: scheduledDays.length > 0 ? scheduledDays : undefined,
         preferredTime: preferredTime || undefined,
       })),
     }
-    updateRoutine(updated)
+    updateCommitment(updated)
     navigate('dashboard')
   }
 
   function handleDelete() {
-    if (!routine) return
-    deleteRoutine(routine.id)
-    // Navigate to dashboard or welcome if no routines remain
-    if (state.routines.length <= 1) {
+    if (!commitment) return
+    deleteCommitment(commitment.id)
+    // Navigate to dashboard or welcome if no commitments remain
+    if (state.commitments.length <= 1) {
       navigate('welcome')
     } else {
       navigate('dashboard')
@@ -201,17 +201,17 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
   }
 
   return (
-    <div data-testid="screen-edit-routine" className="flex flex-col min-h-full">
-      <PageHeader title="Edit routine" backAction={handleCancel} />
+    <div data-testid="screen-edit-commitment" className="flex flex-col min-h-full">
+      <PageHeader title="Edit commitment" backAction={handleCancel} />
 
       {/* Form */}
       <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-6">
-        {/* a. Routine */}
+        {/* a. Commitment */}
         <section>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="routine-name">Name</Label>
+            <Label htmlFor="commitment-name">Name</Label>
             <Input
-              id="routine-name"
+              id="commitment-name"
               data-testid="edit-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -308,7 +308,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
         </section>
 
         {/* c. Challenge */}
-        {routine.challengeDurationDays && (
+        {commitment.challengeDurationDays && (
           <section>
             <SectionHeader title="Challenge" />
             {challengeRestarted ? (
@@ -316,7 +316,7 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                 data-testid="restart-confirmation"
                 className="text-sm text-success"
               >
-                Challenge restarted — {routine.challengeDurationDays} days from
+                Challenge restarted — {commitment.challengeDurationDays} days from
                 today.
               </p>
             ) : (
@@ -324,17 +324,17 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
                 data-testid="restart-challenge-button"
                 variant="outline"
                 onClick={() => {
-                  const updated: Routine = {
-                    ...routine,
+                  const updated: Commitment = {
+                    ...commitment,
                     challengeStartDate: new Date().toISOString().slice(0, 10),
                   }
-                  updateRoutine(updated)
+                  updateCommitment(updated)
                   setChallengeRestarted(true)
                 }}
                 className="w-full"
               >
                 <RotateCcw size={16} className="mr-2" aria-hidden="true" />
-                Restart {routine.challengeDurationDays}-day challenge
+                Restart {commitment.challengeDurationDays}-day challenge
               </Button>
             )}
           </section>
@@ -353,11 +353,11 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
         </Button>
         <button
           type="button"
-          data-testid="delete-routine-button"
+          data-testid="delete-commitment-button"
           onClick={() => setShowDeleteDialog(true)}
           className="w-full mt-4 text-xs text-muted-foreground/50 hover:text-destructive transition-colors py-1"
         >
-          Delete this routine
+          Delete this commitment
         </button>
       </div>
 
@@ -365,10 +365,10 @@ export function EditRoutineScreen({ navigate, routineId }: Props) {
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent data-testid="delete-dialog">
           <DialogHeader>
-            <DialogTitle>Delete routine?</DialogTitle>
+            <DialogTitle>Delete commitment?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            This removes "{routine.name}" and its schedule. Your completed
+            This removes "{commitment?.name}" and its schedule. Your completed
             session history remains.
           </p>
           <DialogFooter>

@@ -7,7 +7,7 @@
  * Source of truth: mvp_product_spec.md sections 5 and 6.
  */
 
-import type { Direction, Frequency, MeasurementConfig, Routine } from './types'
+import type { Commitment, Direction, Frequency, MeasurementConfig } from './types'
 
 // ─── Template type ────────────────────────────────────────────────────────────
 
@@ -476,14 +476,14 @@ export function emotionalPlaceholder(templateId?: string | null, activityName?: 
   return 'Something needs to change and this is where I start'
 }
 
-// ─── Persona presets ──────────────────────────────────────────────────────────
+// ─── Paths ────────────────────────────────────────────────────────────────────
 
 /**
- * A persona preset is a complete routine bundle inspired by a real person
- * or philosophy. The user taps one card and gets a fully configured routine
- * without going through the onboarding form.
+ * A path is a curated collection of commitments inspired by a real person
+ * or philosophy. The user taps one card and gets a fully configured set of
+ * commitments without going through the creation form.
  */
-export interface PersonaPreset {
+export interface Path {
   /** Stable identifier. */
   id: string
   /** Display name shown on the card. */
@@ -492,17 +492,17 @@ export interface PersonaPreset {
   tagline: string
   /** Emoji or short icon hint for the card. */
   emoji: string
-  /** The motivation text stored on each created routine. */
+  /** The motivation text stored on each created commitment. */
   motivation: string
-  /** Factory: builds one Routine per activity with fresh IDs and timestamps. */
-  buildRoutines: () => Routine[]
+  /** Factory: builds one Commitment per activity with fresh IDs and timestamps. */
+  buildCommitments: () => Commitment[]
 }
 
-/** Helper: build one routine per activity definition, sharing the same motivation. */
-function buildSeparateRoutines(
+/** Helper: build one commitment per activity definition, sharing the same motivation. */
+function buildSeparateCommitments(
   motivation: string,
   activities: { name: string; description?: string; direction: 'DO' | 'AVOID'; measurements: MeasurementConfig[]; frequency: Frequency; preferredTime?: string; scheduledDays?: (1|2|3|4|5|6|7)[] }[],
-): Routine[] {
+): Commitment[] {
   const now = new Date().toISOString()
   return activities.map((a) => ({
     id: crypto.randomUUID(),
@@ -522,14 +522,14 @@ function buildSeparateRoutines(
   }))
 }
 
-export const personaPresets: PersonaPreset[] = [
+export const paths: Path[] = [
   {
     id: 'stoic',
     name: 'The Stoic',
     tagline: 'Discipline, reflection, and daily practice',
     emoji: '🏛️',
     motivation: 'You have power over your mind, not outside events. Realise this, and you will find strength.',
-    buildRoutines: () => buildSeparateRoutines(
+    buildCommitments: () => buildSeparateCommitments(
       'You have power over your mind, not outside events. Realise this, and you will find strength.',
       [
         { name: 'Morning journaling', description: 'Write 3 things on your mind', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 10 }], frequency: 'daily', preferredTime: 'Morning' },
@@ -545,7 +545,7 @@ export const personaPresets: PersonaPreset[] = [
     tagline: 'Service, stillness, and gratitude',
     emoji: '✝️',
     motivation: 'Love your neighbour as yourself. Start with showing up for your own life.',
-    buildRoutines: () => buildSeparateRoutines(
+    buildCommitments: () => buildSeparateCommitments(
       'Love your neighbour as yourself. Start with showing up for your own life.',
       [
         { name: 'Prayer or meditation', description: 'Be still and listen', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 15 }], frequency: 'daily', preferredTime: 'Morning' },
@@ -561,7 +561,7 @@ export const personaPresets: PersonaPreset[] = [
     tagline: 'Order, responsibility, and meaning',
     emoji: '🦞',
     motivation: 'Compare yourself to who you were yesterday, not to who someone else is today.',
-    buildRoutines: () => buildSeparateRoutines(
+    buildCommitments: () => buildSeparateCommitments(
       'Compare yourself to who you were yesterday, not to who someone else is today.',
       [
         { name: 'Clean your room', description: '15 minutes. One area. Start small.', direction: 'DO', measurements: [{ type: 'duration', unit: 'min', target: 15 }], frequency: 'daily', preferredTime: 'Morning' },
@@ -577,7 +577,7 @@ export const personaPresets: PersonaPreset[] = [
     tagline: 'Strength, volume, and no excuses',
     emoji: '💪',
     motivation: 'The mind is the limit. As long as the mind can envision that you can do something, you can do it.',
-    buildRoutines: () => buildSeparateRoutines(
+    buildCommitments: () => buildSeparateCommitments(
       'The mind is the limit. As long as the mind can envision that you can do something, you can do it.',
       [
         { name: 'Strength workout', description: 'Push yourself. Log every set.', direction: 'DO', measurements: [{ type: 'sets', target: 4 }, { type: 'reps', target: 10 }, { type: 'weight', unit: 'kg' }], frequency: 'daily', scheduledDays: [1, 2, 3, 4, 5, 6] },

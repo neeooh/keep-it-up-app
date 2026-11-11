@@ -13,7 +13,7 @@ import type {
 import { useAppStore, AppStoreProvider } from './store/useAppStore'
 import { ThemeProvider } from './hooks/useTheme'
 import { PreferencesProvider, usePreferences } from './hooks/usePreferences'
-import { findTemplate, needsConfigureScreen, personaPresets } from './domain/templates'
+import { findTemplate, needsConfigureScreen, paths } from './domain/templates'
 
 // ── Onboarding screens ────────────────────────────────────────────────────────
 import { WelcomeScreen } from './screens/onboarding/WelcomeScreen'
@@ -29,7 +29,7 @@ import { ActiveSessionScreen } from './screens/ActiveSessionScreen'
 import { HistoryScreen } from './screens/HistoryScreen'
 import { ProgressScreen } from './screens/ProgressScreen'
 import { WeeklyReviewScreen } from './screens/WeeklyReviewScreen'
-import { EditRoutineScreen } from './screens/EditRoutineScreen'
+import { EditCommitmentScreen } from './screens/EditCommitmentScreen'
 import { PlanScreen } from './screens/PlanScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 
@@ -46,7 +46,7 @@ const NAV_ICONS = {
 
 /**
  * All state accumulated while the user walks through the onboarding flow.
- * Passed to PlanReviewScreen to assemble the final Routine.
+ * Passed to PlanReviewScreen to assemble the final Commitment.
  */
 export interface OnboardingDraft {
   direction: Direction | null
@@ -95,10 +95,10 @@ interface ScreenProps {
   navigate: Navigate
   draft: OnboardingDraft
   setDraft: (patch: Partial<OnboardingDraft>) => void
-  onStartRoutine: () => void
-  selectedRoutineId: string | null
-  onStartSession: (routineId: string, date?: string) => void
-  onEditRoutine: (routineId: string) => void
+  onStartCommitment: () => void
+  selectedCommitmentId: string | null
+  onStartSession: (commitmentId: string, date?: string) => void
+  onEditCommitment: (commitmentId: string) => void
   /** When set, onboarding screens show a close (X) button that returns to dashboard. */
   onClose?: () => void
   /** Install a persona preset routine by id. */
@@ -118,10 +118,10 @@ function renderScreen(
     navigate,
     draft,
     setDraft,
-    onStartRoutine,
-    selectedRoutineId,
+    onStartCommitment,
+    selectedCommitmentId,
     onStartSession,
-    onEditRoutine,
+    onEditCommitment,
     onClose,
     onInstallPreset,
     onConfirmPath,
@@ -199,7 +199,7 @@ function renderScreen(
         <PlanReviewScreen
           navigate={navigate}
           draft={draft}
-          onStart={onStartRoutine}
+          onStart={onStartCommitment}
           skippedConfigure={draft.skippedConfigure}
           scheduledDays={draft.scheduledDays}
           preferredTime={draft.preferredTime}
@@ -243,14 +243,13 @@ function renderScreen(
           onViewPath={(presetId: string) => {
             onInstallPreset(presetId)
           }}
-          onEditRoutine={onEditRoutine}
         />
       )
     case 'plan':
       return (
         <PlanScreen
           navigate={navigate}
-          onEditRoutine={onEditRoutine}
+          onEditCommitment={onEditCommitment}
           onViewPath={(presetId: string) => {
             onInstallPreset(presetId)
           }}
@@ -260,26 +259,26 @@ function renderScreen(
       return (
         <ActiveSessionScreen
           navigate={navigate}
-          routineId={selectedRoutineId}
+          commitmentId={selectedCommitmentId}
           sessionDate={sessionDate}
         />
       )
     case 'history':
       return <HistoryScreen navigate={navigate} />
     case 'progress':
-      return <ProgressScreen navigate={navigate} onEditRoutine={onEditRoutine} />
+      return <ProgressScreen navigate={navigate} onEditCommitment={onEditCommitment} />
     case 'weekly-review':
       return (
         <WeeklyReviewScreen
           navigate={navigate}
-          onEditRoutine={onEditRoutine}
+          onEditCommitment={onEditCommitment}
         />
       )
-    case 'edit-routine':
+    case 'edit-commitment':
       return (
-        <EditRoutineScreen
+        <EditCommitmentScreen
           navigate={navigate}
-          routineId={selectedRoutineId}
+          commitmentId={selectedCommitmentId}
         />
       )
     case 'settings':
@@ -350,16 +349,16 @@ export default function App({ initialScreen }: AppProps) {
 }
 
 function AppShell({ initialScreen }: AppProps) {
-  const { addRoutine, state: appState } = useAppStore()
-  const { preferences, updatePreferences } = usePreferences()
+  const { addCommitment, state: appState } = useAppStore()
+  const { updatePreferences } = usePreferences()
 
   // Route to dashboard when routines already exist, unless explicitly overridden.
   const resolvedInitial =
-    initialScreen ?? (appState.routines.length > 0 ? 'dashboard' : 'welcome')
+    initialScreen ?? (appState.commitments.length > 0 ? 'dashboard' : 'welcome')
 
   const [screen, setScreen] = useState<Screen>(resolvedInitial)
   const [draft, setDraftState] = useState<OnboardingDraft>(EMPTY_DRAFT)
-  const [selectedRoutineId, setSelectedRoutineId] = useState<string | null>(null)
+  const [selectedCommitmentId, setSelectedCommitmentId] = useState<string | null>(null)
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
   const [sessionDate, setSessionDate] = useState<string | undefined>(undefined)
   const [previousScreen, setPreviousScreen] = useState<Screen | null>(null)
@@ -375,7 +374,7 @@ function AppShell({ initialScreen }: AppProps) {
     setDraftState((prev) => ({ ...prev, ...patch }))
   }, [])
 
-  const onStartRoutine = useCallback(() => {
+  const onStartCommitment = useCallback(() => {
     const template = draft.templateId ? findTemplate(draft.templateId) : null
     const activityName =
       draft.activityName || template?.defaultName || 'My activity'
@@ -416,7 +415,7 @@ function AppShell({ initialScreen }: AppProps) {
             },
           ]
 
-    addRoutine({
+    addCommitment({
       id: crypto.randomUUID(),
       name: activityName,
       createdAt: new Date().toISOString(),
@@ -430,21 +429,21 @@ function AppShell({ initialScreen }: AppProps) {
 
     setDraftState(EMPTY_DRAFT)
     navigate('dashboard')
-  }, [draft, addRoutine, navigate])
+  }, [draft, addCommitment, navigate])
 
   const onStartSession = useCallback(
-    (routineId: string, date?: string) => {
-      setSelectedRoutineId(routineId)
+    (commitmentId: string, date?: string) => {
+      setSelectedCommitmentId(commitmentId)
       setSessionDate(date)
       navigate('active-session')
     },
     [navigate],
   )
 
-  const onEditRoutine = useCallback(
-    (routineId: string) => {
-      setSelectedRoutineId(routineId)
-      navigate('edit-routine')
+  const onEditCommitment = useCallback(
+    (commitmentId: string) => {
+      setSelectedCommitmentId(commitmentId)
+      navigate('edit-commitment')
     },
     [navigate],
   )
@@ -468,28 +467,28 @@ function AppShell({ initialScreen }: AppProps) {
             navigate,
             draft,
             setDraft,
-            onStartRoutine,
-            selectedRoutineId,
+            onStartCommitment,
+            selectedCommitmentId,
             onStartSession,
-            onEditRoutine,
-            onClose: appState.routines.length > 0 ? () => navigate('dashboard') : undefined,
+            onEditCommitment,
+            onClose: appState.commitments.length > 0 ? () => navigate('dashboard') : undefined,
             onInstallPreset: (presetId: string) => {
               setSelectedPresetId(presetId)
               navigate('path-preview')
             },
             onConfirmPath: (presetId: string) => {
-              const preset = personaPresets.find((p) => p.id === presetId)
+              const preset = paths.find((p) => p.id === presetId)
               if (!preset) return
               const existingNames = new Set(
-                appState.routines.flatMap((r) =>
+                appState.commitments.flatMap((r) =>
                   r.activities.map((a) => a.name.toLowerCase()),
                 ),
               )
-              for (const routine of preset.buildRoutines()) {
-                const activityName = routine.activities[0]?.name.toLowerCase() ?? ''
+              for (const commitment of preset.buildCommitments()) {
+                const activityName = commitment.activities[0]?.name.toLowerCase() ?? ''
                 if (existingNames.has(activityName)) continue
                 existingNames.add(activityName)
-                addRoutine(routine)
+                addCommitment(commitment)
               }
               updatePreferences({ chosenPath: presetId })
               navigate('dashboard')

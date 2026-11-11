@@ -1,7 +1,7 @@
 import { Target, ShieldX, ArrowRight, X } from 'lucide-react'
 import type { Navigate } from '../../App'
 import type { Direction } from '../../domain/types'
-import { personaPresets } from '../../domain/templates'
+import { paths } from '../../domain/templates'
 import { usePreferences } from '../../hooks/usePreferences'
 
 interface Props {
@@ -16,7 +16,7 @@ interface Props {
 }
 
 export function WelcomeScreen({ navigate, onDirectionChoose, onClose, onInstallPreset }: Props) {
-  const isAddRoutine = !!onClose
+  const isAddCommitment = !!onClose
   const { preferences } = usePreferences()
   const hasPath = !!preferences.chosenPath
 
@@ -49,12 +49,12 @@ export function WelcomeScreen({ navigate, onDirectionChoose, onClose, onInstallP
 
       {/* ── Heading and description ────────────────────────────────────── */}
       <h1 className="mt-4 text-3xl font-semibold tracking-tight text-foreground">
-        {isAddRoutine ? 'Add a routine' : 'What do you want to work on?'}
+        {isAddCommitment ? 'Add a commitment' : 'What do you want to work on?'}
       </h1>
 
       <p className="mt-3 text-base text-muted-foreground max-w-xs">
-        {isAddRoutine
-          ? 'Choose a direction for your new routine.'
+        {isAddCommitment
+          ? 'Choose a direction for your new commitment.'
           : 'Build a habit you want to keep, or break one you want to leave behind.'}
       </p>
 
@@ -96,21 +96,21 @@ export function WelcomeScreen({ navigate, onDirectionChoose, onClose, onInstallP
       {/* ── Divider ────────────────────────────────────────────────────── */}
       <div className="w-full max-w-xs mx-auto mt-10 mb-8 flex items-center gap-4">
         <div className="flex-1 h-px bg-border" />
-        <span className="text-xs text-muted-foreground">or try a ready-made routine</span>
+        <span className="text-xs text-muted-foreground">or try a ready-made path</span>
         <div className="flex-1 h-px bg-border" />
       </div>
 
       {/* ── Persona presets — horizontal scroll ────────────────────────── */}
       <div className="w-full">
         <p className="text-xs text-muted-foreground mb-3">
-          {hasPath ? 'You are on a path. You can switch in settings.' : 'One tap setup — a complete routine in a second.'}
+          {hasPath ? 'You are on a path. You can switch in settings.' : 'One tap setup — a complete set of commitments in a second.'}
         </p>
         <div
           className="flex overflow-x-auto pb-2 -mx-6 snap-x scrollbar-none"
         >
           {/* Leading spacer — scroll containers eat padding-left */}
           <div className="shrink-0 w-6" aria-hidden="true" />
-          {personaPresets.map((preset, i) => {
+          {paths.map((preset, i) => {
             const isCurrent = preferences.chosenPath === preset.id
             const isDisabled = hasPath && !isCurrent
             return (

@@ -5,7 +5,7 @@
  * - AVOID stayedOnTrack recording
  * - addSession receives correct ActivityResult[]
  * - Pre-fill from last session for strength
- * - Routine-not-found error state
+ * - Commitment-not-found error state
  */
 
 import { render, screen, act } from '@testing-library/react'
@@ -14,9 +14,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ActiveSessionScreen } from './ActiveSessionScreen'
 import {
-  STRENGTH_ROUTINE,
-  RUNNING_ROUTINE,
-  AVOID_ROUTINE,
+  STRENGTH_COMMITMENT,
+  RUNNING_COMMITMENT,
+  AVOID_COMMITMENT,
   makeStrengthSession,
   daysAgo,
   seedStore,
@@ -34,28 +34,28 @@ beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true })
 })
 
-describe('ActiveSessionScreen — routine not found', () => {
-  it('shows error state when routineId does not match any routine', () => {
-    seedStore({ routines: [], sessions: [] })
+describe('ActiveSessionScreen — commitment not found', () => {
+  it('shows error state when commitmentId does not match any commitment', () => {
+    seedStore({ commitments: [], sessions: [] })
     render(
       <StoreWrapper>
-        <ActiveSessionScreen navigate={vi.fn()} routineId="nonexistent" />
+        <ActiveSessionScreen navigate={vi.fn()} commitmentId="nonexistent" />
       </StoreWrapper>,
     )
-    expect(screen.getByText(/routine not found/i)).toBeInTheDocument()
+    expect(screen.getByText(/commitment not found/i)).toBeInTheDocument()
   })
 
-  it('shows error state when routineId is null', () => {
-    seedStore({ routines: [], sessions: [] })
-    render(<StoreWrapper><ActiveSessionScreen navigate={vi.fn()} routineId={null} /></StoreWrapper>)
-    expect(screen.getByText(/routine not found/i)).toBeInTheDocument()
+  it('shows error state when commitmentId is null', () => {
+    seedStore({ commitments: [], sessions: [] })
+    render(<StoreWrapper><ActiveSessionScreen navigate={vi.fn()} commitmentId={null} /></StoreWrapper>)
+    expect(screen.getByText(/commitment not found/i)).toBeInTheDocument()
   })
 
   it('"Back to dashboard" button navigates', async () => {
-    seedStore({ routines: [], sessions: [] })
+    seedStore({ commitments: [], sessions: [] })
     const navigate = vi.fn()
     const user = userEvent.setup()
-    render(<StoreWrapper><ActiveSessionScreen navigate={navigate} routineId={null} /></StoreWrapper>)
+    render(<StoreWrapper><ActiveSessionScreen navigate={navigate} commitmentId={null} /></StoreWrapper>)
     await user.click(screen.getByTestId('back-to-dashboard'))
     expect(navigate).toHaveBeenCalledWith('dashboard')
   })
@@ -63,12 +63,12 @@ describe('ActiveSessionScreen — routine not found', () => {
 
 describe('ActiveSessionScreen — strength activity', () => {
   it('renders set rows for a strength activity', () => {
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
         <ActiveSessionScreen
           navigate={vi.fn()}
-          routineId={STRENGTH_ROUTINE.id}
+          commitmentId={STRENGTH_COMMITMENT.id}
         />
       </StoreWrapper>,
     )
@@ -76,12 +76,12 @@ describe('ActiveSessionScreen — strength activity', () => {
   })
 
   it('complete button is enabled when targets pre-fill the form', () => {
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
         <ActiveSessionScreen
           navigate={vi.fn()}
-          routineId={STRENGTH_ROUTINE.id}
+          commitmentId={STRENGTH_COMMITMENT.id}
         />
       </StoreWrapper>,
     )
@@ -91,18 +91,18 @@ describe('ActiveSessionScreen — strength activity', () => {
 
   it('pre-fills from last session', () => {
     const lastSession = makeStrengthSession(
-      STRENGTH_ROUTINE.id,
+      STRENGTH_COMMITMENT.id,
       'act-bench',
       daysAgo(2),
       70,
       8,
     )
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [lastSession] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [lastSession] })
     render(
       <StoreWrapper>
         <ActiveSessionScreen
           navigate={vi.fn()}
-          routineId={STRENGTH_ROUTINE.id}
+          commitmentId={STRENGTH_COMMITMENT.id}
         />
       </StoreWrapper>,
     )
@@ -112,14 +112,14 @@ describe('ActiveSessionScreen — strength activity', () => {
   })
 
   it('saves a complete strength session', async () => {
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [] })
     const navigate = vi.fn()
     const user = userEvent.setup()
     render(
       <StoreWrapper>
         <ActiveSessionScreen
           navigate={navigate}
-          routineId={STRENGTH_ROUTINE.id}
+          commitmentId={STRENGTH_COMMITMENT.id}
         />
       </StoreWrapper>,
     )
@@ -141,19 +141,19 @@ describe('ActiveSessionScreen — strength activity', () => {
     // Verify session was saved in localStorage
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
     expect(state.sessions).toHaveLength(1)
-    expect(state.sessions[0].routineId).toBe(STRENGTH_ROUTINE.id)
+    expect(state.sessions[0].commitmentId).toBe(STRENGTH_COMMITMENT.id)
     expect(state.sessions[0].results[0].sets.length).toBeGreaterThan(0)
   })
 })
 
 describe('ActiveSessionScreen — metric activity', () => {
   it('renders metric inputs for running', () => {
-    seedStore({ routines: [RUNNING_ROUTINE], sessions: [] })
+    seedStore({ commitments: [RUNNING_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
         <ActiveSessionScreen
           navigate={vi.fn()}
-          routineId={RUNNING_ROUTINE.id}
+          commitmentId={RUNNING_COMMITMENT.id}
         />
       </StoreWrapper>,
     )
@@ -162,12 +162,12 @@ describe('ActiveSessionScreen — metric activity', () => {
   })
 
   it('complete button is enabled when targets pre-fill the form', () => {
-    seedStore({ routines: [RUNNING_ROUTINE], sessions: [] })
+    seedStore({ commitments: [RUNNING_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
         <ActiveSessionScreen
           navigate={vi.fn()}
-          routineId={RUNNING_ROUTINE.id}
+          commitmentId={RUNNING_COMMITMENT.id}
         />
       </StoreWrapper>,
     )
@@ -176,14 +176,14 @@ describe('ActiveSessionScreen — metric activity', () => {
   })
 
   it('saves a complete metric session', async () => {
-    seedStore({ routines: [RUNNING_ROUTINE], sessions: [] })
+    seedStore({ commitments: [RUNNING_COMMITMENT], sessions: [] })
     const navigate = vi.fn()
     const user = userEvent.setup()
     render(
       <StoreWrapper>
         <ActiveSessionScreen
           navigate={navigate}
-          routineId={RUNNING_ROUTINE.id}
+          commitmentId={RUNNING_COMMITMENT.id}
         />
       </StoreWrapper>,
     )
@@ -203,12 +203,12 @@ describe('ActiveSessionScreen — metric activity', () => {
 
 describe('ActiveSessionScreen — AVOID activity', () => {
   it('renders the stay-on-track buttons', () => {
-    seedStore({ routines: [AVOID_ROUTINE], sessions: [] })
+    seedStore({ commitments: [AVOID_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
         <ActiveSessionScreen
           navigate={vi.fn()}
-          routineId={AVOID_ROUTINE.id}
+          commitmentId={AVOID_COMMITMENT.id}
         />
       </StoreWrapper>,
     )
@@ -217,12 +217,12 @@ describe('ActiveSessionScreen — AVOID activity', () => {
   })
 
   it('complete button is disabled until stayedOnTrack is set', () => {
-    seedStore({ routines: [AVOID_ROUTINE], sessions: [] })
+    seedStore({ commitments: [AVOID_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
         <ActiveSessionScreen
           navigate={vi.fn()}
-          routineId={AVOID_ROUTINE.id}
+          commitmentId={AVOID_COMMITMENT.id}
         />
       </StoreWrapper>,
     )
@@ -230,14 +230,14 @@ describe('ActiveSessionScreen — AVOID activity', () => {
   })
 
   it('records stayedOnTrack = true', async () => {
-    seedStore({ routines: [AVOID_ROUTINE], sessions: [] })
+    seedStore({ commitments: [AVOID_COMMITMENT], sessions: [] })
     const navigate = vi.fn()
     const user = userEvent.setup()
     render(
       <StoreWrapper>
         <ActiveSessionScreen
           navigate={navigate}
-          routineId={AVOID_ROUTINE.id}
+          commitmentId={AVOID_COMMITMENT.id}
         />
       </StoreWrapper>,
     )
@@ -250,14 +250,14 @@ describe('ActiveSessionScreen — AVOID activity', () => {
   })
 
   it('records stayedOnTrack = false', async () => {
-    seedStore({ routines: [AVOID_ROUTINE], sessions: [] })
+    seedStore({ commitments: [AVOID_COMMITMENT], sessions: [] })
     const navigate = vi.fn()
     const user = userEvent.setup()
     render(
       <StoreWrapper>
         <ActiveSessionScreen
           navigate={navigate}
-          routineId={AVOID_ROUTINE.id}
+          commitmentId={AVOID_COMMITMENT.id}
         />
       </StoreWrapper>,
     )
@@ -272,10 +272,10 @@ describe('ActiveSessionScreen — AVOID activity', () => {
 
 describe('ActiveSessionScreen — date selector', () => {
   it('renders date selector with Today as default', () => {
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
-        <ActiveSessionScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />
+        <ActiveSessionScreen navigate={vi.fn()} commitmentId={STRENGTH_COMMITMENT.id} />
       </StoreWrapper>,
     )
     expect(screen.getByTestId('date-selector')).toBeInTheDocument()
@@ -286,11 +286,11 @@ describe('ActiveSessionScreen — date selector', () => {
   })
 
   it('changes selected value when a different date is chosen', async () => {
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [] })
     const user = userEvent.setup()
     render(
       <StoreWrapper>
-        <ActiveSessionScreen navigate={vi.fn()} routineId={STRENGTH_ROUTINE.id} />
+        <ActiveSessionScreen navigate={vi.fn()} commitmentId={STRENGTH_COMMITMENT.id} />
       </StoreWrapper>,
     )
     const select = screen.getByTestId('session-date-select') as HTMLSelectElement
@@ -303,12 +303,12 @@ describe('ActiveSessionScreen — date selector', () => {
   })
 
   it('saves completedAt with past date when a past day is selected', async () => {
-    seedStore({ routines: [AVOID_ROUTINE], sessions: [] })
+    seedStore({ commitments: [AVOID_COMMITMENT], sessions: [] })
     const navigate = vi.fn()
     const user = userEvent.setup()
     render(
       <StoreWrapper>
-        <ActiveSessionScreen navigate={navigate} routineId={AVOID_ROUTINE.id} />
+        <ActiveSessionScreen navigate={navigate} commitmentId={AVOID_COMMITMENT.id} />
       </StoreWrapper>,
     )
     // Select yesterday
@@ -327,7 +327,7 @@ describe('ActiveSessionScreen — date selector', () => {
   })
 
   it('pre-selects the date from the sessionDate prop', () => {
-    seedStore({ routines: [STRENGTH_ROUTINE], sessions: [] })
+    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [] })
     const yesterdayDate = new Date()
     yesterdayDate.setDate(yesterdayDate.getDate() - 1)
     const yesterdayValue = yesterdayDate.toISOString().slice(0, 10)
@@ -335,7 +335,7 @@ describe('ActiveSessionScreen — date selector', () => {
       <StoreWrapper>
         <ActiveSessionScreen
           navigate={vi.fn()}
-          routineId={STRENGTH_ROUTINE.id}
+          commitmentId={STRENGTH_COMMITMENT.id}
           sessionDate={yesterdayValue}
         />
       </StoreWrapper>,

@@ -18,16 +18,17 @@ import {
   useState,
 } from 'react'
 import type { ReactNode } from 'react'
-import type { AppState, Routine, Session } from '../domain/types'
+import type { AppState, Commitment, Session } from '../domain/types'
 
 // ─── Storage key ──────────────────────────────────────────────────────────────
 
-export const STORAGE_KEY = 'keep-it-up:state'
+/** New key for v0.3. Old data under 'keep-it-up:state' is not loaded. */
+export const STORAGE_KEY = 'keep-it-up:v3:state'
 
 // ─── Empty / default state ────────────────────────────────────────────────────
 
 export const EMPTY_STATE: AppState = {
-  routines: [],
+  commitments: [],
   sessions: [],
 }
 
@@ -48,7 +49,7 @@ export function loadState(): AppState {
     if (
       typeof parsed !== 'object' ||
       parsed === null ||
-      !Array.isArray((parsed as Record<string, unknown>)['routines']) ||
+      !Array.isArray((parsed as Record<string, unknown>)['commitments']) ||
       !Array.isArray((parsed as Record<string, unknown>)['sessions'])
     ) {
       return EMPTY_STATE
@@ -79,21 +80,21 @@ export interface AppStore {
   state: AppState
 
   /**
-   * Add a new routine.
+   * Add a new commitment.
    * The caller is responsible for supplying a unique `id` (e.g. crypto.randomUUID()).
    */
-  addRoutine: (routine: Routine) => void
+  addCommitment: (commitment: Commitment) => void
 
   /**
-   * Replace an existing routine by id.
-   * Does nothing if no routine with the given id exists.
+   * Replace an existing commitment by id.
+   * Does nothing if no commitment with the given id exists.
    */
-  updateRoutine: (routine: Routine) => void
+  updateCommitment: (commitment: Commitment) => void
 
   /**
-   * Remove a routine and all sessions that belong to it.
+   * Remove a commitment and all sessions that belong to it.
    */
-  deleteRoutine: (routineId: string) => void
+  deleteCommitment: (commitmentId: string) => void
 
   /**
    * Append a completed session.
@@ -127,24 +128,24 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     saveState(state)
   }, [state])
 
-  const addRoutine = useCallback((routine: Routine) => {
+  const addCommitment = useCallback((commitment: Commitment) => {
     setState((prev) => ({
       ...prev,
-      routines: [...prev.routines, routine],
+      commitments: [...prev.commitments, commitment],
     }))
   }, [])
 
-  const updateRoutine = useCallback((routine: Routine) => {
+  const updateCommitment = useCallback((commitment: Commitment) => {
     setState((prev) => ({
       ...prev,
-      routines: prev.routines.map((r) => (r.id === routine.id ? routine : r)),
+      commitments: prev.commitments.map((c) => (c.id === commitment.id ? commitment : c)),
     }))
   }, [])
 
-  const deleteRoutine = useCallback((routineId: string) => {
+  const deleteCommitment = useCallback((commitmentId: string) => {
     setState((prev) => ({
-      routines: prev.routines.filter((r) => r.id !== routineId),
-      sessions: prev.sessions.filter((s) => s.routineId !== routineId),
+      commitments: prev.commitments.filter((c) => c.id !== commitmentId),
+      sessions: prev.sessions.filter((s) => s.commitmentId !== commitmentId),
     }))
   }, [])
 
@@ -170,8 +171,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const store = useMemo<AppStore>(
-    () => ({ state, addRoutine, updateRoutine, deleteRoutine, addSession, deleteSession, updateSession }),
-    [state, addRoutine, updateRoutine, deleteRoutine, addSession, deleteSession, updateSession],
+    () => ({ state, addCommitment, updateCommitment, deleteCommitment, addSession, deleteSession, updateSession }),
+    [state, addCommitment, updateCommitment, deleteCommitment, addSession, deleteSession, updateSession],
   )
 
   return (
