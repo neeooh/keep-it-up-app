@@ -128,17 +128,18 @@ describe('DashboardScreen — activity cards', () => {
     expect(screen.getByTestId('activity-card-act-bench')).toBeInTheDocument()
   })
 
-  it('shows tappable card for incomplete activities', () => {
+  it('shows Done button for incomplete activities', () => {
     setup()
-    const card = screen.getByTestId(`activity-card-act-bench`)
-    expect(card.getAttribute('role')).toBe('button')
+    const doneBtn = screen.getByTestId(`done-button-${STRENGTH_COMMITMENT.id}`)
+    expect(doneBtn).toBeInTheDocument()
   })
 
-  it('calls onStartSession with the correct commitment ID', async () => {
+  it('tapping Done creates a session', async () => {
     const user = userEvent.setup()
-    const { onStartSession } = setup()
-    await user.click(screen.getByTestId(`activity-card-act-bench`))
-    expect(onStartSession).toHaveBeenCalledWith(STRENGTH_COMMITMENT.id)
+    setup()
+    await user.click(screen.getByTestId(`done-button-${STRENGTH_COMMITMENT.id}`))
+    // Card should now show as completed
+    expect(screen.getByTestId('completed-badge-act-bench')).toBeInTheDocument()
   })
 })
 
@@ -248,11 +249,10 @@ describe('DashboardScreen — multiple commitments', () => {
     ).toBeInTheDocument()
   })
 
-  it('calls onStartSession with the correct ID for each commitment', async () => {
-    const user = userEvent.setup()
-    const { onStartSession } = setupMulti()
-    await user.click(screen.getByTestId(`activity-card-act-run`))
-    expect(onStartSession).toHaveBeenCalledWith(RUNNING_COMMITMENT.id)
+  it('shows Done button for each commitment', () => {
+    setupMulti()
+    expect(screen.getByTestId(`done-button-${STRENGTH_COMMITMENT.id}`)).toBeInTheDocument()
+    expect(screen.getByTestId(`done-button-${RUNNING_COMMITMENT.id}`)).toBeInTheDocument()
   })
 })
 
@@ -277,8 +277,8 @@ describe('DashboardScreen — no analytics sections', () => {
   })
 })
 
-describe('DashboardScreen — remind button', () => {
-  it('shows overflow menu button for incomplete activities', () => {
+describe('DashboardScreen — done button for incomplete activities', () => {
+  it('shows Done button for DO activities', () => {
     seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
@@ -288,12 +288,11 @@ describe('DashboardScreen — remind button', () => {
         />
       </StoreWrapper>,
     )
-    expect(screen.getByTestId(`remind-button-${STRENGTH_COMMITMENT.id}`)).toBeInTheDocument()
+    expect(screen.getByTestId(`done-button-${STRENGTH_COMMITMENT.id}`)).toBeInTheDocument()
   })
 
-  it('opens remind menu on click', async () => {
-    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [] })
-    const user = userEvent.setup()
+  it('shows On track / Slipped for AVOID activities', () => {
+    seedStore({ commitments: [AVOID_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
         <DashboardScreen
@@ -302,14 +301,11 @@ describe('DashboardScreen — remind button', () => {
         />
       </StoreWrapper>,
     )
-    await user.click(screen.getByTestId(`remind-button-${STRENGTH_COMMITMENT.id}`))
-    expect(screen.getByTestId(`remind-menu-${STRENGTH_COMMITMENT.id}`)).toBeInTheDocument()
-    expect(screen.getByText('15 min')).toBeInTheDocument()
-    expect(screen.getByText('1 hour')).toBeInTheDocument()
-    expect(screen.getByText('This evening')).toBeInTheDocument()
+    expect(screen.getByTestId(`done-button-${AVOID_COMMITMENT.id}`)).toHaveTextContent('On track')
+    expect(screen.getByTestId(`slipped-button-${AVOID_COMMITMENT.id}`)).toBeInTheDocument()
   })
 
-  it('does not show remind button for completed activities', () => {
+  it('does not show Done button for completed activities', () => {
     const nowIso = new Date().toISOString()
     const sessions = [
       makeStrengthSession(STRENGTH_COMMITMENT.id, 'act-bench', nowIso, 60, 8),
@@ -323,22 +319,7 @@ describe('DashboardScreen — remind button', () => {
         />
       </StoreWrapper>,
     )
-    expect(screen.queryByTestId(`remind-button-${STRENGTH_COMMITMENT.id}`)).not.toBeInTheDocument()
-  })
-
-  it('overflow menu button is inside the tappable card', () => {
-    seedStore({ commitments: [STRENGTH_COMMITMENT], sessions: [] })
-    render(
-      <StoreWrapper>
-        <DashboardScreen
-          navigate={vi.fn()}
-          onStartSession={vi.fn()}
-        />
-      </StoreWrapper>,
-    )
-    const card = screen.getByTestId(`activity-card-act-bench`)
-    const remindBtn = screen.getByTestId(`remind-button-${STRENGTH_COMMITMENT.id}`)
-    expect(card.contains(remindBtn)).toBe(true)
+    expect(screen.queryByTestId(`done-button-${STRENGTH_COMMITMENT.id}`)).not.toBeInTheDocument()
   })
 })
 
@@ -554,8 +535,8 @@ describe('DashboardScreen — tomorrow preview', () => {
   })
 })
 
-describe('DashboardScreen — primary target subtitle', () => {
-  it('shows distance target for a DO activity with distance measurement', () => {
+describe('DashboardScreen — Log details link', () => {
+  it('shows Log details link for commitments with measurements', () => {
     seedStore({ commitments: [RUNNING_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
@@ -565,38 +546,26 @@ describe('DashboardScreen — primary target subtitle', () => {
         />
       </StoreWrapper>,
     )
-    // RUNNING_COMMITMENT has distance target 5 km (highest priority)
-    expect(screen.getByText('5 km target')).toBeInTheDocument()
+    expect(screen.getByTestId(`log-details-${RUNNING_COMMITMENT.id}`)).toBeInTheDocument()
   })
 
-  it('shows duration target for a DO activity with duration-only measurement', () => {
-    const durationOnlyRoutine: Commitment = {
-      id: 'commitment-meditation',
-      name: 'Meditation',
-      createdAt: daysAgo(10),
-      activities: [
-        {
-          id: 'act-meditate',
-          name: 'Meditate',
-          direction: 'DO',
-          measurements: [{ type: 'duration', unit: 'min', target: 20 }],
-          frequency: 'daily',
-        },
-      ],
-    }
-    seedStore({ commitments: [durationOnlyRoutine], sessions: [] })
+  it('calls onStartSession when Log details is clicked', async () => {
+    seedStore({ commitments: [RUNNING_COMMITMENT], sessions: [] })
+    const onStartSession = vi.fn()
+    const user = userEvent.setup()
     render(
       <StoreWrapper>
         <DashboardScreen
           navigate={vi.fn()}
-          onStartSession={vi.fn()}
+          onStartSession={onStartSession}
         />
       </StoreWrapper>,
     )
-    expect(screen.getByText('20 min target')).toBeInTheDocument()
+    await user.click(screen.getByTestId(`log-details-${RUNNING_COMMITMENT.id}`))
+    expect(onStartSession).toHaveBeenCalledWith(RUNNING_COMMITMENT.id)
   })
 
-  it('shows no subtitle for an AVOID activity', () => {
+  it('does not show Log details for AVOID commitments (no measurements)', () => {
     seedStore({ commitments: [AVOID_COMMITMENT], sessions: [] })
     render(
       <StoreWrapper>
@@ -606,41 +575,7 @@ describe('DashboardScreen — primary target subtitle', () => {
         />
       </StoreWrapper>,
     )
-    expect(screen.queryByText(/target/)).not.toBeInTheDocument()
-  })
-
-  it('shows exercise names for a multi-activity commitment', () => {
-    const multiRoutine: Commitment = {
-      id: 'commitment-multi',
-      name: 'Full Body',
-      createdAt: daysAgo(10),
-      activities: [
-        {
-          id: 'act-squat',
-          name: 'Squat',
-          direction: 'DO',
-          measurements: [{ type: 'sets', target: 3 }, { type: 'reps', target: 10 }],
-          frequency: '3x_week',
-        },
-        {
-          id: 'act-deadlift',
-          name: 'Deadlift',
-          direction: 'DO',
-          measurements: [{ type: 'sets', target: 3 }, { type: 'reps', target: 8 }],
-          frequency: '3x_week',
-        },
-      ],
-    }
-    seedStore({ commitments: [multiRoutine], sessions: [] })
-    render(
-      <StoreWrapper>
-        <DashboardScreen
-          navigate={vi.fn()}
-          onStartSession={vi.fn()}
-        />
-      </StoreWrapper>,
-    )
-    expect(screen.getByText('Squat, Deadlift')).toBeInTheDocument()
+    expect(screen.queryByTestId(`log-details-${AVOID_COMMITMENT.id}`)).not.toBeInTheDocument()
   })
 })
 

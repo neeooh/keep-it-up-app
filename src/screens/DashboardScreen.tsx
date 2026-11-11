@@ -14,8 +14,8 @@
  * Spec reference: docs/uiux-audits/v1.1-ui-ux-audit.md sections 1-7.
  */
 
-import { Plus, MoreHorizontal, Check, TrendingUp, TrendingDown, Settings } from 'lucide-react'
-import { useState } from 'react'
+import { Plus, Check, TrendingUp, TrendingDown, Settings } from 'lucide-react'
+
 import { Button } from '../components/ui/button'
 import { PageHeader } from '../components/PageHeader'
 import { SectionHeader } from '../components/SectionHeader'
@@ -232,24 +232,6 @@ function metricUnit(type: MeasurementType): string {
  * Priority: distance > quantity > duration > weight.
  * Returns null if no target is set.
  */
-function primaryTarget(activity: Activity): string | null {
-  const priority: MeasurementType[] = ['distance', 'quantity', 'duration', 'weight']
-
-  for (const type of priority) {
-    const m = activity.measurements.find((m) => m.type === type)
-    if (m?.target !== undefined) {
-      const unit = m.unit ?? metricUnit(type)
-      switch (type) {
-        case 'distance': return `${m.target} ${unit} target`
-        case 'quantity': return `${m.target}${unit ? ` ${unit}` : ''} target`
-        case 'duration': return `${m.target} ${unit} target`
-        case 'weight': return `${m.target} ${unit} target`
-      }
-    }
-  }
-  return null
-}
-
 // ─── Completed activity result helpers ────────────────────────────────────────
 
 interface CompletedResult {
@@ -339,27 +321,6 @@ function getCompletedResult(
   }
 
   return { measurements, delta }
-}
-
-// ─── Snooze options ───────────────────────────────────────────────────────────
-
-const SNOOZE_OPTIONS = [
-  { label: '15 min', minutes: 15 },
-  { label: '30 min', minutes: 30 },
-  { label: '45 min', minutes: 45 },
-  { label: '1 hour', minutes: 60 },
-  { label: '2 hours', minutes: 120 },
-  { label: '4 hours', minutes: 240 },
-  { label: 'This evening', minutes: -1 }, // special: calculated at runtime
-] as const
-
-/** Calculate minutes until 18:00 today, minimum 15 minutes. */
-function minutesUntilEvening(): number {
-  const now = new Date()
-  const evening = new Date(now)
-  evening.setHours(18, 0, 0, 0)
-  const diff = Math.round((evening.getTime() - now.getTime()) / 60_000)
-  return Math.max(15, diff)
 }
 
 // ─── Time-of-day grouping ─────────────────────────────────────────────────────
@@ -521,23 +482,10 @@ function CircularProgress({
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props) {
-  const { state } = useAppStore()
+  const { state, addSession } = useAppStore()
   const { commitments, sessions } = state
   const { preferences } = usePreferences()
-  const { permission, requestPermission, scheduleReminder, confirmation } = useNotification()
-  const [openSnooze, setOpenSnooze] = useState<string | null>(null)
-
-  async function handleSnooze(activityName: string, _activityId: string, minutes: number) {
-    let perm = permission
-    if (perm === 'default') {
-      perm = await requestPermission()
-    }
-    if (perm === 'granted') {
-      const delay = minutes === -1 ? minutesUntilEvening() : minutes
-      scheduleReminder(activityName, delay)
-    }
-    setOpenSnooze(null)
-  }
+  const { confirmation } = useNotification()
 
   if (commitments.length === 0) {
     return (
@@ -826,12 +774,8 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                   return (
                     <div
                       key={commitment.id}
-                      role="button"
-                      tabIndex={0}
                       data-testid={`activity-card-${primaryActivity.id}`}
-                      onClick={() => onStartSession(commitment.id)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onStartSession(commitment.id) } }}
-                      className="rounded-xl border border-border bg-card ring-1 ring-foreground/5 p-4 w-full text-left cursor-pointer hover:bg-surface-muted active:bg-surface-muted/80 transition-colors"
+                      className="rounded-xl border border-border bg-card ring-1 ring-foreground/5 p-4 w-full"
                     >
                       <div className="flex items-start gap-3">
                         <div className="flex items-center justify-center size-10 rounded-lg bg-brand/10 mt-0.5 shrink-0">
@@ -839,68 +783,94 @@ export function DashboardScreen({ navigate, onStartSession, onViewPath }: Props)
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold text-foreground leading-snug">{commitment.name}</p>
-                          {primaryActivity.description && !hasMultipleActivities && (
+                          {primaryActivity.instruction && !hasMultipleActivities && (
+                            <p className="text-xs text-muted-foreground mt-1">{primaryActivity.instruction}</p>
+                          )}
+                          {!primaryActivity.instruction && primaryActivity.description && !hasMultipleActivities && (
                             <p className="text-xs text-muted-foreground italic mt-1">{primaryActivity.description}</p>
                           )}
-                          {hasMultipleActivities ? (
+                          {hasMultipleActivities && (
                             <p className="text-sm text-muted-foreground mt-1">
                               {cardActivities.map((a) => a.name).join(', ')}
                             </p>
-                          ) : (
-                            (() => {
-                              if (primaryActivity.direction === 'AVOID') return null
-                              const target = primaryTarget(primaryActivity)
-                              if (!target) return null
-                              return (
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  {target}
-                                </p>
-                              )
-                            })()
+                          )}
+                          {/* Log details link for commitments with measurements */}
+                          {primaryActivity.measurements.length > 0 && (
+                            <button
+                              type="button"
+                              data-testid={`log-details-${commitment.id}`}
+                              onClick={() => onStartSession(commitment.id)}
+                              className="text-xs text-brand font-medium mt-2 hover:underline"
+                            >
+                              Log details
+                            </button>
                           )}
                         </div>
-                        <div
-                          className="relative shrink-0 -mr-2 -mt-1"
-                          onClick={(e) => e.stopPropagation()}
-                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation() }}
-                        >
-                          <button
-                            type="button"
-                            data-testid={`remind-button-${commitment.id}`}
-                            aria-label={`Options for ${commitment.name}`}
-                            onClick={() => setOpenSnooze(openSnooze === commitment.id ? null : commitment.id)}
-                            className="flex items-center justify-center size-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors"
-                          >
-                            <MoreHorizontal size={18} aria-hidden="true" />
-                          </button>
-                          {openSnooze === commitment.id && (
-                            <div
-                              data-testid={`remind-menu-${commitment.id}`}
-                              className="absolute right-0 top-full mt-1 z-10 w-44 rounded-lg border border-border bg-card p-1 shadow-lg ring-1 ring-foreground/5"
+
+                        {/* Done button / AVOID actions */}
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          {primaryActivity.direction === 'AVOID' ? (
+                            <>
+                              <button
+                                type="button"
+                                data-testid={`done-button-${commitment.id}`}
+                                onClick={() => {
+                                  addSession({
+                                    id: crypto.randomUUID(),
+                                    commitmentId: commitment.id,
+                                    completedAt: new Date().toISOString(),
+                                    results: commitment.activities.map((a) => ({
+                                      activityId: a.id,
+                                      measurements: {},
+                                      stayedOnTrack: true,
+                                    })),
+                                  })
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-3 py-1.5 text-xs font-medium text-success hover:bg-success/25 transition-colors"
+                              >
+                                <Check size={14} aria-hidden="true" />
+                                On track
+                              </button>
+                              <button
+                                type="button"
+                                data-testid={`slipped-button-${commitment.id}`}
+                                onClick={() => {
+                                  addSession({
+                                    id: crypto.randomUUID(),
+                                    commitmentId: commitment.id,
+                                    completedAt: new Date().toISOString(),
+                                    results: commitment.activities.map((a) => ({
+                                      activityId: a.id,
+                                      measurements: {},
+                                      stayedOnTrack: false,
+                                    })),
+                                  })
+                                }}
+                                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                Slipped
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              data-testid={`done-button-${commitment.id}`}
+                              aria-label={`Mark ${commitment.name} as done`}
+                              onClick={() => {
+                                addSession({
+                                  id: crypto.randomUUID(),
+                                  commitmentId: commitment.id,
+                                  completedAt: new Date().toISOString(),
+                                  results: commitment.activities.map((a) => ({
+                                    activityId: a.id,
+                                    measurements: {},
+                                  })),
+                                })
+                              }}
+                              className="flex items-center justify-center size-11 rounded-full border-2 border-brand text-brand hover:bg-brand hover:text-white transition-colors"
                             >
-                              <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground">Remind me</p>
-                              {SNOOZE_OPTIONS.map((opt) => (
-                                <button
-                                  key={opt.label}
-                                  type="button"
-                                  data-testid={`remind-option-${opt.minutes}`}
-                                  onClick={() => handleSnooze(commitment.name, commitment.id, opt.minutes)}
-                                  className="flex w-full items-center rounded-md px-3 py-2 text-sm text-foreground hover:bg-surface-muted transition-colors"
-                                >
-                                  {opt.label}
-                                </button>
-                              ))}
-                              {permission === 'denied' && (
-                                <p className="px-3 py-2 text-xs text-destructive">
-                                  Notifications are blocked. Enable them in your browser settings.
-                                </p>
-                              )}
-                              {permission === 'unsupported' && (
-                                <p className="px-3 py-2 text-xs text-muted-foreground">
-                                  Notifications are not supported in this browser.
-                                </p>
-                              )}
-                            </div>
+                              <Check size={20} aria-hidden="true" />
+                            </button>
                           )}
                         </div>
                       </div>
